@@ -23,7 +23,7 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: CONTROLLER_WIDTH,
-    height: workArea.height,
+    height: Math.floor(workArea.height * 0.9),
     x: workArea.x,
     y: workArea.y,
     resizable: true,
@@ -181,6 +181,19 @@ function registerIPC() {
     ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
       windowManager.setHideAvailable(isHidden);
       persistence.save(windowManager.getState());
+      return { success: true };
+    });
+
+    ipcMain.handle('resize-app', async (event, width, height) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const currentBounds = mainWindow.getBounds();
+        mainWindow.setBounds({
+          x: currentBounds.x,
+          y: currentBounds.y,
+          width: width || currentBounds.width,
+          height: height || currentBounds.height
+        });
+      }
       return { success: true };
     });
   });

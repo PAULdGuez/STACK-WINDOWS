@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Config toggles
   updateStackName: (name) => ipcRenderer.invoke('update-stack-name', name),
   toggleAvailableVisibility: (isHidden) => ipcRenderer.invoke('toggle-available-visibility', isHidden),
+  resizeApp: (width, height) => ipcRenderer.invoke('resize-app', width, height),
 
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
