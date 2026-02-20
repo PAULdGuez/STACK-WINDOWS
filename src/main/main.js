@@ -123,7 +123,8 @@ function registerIPC() {
         windows: windowManager.getManagedWindows(),
         activeHwnd: windowManager.getActiveHwnd(),
         stackName: windowManager.stackName,
-        hideAvailable: windowManager.hideAvailable
+        hideAvailable: windowManager.hideAvailable,
+        ...windowManager.getCustomDimensions()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
