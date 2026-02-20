@@ -433,13 +433,10 @@
       }
     }
 
-    let expandedHeight = window.innerHeight;
-
     // Toggle Visibility Logic
     async function toggleAvailableVisibility(forceState = null) {
       const listEl = document.getElementById('availableList');
       const btn = document.getElementById('toggleAvailableBtn');
-      const previousState = isAvailableHidden;
 
       if (forceState !== null) {
         isAvailableHidden = forceState;
@@ -448,45 +445,8 @@
       }
 
       if (isAvailableHidden) {
-        if (!previousState) expandedHeight = window.innerHeight;
-
         listEl.classList.add('hidden');
         btn.textContent = 'Show';
-
-        // Calculate needed height when contracted
-        setTimeout(async () => {
-          const h1 = document.querySelector('.header')?.offsetHeight || 0;
-          const h2 = document.querySelector('.status-bar')?.offsetHeight || 0;
-          const sections = document.querySelectorAll('.section');
-
-          let managedHeader = 0;
-          let availableHeader = 0;
-
-          if (sections.length > 0) {
-            managedHeader = sections[0].querySelector('.section-header')?.offsetHeight || 0;
-          }
-          if (sections.length > 1) {
-            availableHeader = sections[1].querySelector('.section-header')?.offsetHeight || 0;
-          }
-
-          let listHeight = 0;
-          const managedListContainer = document.getElementById('managedList');
-          if (managedListContainer) {
-            for (let child of managedListContainer.children) {
-              listHeight += child.offsetHeight;
-            }
-          }
-
-          const divider = document.querySelector('.divider')?.offsetHeight || 0;
-
-          // Compute exact physical height required (with ~40px of OS padding frame)
-          let targetHeight = h1 + h2 + managedHeader + listHeight + divider + availableHeader + 40;
-
-          if (window.electronAPI.resizeApp && forceState === null) {
-            await window.electronAPI.resizeApp(null, targetHeight);
-          }
-        }, 50);
-
       } else {
         listEl.classList.remove('hidden');
         btn.textContent = 'Hide';
@@ -495,11 +455,6 @@
         const sectionContainer = listEl.closest('.section');
         if (sectionContainer) {
           sectionContainer.style.flex = '1';
-        }
-
-        if (window.electronAPI.resizeApp && forceState === null) {
-          // Restore to previous height
-          await window.electronAPI.resizeApp(null, expandedHeight > 400 ? expandedHeight : 800);
         }
       }
 
