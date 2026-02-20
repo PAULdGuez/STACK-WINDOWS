@@ -28,6 +28,7 @@ const api = {
   IsWindowVisible: user32.func('BOOL IsWindowVisible(size_t hWnd)'),
   IsWindow: user32.func('BOOL IsWindow(size_t hWnd)'),
   IsIconic: user32.func('BOOL IsIconic(size_t hWnd)'),
+  IsZoomed: user32.func('BOOL IsZoomed(size_t hWnd)'),
   GetWindowRect: user32.func('BOOL GetWindowRect(size_t hWnd, _Out_ RECT *lpRect)'),
   SetWindowPos: user32.func('BOOL SetWindowPos(size_t hWnd, size_t hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags)'),
   ShowWindow: user32.func('BOOL ShowWindow(size_t hWnd, int nCmdShow)'),

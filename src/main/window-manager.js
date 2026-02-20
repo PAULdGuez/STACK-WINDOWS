@@ -272,7 +272,8 @@ class WindowManager {
       const y = workArea.y + stripIndex * HEADER_HEIGHT;
 
       try {
-        if (api.IsIconic(w.hwnd)) {
+        if (api.IsIconic(w.hwnd) || api.IsZoomed(w.hwnd)) {
+          // Restore minimized or maximized windows so SetWindowPos can position and resize them
           api.ShowWindow(w.hwnd, SW_RESTORE);
         }
 
@@ -299,7 +300,8 @@ class WindowManager {
       const activeHeight = effectiveHeight - (inactiveCount * HEADER_HEIGHT);
 
       try {
-        if (api.IsIconic(activeWindow.hwnd)) {
+        if (api.IsIconic(activeWindow.hwnd) || api.IsZoomed(activeWindow.hwnd)) {
+          // Restore minimized or maximized windows so SetWindowPos can position and resize them
           api.ShowWindow(activeWindow.hwnd, SW_RESTORE);
         }
 
