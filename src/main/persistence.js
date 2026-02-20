@@ -24,28 +24,31 @@ class Persistence {
   }
 
   /**
-   * Save the window group state.
-   * @param {Array} managedWindows - Array of window state objects
+   * Save the window group state and config.
+   * @param {Object} state - Object containing settings and windows
    */
-  save(managedWindows) {
+  save(state) {
     if (!this.filePath) return;
 
     try {
       const data = {
-        version: 1,
+        version: 2,
         savedAt: new Date().toISOString(),
-        windows: managedWindows
+        stackName: state.stackName || 'Managed Stack',
+        hideAvailable: !!state.hideAvailable,
+        bounds: state.bounds || null,
+        windows: state.windows || []
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
-      console.log(`Saved ${managedWindows.length} windows to persistence`);
+      console.log(`Saved ${data.windows.length} windows and config to persistence`);
     } catch (e) {
       console.error('Failed to save persistence:', e);
     }
   }
 
   /**
-   * Load the window group state.
-   * @returns {Array|null} Array of saved window objects, or null if no saved state
+   * Load the application state and window group.
+   * @returns {Object|null} State object, or null if no saved state
    */
   load() {
     if (!this.filePath) return null;
@@ -59,13 +62,29 @@ class Persistence {
       const raw = fs.readFileSync(this.filePath, 'utf-8');
       const data = JSON.parse(raw);
 
-      if (data.version !== 1 || !Array.isArray(data.windows)) {
+      // Support migration from version 1
+      if (data.version === 1 && Array.isArray(data.windows)) {
+        console.log('Migrating persistence from version 1 to 2');
+        return {
+          stackName: 'Managed Stack',
+          hideAvailable: false,
+          bounds: null,
+          windows: data.windows
+        };
+      }
+
+      if (data.version !== 2 || !Array.isArray(data.windows)) {
         console.log('Invalid persistence format');
         return null;
       }
 
-      console.log(`Loaded ${data.windows.length} windows from persistence (saved at ${data.savedAt})`);
-      return data.windows;
+      console.log(`Loaded ${data.windows.length} windows and config from persistence (saved at ${data.savedAt})`);
+      return {
+        stackName: data.stackName,
+        hideAvailable: data.hideAvailable,
+        bounds: data.bounds,
+        windows: data.windows
+      };
     } catch (e) {
       console.error('Failed to load persistence:', e);
       return null;

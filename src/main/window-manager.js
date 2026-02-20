@@ -17,6 +17,8 @@ class WindowManager {
     this.managedWindows = [];
     this.activeHwnd = 0; // Explicitly track active window rather than relying on index 0
     this.ownPid = process.pid;
+    this.stackName = 'Managed Stack';
+    this.hideAvailable = false;
   }
 
   /**
@@ -223,8 +225,12 @@ class WindowManager {
     if (this.managedWindows.length === 0) return;
 
     const workArea = screenBounds || { x: 0, y: 0, width: 1920, height: 1040 };
-    const startX = workArea.x + CONTROLLER_WIDTH;
-    const availableWidth = workArea.width - CONTROLLER_WIDTH;
+    // The starting X of the stack is the entire width of the controller window
+    const startX = workArea.x + workArea.width;
+
+    // We assume the total width available on screen is what remains
+    const primaryDisplay = require('electron').screen.getPrimaryDisplay();
+    const availableWidth = primaryDisplay.workArea.width - workArea.width;
     const availableHeight = workArea.height;
 
     // Determine the active window
@@ -330,22 +336,32 @@ class WindowManager {
   }
 
   /**
-   * Get serializable state for persistence.
+   * Get serializable state for persistence (version 2 compatible shape in main).
    */
   getState() {
-    return this.managedWindows.map(w => ({
-      hwnd: w.hwnd,
-      title: w.title,
-      processId: w.processId,
-      originalRect: w.originalRect
-    }));
+    return {
+      stackName: this.stackName,
+      hideAvailable: this.hideAvailable,
+      windows: this.managedWindows.map(w => ({
+        hwnd: w.hwnd,
+        title: w.title,
+        processId: w.processId,
+        originalRect: w.originalRect
+      }))
+    };
   }
 
   /**
    * Load state from persistence. Tries to reconnect to existing windows.
    */
-  loadState(savedWindows) {
-    if (!Array.isArray(savedWindows)) return;
+  loadState(savedState) {
+    if (!savedState) return;
+
+    // Support either direct array (version 1) or config object (version 2)
+    const savedWindows = Array.isArray(savedState) ? savedState : (savedState.windows || []);
+
+    if (savedState.stackName) this.stackName = savedState.stackName;
+    if (savedState.hideAvailable !== undefined) this.hideAvailable = savedState.hideAvailable;
 
     for (const saved of savedWindows) {
       try {
@@ -381,6 +397,14 @@ class WindowManager {
     if (this.managedWindows.length > 0) {
       this.activeHwnd = this.managedWindows[0].hwnd;
     }
+  }
+
+  setStackName(name) {
+    this.stackName = name || 'Managed Stack';
+  }
+
+  setHideAvailable(hide) {
+    this.hideAvailable = !!hide;
   }
 }
 

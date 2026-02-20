@@ -199,12 +199,35 @@
       height: 1px;
       background: #333;
     }
+
+    .hidden {
+      display: none !important;
+    }
+
+    h1[contenteditable="true"] {
+      outline: none;
+      padding: 2px 4px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      margin-left: -4px;
+      transition: all 0.2s;
+    }
+
+    h1[contenteditable="true"]:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    h1[contenteditable="true"]:focus {
+      background: #222;
+      border-color: #555;
+      cursor: text;
+    }
   </style>
 </head>
 
 <body>
   <div class="header">
-    <h1>STACK WINDOWS</h1>
+    <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div class="subtitle">Spatial Window Organizer</div>
   </div>
 
@@ -227,7 +250,10 @@
   <div class="section" style="flex: 1;">
     <div class="section-header">
       <span>Available Windows</span>
-      <button onclick="refreshAvailable()">Refresh</button>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="refreshAvailable()">Refresh</button>
+        <button id="toggleAvailableBtn" onclick="toggleAvailableVisibility()">Hide</button>
+      </div>
     </div>
     <div class="window-list" id="availableList"></div>
   </div>
@@ -236,6 +262,62 @@
     let availableWindows = [];
     let managedWindows = [];
     let activeHwnd = 0;
+
+    let isAvailableHidden = false;
+
+    // Title editing logic
+    const stackTitle = document.getElementById('stackTitle');
+
+    stackTitle.addEventListener('blur', () => {
+      saveStackTitle();
+    });
+
+    stackTitle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        stackTitle.blur();
+      }
+    });
+
+    async function saveStackTitle() {
+      const newName = stackTitle.textContent.trim() || 'Managed Stack';
+      stackTitle.textContent = newName.toUpperCase();
+      try {
+        if (window.electronAPI.updateStackName) {
+          await window.electronAPI.updateStackName(newName);
+        }
+      } catch (e) {
+        console.error('Failed to save stack name', e);
+      }
+    }
+
+    // Toggle Visibility Logic
+    async function toggleAvailableVisibility(forceState = null) {
+      const listEl = document.getElementById('availableList');
+      const btn = document.getElementById('toggleAvailableBtn');
+
+      if (forceState !== null) {
+        isAvailableHidden = forceState;
+      } else {
+        isAvailableHidden = !isAvailableHidden;
+      }
+
+      if (isAvailableHidden) {
+        listEl.classList.add('hidden');
+        btn.textContent = 'Show';
+      } else {
+        listEl.classList.remove('hidden');
+        btn.textContent = 'Hide';
+      }
+
+      try {
+        if (window.electronAPI.toggleAvailableVisibility && forceState === null) {
+          await window.electronAPI.toggleAvailableVisibility(isAvailableHidden);
+        }
+      } catch (e) {
+        console.error('Failed to toggle visibility', e);
+      }
+    }
 
     /**
      * Render the managed stack — READ-ONLY status display.
@@ -394,6 +476,17 @@
       if (data.managed) {
         managedWindows = data.managed;
         activeHwnd = data.activeHwnd || 0;
+
+        // Update Title if changed externally
+        if (data.stackName && stackTitle.textContent !== data.stackName.toUpperCase()) {
+          stackTitle.textContent = data.stackName.toUpperCase();
+        }
+
+        // Ensure visibility state is correct on load
+        if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
+          toggleAvailableVisibility(data.hideAvailable);
+        }
+
         renderManaged();
       }
     });

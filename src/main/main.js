@@ -26,7 +26,9 @@ function createWindow() {
     height: workArea.height,
     x: workArea.x,
     y: workArea.y,
-    resizable: false,
+    resizable: true,
+    minWidth: 250,
+    minHeight: 200,
     alwaysOnTop: true,
     autoHideMenuBar: true,
     frame: true,
@@ -41,6 +43,13 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
+  mainWindow.on('resize', () => {
+    doLayout();
+    if (saveTimer) {
+      persistence.save(windowManager.getState());
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -50,18 +59,22 @@ function sendStateUpdate() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('state-update', {
       managed: windowManager.getManagedWindows(),
-      activeHwnd: windowManager.getActiveHwnd()
+      activeHwnd: windowManager.getActiveHwnd(),
+      stackName: windowManager.stackName,
+      hideAvailable: windowManager.hideAvailable
     });
   }
 }
 
 function doLayout() {
-  const workArea = getWorkArea();
+  if (!mainWindow) return;
+  const bounds = mainWindow.getBounds();
+
   windowManager.layoutStack({
-    x: workArea.x,
-    y: workArea.y,
-    width: workArea.width,
-    height: workArea.height
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height
   });
 }
 
@@ -159,6 +172,17 @@ function registerIPC() {
       console.error('refresh error:', e);
       return [];
     }
+    ipcMain.handle('update-stack-name', async (event, name) => {
+      windowManager.setStackName(name);
+      persistence.save(windowManager.getState());
+      return { success: true };
+    });
+
+    ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
+      windowManager.setHideAvailable(isHidden);
+      persistence.save(windowManager.getState());
+      return { success: true };
+    });
   });
 }
 
@@ -172,9 +196,13 @@ app.whenReady().then(() => {
 
   // Load saved state and try to reconnect to windows
   const savedState = persistence.load();
-  if (savedState && savedState.length > 0) {
-    console.log('Restoring saved window group...');
+  if (savedState) {
+    console.log('Restoring saved window group configuration...');
     windowManager.loadState(savedState);
+
+    if (savedState.bounds && savedState.bounds.width && savedState.bounds.height) {
+      mainWindow.setBounds(savedState.bounds);
+    }
 
     if (windowManager.managedWindows.length > 0) {
       console.log(`Reconnected to ${windowManager.managedWindows.length} windows`);

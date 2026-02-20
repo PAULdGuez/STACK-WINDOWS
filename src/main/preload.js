@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Refresh available windows list
   refresh: () => ipcRenderer.invoke('refresh'),
 
+  // Config toggles
+  updateStackName: (name) => ipcRenderer.invoke('update-stack-name', name),
+  toggleAvailableVisibility: (isHidden) => ipcRenderer.invoke('toggle-available-visibility', isHidden),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
     ipcRenderer.on('state-update', (event, data) => callback(data));
