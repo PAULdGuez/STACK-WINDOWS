@@ -394,6 +394,18 @@ class WindowManager {
     if (savedState.stackName) this.stackName = savedState.stackName;
     if (savedState.hideAvailable !== undefined) this.hideAvailable = savedState.hideAvailable;
 
+    // Restore custom dimensions if present, applying the same minimum clamp of 200
+    if (savedState.customWidth !== null && savedState.customWidth !== undefined) {
+      this.customWidth = Math.max(200, Number(savedState.customWidth));
+    } else {
+      this.customWidth = null;
+    }
+    if (savedState.customHeight !== null && savedState.customHeight !== undefined) {
+      this.customHeight = Math.max(200, Number(savedState.customHeight));
+    } else {
+      this.customHeight = null;
+    }
+
     for (const saved of savedWindows) {
       try {
         const hwndNum = Number(saved.hwnd);
