@@ -347,6 +347,12 @@
         listEl.classList.remove('hidden');
         btn.textContent = 'Hide';
 
+        // Restore flex so it fills the screen cleanly
+        const sectionContainer = listEl.closest('.section');
+        if (sectionContainer) {
+          sectionContainer.style.flex = '1';
+        }
+
         if (window.electronAPI.resizeApp && forceState === null) {
           // Restore to previous height
           await window.electronAPI.resizeApp(null, expandedHeight > 400 ? expandedHeight : 800);
