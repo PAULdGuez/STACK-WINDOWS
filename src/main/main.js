@@ -69,12 +69,13 @@ function sendStateUpdate() {
 function doLayout() {
   if (!mainWindow) return;
   const bounds = mainWindow.getBounds();
+  const workArea = getWorkArea();
 
   windowManager.layoutStack({
     x: bounds.x,
-    y: bounds.y,
+    y: workArea.y,
     width: bounds.width,
-    height: bounds.height
+    height: workArea.height
   });
 }
 

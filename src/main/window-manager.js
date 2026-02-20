@@ -230,7 +230,8 @@ class WindowManager {
 
     // We assume the total width available on screen is what remains
     const primaryDisplay = require('electron').screen.getPrimaryDisplay();
-    const availableWidth = primaryDisplay.workArea.width - workArea.width;
+    const screenRightEdge = primaryDisplay.workArea.x + primaryDisplay.workArea.width;
+    const availableWidth = screenRightEdge - startX;
     const availableHeight = workArea.height;
 
     // Determine the active window
@@ -286,7 +287,7 @@ class WindowManager {
           activeY,
           availableWidth,
           activeHeight > 100 ? activeHeight : availableHeight,
-          SWP_SHOWWINDOW
+          SWP_SHOWWINDOW | SWP_NOACTIVATE
         );
       } catch (e) {
         console.error(`Failed to position active window ${activeWindow.hwnd}:`, e);
