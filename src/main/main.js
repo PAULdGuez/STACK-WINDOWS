@@ -114,7 +114,9 @@ function registerIPC() {
     try {
       return {
         windows: windowManager.getManagedWindows(),
-        activeHwnd: windowManager.getActiveHwnd()
+        activeHwnd: windowManager.getActiveHwnd(),
+        stackName: windowManager.stackName,
+        hideAvailable: windowManager.hideAvailable
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);

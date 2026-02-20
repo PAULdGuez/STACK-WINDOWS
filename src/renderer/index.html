@@ -234,7 +234,7 @@
   <!-- Managed Windows Section (read-only status) -->
   <div class="section" style="flex: 1;">
     <div class="section-header">
-      <span>Managed Stack</span>
+      <span id="managedSubtitle">MANAGED STACK</span>
       <span id="managedCount">0</span>
     </div>
     <div class="window-list" id="managedList"></div>
@@ -263,6 +263,7 @@
 
     // Title editing logic
     const stackTitle = document.getElementById('stackTitle');
+    const managedSubtitle = document.getElementById('managedSubtitle');
 
     stackTitle.addEventListener('blur', () => {
       saveStackTitle();
@@ -278,6 +279,7 @@
     async function saveStackTitle() {
       const newName = stackTitle.textContent.trim() || 'Managed Stack';
       stackTitle.textContent = newName.toUpperCase();
+      if (managedSubtitle) managedSubtitle.textContent = newName.toUpperCase();
       try {
         if (window.electronAPI.updateStackName) {
           await window.electronAPI.updateStackName(newName);
@@ -309,16 +311,32 @@
 
         // Calculate needed height when contracted
         setTimeout(async () => {
-          const h1 = document.querySelector('.header').offsetHeight;
-          const h2 = document.querySelector('.status-bar').offsetHeight;
+          const h1 = document.querySelector('.header')?.offsetHeight || 0;
+          const h2 = document.querySelector('.status-bar')?.offsetHeight || 0;
           const sections = document.querySelectorAll('.section');
-          const managedHeader = sections[0].querySelector('.section-header').offsetHeight;
-          const managedList = document.getElementById('managedList').offsetHeight;
-          const divider = document.querySelector('.divider').offsetHeight;
-          const availableHeader = sections[1].querySelector('.section-header').offsetHeight;
+
+          let managedHeader = 0;
+          let availableHeader = 0;
+
+          if (sections.length > 0) {
+            managedHeader = sections[0].querySelector('.section-header')?.offsetHeight || 0;
+          }
+          if (sections.length > 1) {
+            availableHeader = sections[1].querySelector('.section-header')?.offsetHeight || 0;
+          }
+
+          let listHeight = 0;
+          const managedListContainer = document.getElementById('managedList');
+          if (managedListContainer) {
+            for (let child of managedListContainer.children) {
+              listHeight += child.offsetHeight;
+            }
+          }
+
+          const divider = document.querySelector('.divider')?.offsetHeight || 0;
 
           // Compute exact physical height required (with ~40px of OS padding frame)
-          let targetHeight = h1 + h2 + managedHeader + managedList + divider + availableHeader + 40;
+          let targetHeight = h1 + h2 + managedHeader + listHeight + divider + availableHeader + 40;
 
           if (window.electronAPI.resizeApp && forceState === null) {
             await window.electronAPI.resizeApp(null, targetHeight);
@@ -461,6 +479,17 @@
         const result = await window.electronAPI.getManagedWindows();
         managedWindows = result.windows || [];
         activeHwnd = result.activeHwnd || 0;
+
+        if (result.stackName) {
+          const upperName = result.stackName.toUpperCase();
+          if (stackTitle) stackTitle.textContent = upperName;
+          if (managedSubtitle) managedSubtitle.textContent = upperName;
+        }
+
+        if (result.hideAvailable !== undefined && result.hideAvailable !== isAvailableHidden) {
+          toggleAvailableVisibility(result.hideAvailable);
+        }
+
         renderManaged();
       } catch (e) {
         console.error('Failed to refresh managed:', e);
@@ -503,8 +532,14 @@
         activeHwnd = data.activeHwnd || 0;
 
         // Update Title if changed externally
-        if (data.stackName && stackTitle.textContent !== data.stackName.toUpperCase()) {
-          stackTitle.textContent = data.stackName.toUpperCase();
+        if (data.stackName) {
+          const upperName = data.stackName.toUpperCase();
+          if (stackTitle && stackTitle.textContent !== upperName) {
+            stackTitle.textContent = upperName;
+          }
+          if (managedSubtitle && managedSubtitle.textContent !== upperName) {
+            managedSubtitle.textContent = upperName;
+          }
         }
 
         // Ensure visibility state is correct on load
