@@ -221,7 +221,7 @@
 
       container.innerHTML = '';
       managedWindows.forEach((win, index) => {
-        const isActive = (index === 0);
+        const isActive = (win.hwnd === activeHwnd);
         const item = document.createElement('div');
         item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
 
@@ -237,7 +237,9 @@
         } else {
           const badge = document.createElement('span');
           badge.className = 'strip-badge';
-          badge.textContent = '▬ strip ' + index;
+          // Count the strip index relative to inactive windows
+          const bgIndex = managedWindows.filter(w => w.hwnd !== activeHwnd).findIndex(w => w.hwnd === win.hwnd);
+          badge.textContent = '▬ strip ' + bgIndex;
           title.appendChild(badge);
         }
 

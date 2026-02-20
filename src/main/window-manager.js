@@ -2,10 +2,10 @@
 
 const win32 = require('./win32');
 const { api, koffi, EnumWindowsProc, RECT,
-        SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE,
-        HWND_TOP, HWND_NOTOPMOST,
-        SW_RESTORE,
-        GWL_EXSTYLE, WS_EX_TOOLWINDOW } = win32;
+  SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE,
+  HWND_TOP, HWND_NOTOPMOST,
+  SW_RESTORE,
+  GWL_EXSTYLE, WS_EX_TOOLWINDOW } = win32;
 
 const CONTROLLER_WIDTH = 300;
 const HEADER_HEIGHT = 40;
@@ -13,8 +13,9 @@ const HEADER_HEIGHT = 40;
 class WindowManager {
   constructor() {
     // Array of managed windows: [{ hwnd, title, processId, originalRect }]
-    // Index 0 = active window (the one currently in foreground)
+    // Windows maintain their order here.
     this.managedWindows = [];
+    this.activeHwnd = 0; // Explicitly track active window rather than relying on index 0
     this.ownPid = process.pid;
   }
 
@@ -113,8 +114,11 @@ class WindowManager {
       }
     };
 
-    // Insert at front (active position)
+    // Insert at front
     this.managedWindows.unshift(entry);
+
+    // Set as the active window immediately
+    this.activeHwnd = hwndNum;
 
     if (api.IsIconic(hwndNum)) {
       api.ShowWindow(hwndNum, SW_RESTORE);
@@ -135,23 +139,27 @@ class WindowManager {
     const entry = this.managedWindows[idx];
     this.managedWindows.splice(idx, 1);
 
+    // Unset the activeHwnd if it was removed
+    if (this.activeHwnd === hwndNum) {
+      this.activeHwnd = this.managedWindows.length > 0 ? this.managedWindows[0].hwnd : 0;
+    }
+
     this._restoreWindow(entry);
   }
 
   /**
-   * Promote a window to active (index 0) because the OS reported it gained focus.
-   * Does NOT call SetForegroundWindow — the OS already did that.
-   * This is called by the ForegroundMonitor when it detects a managed window got focus.
-   * Returns true if the order actually changed.
+   * Promote a window to active because the OS reported it gained focus.
+   * Does NOT modify order.
+   * Returns true if the active window actually changed.
    */
   promoteToActive(hwnd) {
     const hwndNum = Number(hwnd);
     const idx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
     if (idx === -1) return false;
-    if (idx === 0) return false; // Already active
 
-    const [entry] = this.managedWindows.splice(idx, 1);
-    this.managedWindows.unshift(entry);
+    if (this.activeHwnd === hwndNum) return false; // Already active
+
+    this.activeHwnd = hwndNum;
 
     if (api.IsIconic(hwndNum)) {
       api.ShowWindow(hwndNum, SW_RESTORE);
@@ -165,13 +173,24 @@ class WindowManager {
    */
   removeDeadWindows() {
     const before = this.managedWindows.length;
+    let activeWindowStillAlive = false;
+
     this.managedWindows = this.managedWindows.filter(w => {
       try {
-        return api.IsWindow(w.hwnd) !== 0;
+        const alive = api.IsWindow(w.hwnd) !== 0;
+        if (alive && w.hwnd === this.activeHwnd) {
+          activeWindowStillAlive = true;
+        }
+        return alive;
       } catch {
         return false;
       }
     });
+
+    if (!activeWindowStillAlive) {
+      this.activeHwnd = this.managedWindows.length > 0 ? this.managedWindows[0].hwnd : 0;
+    }
+
     return this.managedWindows.length !== before;
   }
 
@@ -183,13 +202,14 @@ class WindowManager {
       this._restoreWindow(entry);
     }
     this.managedWindows = [];
+    this.activeHwnd = 0;
   }
 
   /**
    * Apply the spatial stack layout to all managed windows.
    *
-   * Background windows (index 1..N): preview strips at the top, each HEADER_HEIGHT px
-   * Active window (index 0): fills remaining area below the strips
+   * Background windows: preview strips at the top, each HEADER_HEIGHT px
+   * Active window (this.activeHwnd): fills remaining area below the strips
    *
    * All positioning is done via SetWindowPos — pure Win32.
    */
@@ -201,13 +221,19 @@ class WindowManager {
     const availableWidth = workArea.width - CONTROLLER_WIDTH;
     const availableHeight = workArea.height;
 
-    const inactiveCount = this.managedWindows.length - 1;
+    // Determine the active window
+    const activeIdx = this.managedWindows.findIndex(w => w.hwnd === this.activeHwnd);
+    const activeWindow = activeIdx !== -1 ? this.managedWindows[activeIdx] : this.managedWindows[0];
+    const trueActiveHwnd = activeWindow ? activeWindow.hwnd : 0;
+
+    const inactiveCount = this.managedWindows.length - (activeWindow ? 1 : 0);
 
     // Position background windows first (strips at top)
-    for (let i = 1; i < this.managedWindows.length; i++) {
-      const w = this.managedWindows[i];
-      const k = i - 1;
-      const y = workArea.y + k * HEADER_HEIGHT;
+    let stripIndex = 0;
+    for (const w of this.managedWindows) {
+      if (w.hwnd === trueActiveHwnd) continue; // Skip the active window
+
+      const y = workArea.y + stripIndex * HEADER_HEIGHT;
 
       try {
         if (api.IsIconic(w.hwnd)) {
@@ -227,29 +253,32 @@ class WindowManager {
       } catch (e) {
         console.error(`Failed to position background window ${w.hwnd}:`, e);
       }
+
+      stripIndex++;
     }
 
     // Position active window on top, covering background window bodies
-    const active = this.managedWindows[0];
-    const activeY = workArea.y + inactiveCount * HEADER_HEIGHT;
-    const activeHeight = availableHeight - (inactiveCount * HEADER_HEIGHT);
+    if (activeWindow) {
+      const activeY = workArea.y + inactiveCount * HEADER_HEIGHT;
+      const activeHeight = availableHeight - (inactiveCount * HEADER_HEIGHT);
 
-    try {
-      if (api.IsIconic(active.hwnd)) {
-        api.ShowWindow(active.hwnd, SW_RESTORE);
+      try {
+        if (api.IsIconic(activeWindow.hwnd)) {
+          api.ShowWindow(activeWindow.hwnd, SW_RESTORE);
+        }
+
+        api.SetWindowPos(
+          activeWindow.hwnd,
+          HWND_TOP,
+          startX,
+          activeY,
+          availableWidth,
+          activeHeight > 100 ? activeHeight : availableHeight,
+          SWP_SHOWWINDOW
+        );
+      } catch (e) {
+        console.error(`Failed to position active window ${activeWindow.hwnd}:`, e);
       }
-
-      api.SetWindowPos(
-        active.hwnd,
-        HWND_TOP,
-        startX,
-        activeY,
-        availableWidth,
-        activeHeight > 100 ? activeHeight : availableHeight,
-        SWP_SHOWWINDOW
-      );
-    } catch (e) {
-      console.error(`Failed to position active window ${active.hwnd}:`, e);
     }
   }
 
@@ -273,7 +302,7 @@ class WindowManager {
    * Get the HWND of the currently active (index 0) window, or 0 if none.
    */
   getActiveHwnd() {
-    return this.managedWindows.length > 0 ? this.managedWindows[0].hwnd : 0;
+    return this.activeHwnd;
   }
 
   /**
@@ -340,6 +369,11 @@ class WindowManager {
       } catch (e) {
         console.error(`Failed to restore window ${saved.title}:`, e);
       }
+    }
+
+    // Attempt to select the topmost window as active if available to prevent no active windows.
+    if (this.managedWindows.length > 0) {
+      this.activeHwnd = this.managedWindows[0].hwnd;
     }
   }
 }
