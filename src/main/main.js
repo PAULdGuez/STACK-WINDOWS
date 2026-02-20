@@ -59,11 +59,14 @@ function createWindow() {
 
 function sendStateUpdate() {
   if (mainWindow && !mainWindow.isDestroyed()) {
+    const dims = windowManager.getCustomDimensions();
     mainWindow.webContents.send('state-update', {
       managed: windowManager.getManagedWindows(),
       activeHwnd: windowManager.getActiveHwnd(),
       stackName: windowManager.stackName,
-      hideAvailable: windowManager.hideAvailable
+      hideAvailable: windowManager.hideAvailable,
+      customWidth: dims.customWidth,
+      customHeight: dims.customHeight
     });
   }
 }
@@ -204,6 +207,23 @@ function registerIPC() {
       });
     }
     return { success: true };
+  });
+
+  ipcMain.handle('set-custom-dimensions', async (event, width, height) => {
+    try {
+      windowManager.setCustomDimensions(width, height);
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-custom-dimensions error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('get-custom-dimensions', async () => {
+    return windowManager.getCustomDimensions();
   });
 }
 

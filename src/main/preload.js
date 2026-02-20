@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleAvailableVisibility: (isHidden) => ipcRenderer.invoke('toggle-available-visibility', isHidden),
   resizeApp: (width, height) => ipcRenderer.invoke('resize-app', width, height),
 
+  // Custom window dimensions
+  setCustomDimensions: (width, height) => ipcRenderer.invoke('set-custom-dimensions', width, height),
+  getCustomDimensions: () => ipcRenderer.invoke('get-custom-dimensions'),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
     ipcRenderer.on('state-update', (event, data) => callback(data));

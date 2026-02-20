@@ -238,6 +238,14 @@ class WindowManager {
     const availableWidth = displayRightEdge - startX;
     const availableHeight = workArea.height;
 
+    // Apply custom dimensions (clamped to available space so we never exceed the monitor)
+    const effectiveWidth = this.customWidth !== null
+      ? Math.min(this.customWidth, availableWidth)
+      : availableWidth;
+    const effectiveHeight = this.customHeight !== null
+      ? Math.min(this.customHeight, availableHeight)
+      : availableHeight;
+
     // Determine the active window
     const activeIdx = this.managedWindows.findIndex(w => w.hwnd === this.activeHwnd);
     const activeWindow = activeIdx !== -1 ? this.managedWindows[activeIdx] : this.managedWindows[0];
@@ -263,8 +271,8 @@ class WindowManager {
           HWND_TOP,
           startX,
           y,
-          availableWidth,
-          availableHeight,
+          effectiveWidth,
+          effectiveHeight,
           SWP_NOACTIVATE | SWP_SHOWWINDOW
         );
       } catch (e) {
@@ -277,7 +285,7 @@ class WindowManager {
     // Position active window on top, covering background window bodies
     if (activeWindow) {
       const activeY = workArea.y + inactiveCount * HEADER_HEIGHT;
-      const activeHeight = availableHeight - (inactiveCount * HEADER_HEIGHT);
+      const activeHeight = effectiveHeight - (inactiveCount * HEADER_HEIGHT);
 
       try {
         if (api.IsIconic(activeWindow.hwnd)) {
@@ -289,8 +297,8 @@ class WindowManager {
           HWND_TOP,
           startX,
           activeY,
-          availableWidth,
-          activeHeight > 100 ? activeHeight : availableHeight,
+          effectiveWidth,
+          activeHeight > 100 ? activeHeight : effectiveHeight,
           SWP_SHOWWINDOW | SWP_NOACTIVATE
         );
       } catch (e) {

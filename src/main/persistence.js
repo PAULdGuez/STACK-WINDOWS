@@ -36,6 +36,8 @@ class Persistence {
         savedAt: new Date().toISOString(),
         stackName: state.stackName || 'Managed Stack',
         hideAvailable: !!state.hideAvailable,
+        customWidth: state.customWidth || null,
+        customHeight: state.customHeight || null,
         bounds: state.bounds || null,
         windows: state.windows || []
       };
@@ -68,6 +70,8 @@ class Persistence {
         return {
           stackName: 'Managed Stack',
           hideAvailable: false,
+          customWidth: null,
+          customHeight: null,
           bounds: null,
           windows: data.windows
         };
@@ -82,6 +86,8 @@ class Persistence {
       return {
         stackName: data.stackName,
         hideAvailable: data.hideAvailable,
+        customWidth: data.customWidth || null,
+        customHeight: data.customHeight || null,
         bounds: data.bounds,
         windows: data.windows
       };
