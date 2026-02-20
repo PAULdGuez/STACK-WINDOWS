@@ -136,6 +136,22 @@ function registerIPC() {
     }
   });
 
+  ipcMain.handle('activate-window', async (event, hwnd) => {
+    try {
+      const changed = windowManager.promoteToActive(hwnd, true);
+      if (changed) {
+        syncMonitor();
+        doLayout();
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('activate-window error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   ipcMain.handle('refresh', async () => {
     try {
       return windowManager.getAvailableWindows();

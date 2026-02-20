@@ -150,9 +150,11 @@ class WindowManager {
   /**
    * Promote a window to active because the OS reported it gained focus.
    * Does NOT modify order.
+   * @param {number} hwnd - Window HANDLE
+   * @param {boolean} forceNativeForeground - If true, forcefully bring to front
    * Returns true if the active window actually changed.
    */
-  promoteToActive(hwnd) {
+  promoteToActive(hwnd, forceNativeForeground = false) {
     const hwndNum = Number(hwnd);
     const idx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
     if (idx === -1) return false;
@@ -163,6 +165,10 @@ class WindowManager {
 
     if (api.IsIconic(hwndNum)) {
       api.ShowWindow(hwndNum, SW_RESTORE);
+    }
+
+    if (forceNativeForeground) {
+      api.SetForegroundWindow(hwndNum);
     }
 
     return true;

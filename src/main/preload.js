@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove a window from the managed group
   removeWindow: (hwnd) => ipcRenderer.invoke('remove-window', hwnd),
 
+  // Activate an already managed window
+  activateWindow: (hwnd) => ipcRenderer.invoke('activate-window', hwnd),
+
   // Refresh available windows list
   refresh: () => ipcRenderer.invoke('refresh'),
 
