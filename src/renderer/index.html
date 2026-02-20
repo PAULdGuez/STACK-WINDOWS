@@ -222,6 +222,64 @@
       border-color: #555;
       cursor: text;
     }
+
+    .dimensions-section {
+      flex: none;
+    }
+
+    .dims-content {
+      padding: 8px 12px;
+    }
+
+    .dims-row {
+      margin-bottom: 8px;
+    }
+
+    .dims-label {
+      font-size: 11px;
+      color: #ccc;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dims-label input[type="checkbox"] {
+      accent-color: #4a4;
+    }
+
+    .dims-inputs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dims-field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .dims-input-label {
+      font-size: 9px;
+      color: #666;
+      letter-spacing: 1px;
+    }
+
+    .dims-content input[type="number"] {
+      background: #111;
+      border: 1px solid #444;
+      color: #fff;
+      font-size: 12px;
+      padding: 4px 6px;
+      width: 80px;
+      -webkit-app-region: no-drag;
+    }
+
+    .dims-content input[type="number"]:focus {
+      border-color: #888;
+      outline: none;
+    }
   </style>
 </head>
 
@@ -230,6 +288,36 @@
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
   </div>
 
+
+  <div class="section dimensions-section">
+    <div class="section-header">
+      <span>DIMENSIONS</span>
+      <button id="toggleDimsBtn" onclick="toggleDimensionsSection()">Show</button>
+    </div>
+    <div class="dims-content hidden" id="dimsContent">
+      <div class="dims-row">
+        <label class="dims-label">
+          <input type="checkbox" id="customSizeToggle" onchange="onCustomSizeToggle()">
+          <span>Custom size</span>
+        </label>
+      </div>
+      <div class="dims-row dims-inputs hidden" id="dimsInputs">
+        <div class="dims-field">
+          <label class="dims-input-label">WIDTH</label>
+          <input type="number" id="customWidthInput" min="200" step="10" placeholder="auto">
+        </div>
+        <div class="dims-field">
+          <label class="dims-input-label">HEIGHT</label>
+          <input type="number" id="customHeightInput" min="200" step="10" placeholder="auto">
+        </div>
+      </div>
+      <div class="dims-row dims-inputs hidden" id="dimsButtons">
+        <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
+        <button class="btn btn-remove" onclick="resetCustomDimensions()">Reset</button>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
 
   <!-- Managed Windows Section (read-only status) -->
   <div class="section" style="flex: 1;">
@@ -260,6 +348,62 @@
     let activeHwnd = 0;
 
     let isAvailableHidden = false;
+    let customSizeEnabled = false;
+
+    function toggleDimensionsSection() {
+      const content = document.getElementById('dimsContent');
+      const btn = document.getElementById('toggleDimsBtn');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        btn.textContent = 'Hide';
+      } else {
+        content.classList.add('hidden');
+        btn.textContent = 'Show';
+      }
+    }
+
+    function onCustomSizeToggle() {
+      const toggle = document.getElementById('customSizeToggle');
+      const inputs = document.getElementById('dimsInputs');
+      const buttons = document.getElementById('dimsButtons');
+      customSizeEnabled = toggle.checked;
+      if (customSizeEnabled) {
+        inputs.classList.remove('hidden');
+        buttons.classList.remove('hidden');
+      } else {
+        inputs.classList.add('hidden');
+        buttons.classList.add('hidden');
+        // Reset when unchecking
+        resetCustomDimensions();
+      }
+    }
+
+    async function applyCustomDimensions() {
+      const w = parseInt(document.getElementById('customWidthInput').value);
+      const h = parseInt(document.getElementById('customHeightInput').value);
+      if (!w || w < 200 || !h || h < 200) {
+        return; // Don't apply invalid values
+      }
+      try {
+        await window.electronAPI.setCustomDimensions(w, h);
+      } catch (e) {
+        console.error('Failed to set custom dimensions:', e);
+      }
+    }
+
+    async function resetCustomDimensions() {
+      try {
+        await window.electronAPI.setCustomDimensions(null, null);
+        document.getElementById('customWidthInput').value = '';
+        document.getElementById('customHeightInput').value = '';
+        document.getElementById('customSizeToggle').checked = false;
+        document.getElementById('dimsInputs').classList.add('hidden');
+        document.getElementById('dimsButtons').classList.add('hidden');
+        customSizeEnabled = false;
+      } catch (e) {
+        console.error('Failed to reset dimensions:', e);
+      }
+    }
 
     // Title editing logic
     const stackTitle = document.getElementById('stackTitle');
@@ -496,6 +640,23 @@
           toggleAvailableVisibility(result.hideAvailable);
         }
 
+        if (result.customWidth !== undefined || result.customHeight !== undefined) {
+          const toggle = document.getElementById('customSizeToggle');
+          const inputs = document.getElementById('dimsInputs');
+          const buttons = document.getElementById('dimsButtons');
+          const widthInput = document.getElementById('customWidthInput');
+          const heightInput = document.getElementById('customHeightInput');
+
+          if (result.customWidth !== null && result.customHeight !== null) {
+            customSizeEnabled = true;
+            toggle.checked = true;
+            inputs.classList.remove('hidden');
+            buttons.classList.remove('hidden');
+            widthInput.value = result.customWidth;
+            heightInput.value = result.customHeight;
+          }
+        }
+
         renderManaged();
       } catch (e) {
         console.error('Failed to refresh managed:', e);
@@ -551,6 +712,33 @@
         // Ensure visibility state is correct on load
         if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
           toggleAvailableVisibility(data.hideAvailable);
+        }
+
+        // Sync custom dimensions from state
+        if (data.customWidth !== undefined || data.customHeight !== undefined) {
+          const toggle = document.getElementById('customSizeToggle');
+          const inputs = document.getElementById('dimsInputs');
+          const buttons = document.getElementById('dimsButtons');
+          const widthInput = document.getElementById('customWidthInput');
+          const heightInput = document.getElementById('customHeightInput');
+
+          if (data.customWidth !== null && data.customHeight !== null) {
+            if (!customSizeEnabled) {
+              customSizeEnabled = true;
+              toggle.checked = true;
+              inputs.classList.remove('hidden');
+              buttons.classList.remove('hidden');
+            }
+            widthInput.value = data.customWidth;
+            heightInput.value = data.customHeight;
+          } else {
+            customSizeEnabled = false;
+            toggle.checked = false;
+            inputs.classList.add('hidden');
+            buttons.classList.add('hidden');
+            widthInput.value = '';
+            heightInput.value = '';
+          }
         }
 
         renderManaged();
