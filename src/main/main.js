@@ -28,7 +28,7 @@ function createWindow() {
     y: workArea.y,
     resizable: true,
     minWidth: 250,
-    minHeight: 200,
+    minHeight: 120,
     alwaysOnTop: true,
     autoHideMenuBar: true,
     frame: true,
@@ -173,30 +173,31 @@ function registerIPC() {
       console.error('refresh error:', e);
       return [];
     }
-    ipcMain.handle('update-stack-name', async (event, name) => {
-      windowManager.setStackName(name);
-      persistence.save(windowManager.getState());
-      return { success: true };
-    });
+  });
 
-    ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
-      windowManager.setHideAvailable(isHidden);
-      persistence.save(windowManager.getState());
-      return { success: true };
-    });
+  ipcMain.handle('update-stack-name', async (event, name) => {
+    windowManager.setStackName(name);
+    persistence.save(windowManager.getState());
+    return { success: true };
+  });
 
-    ipcMain.handle('resize-app', async (event, width, height) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        const currentBounds = mainWindow.getBounds();
-        mainWindow.setBounds({
-          x: currentBounds.x,
-          y: currentBounds.y,
-          width: width || currentBounds.width,
-          height: height || currentBounds.height
-        });
-      }
-      return { success: true };
-    });
+  ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
+    windowManager.setHideAvailable(isHidden);
+    persistence.save(windowManager.getState());
+    return { success: true };
+  });
+
+  ipcMain.handle('resize-app', async (event, width, height) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const currentBounds = mainWindow.getBounds();
+      mainWindow.setBounds({
+        x: currentBounds.x,
+        y: currentBounds.y,
+        width: width || currentBounds.width,
+        height: height || currentBounds.height
+      });
+    }
+    return { success: true };
   });
 }
 
