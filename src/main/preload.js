@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setCustomDimensions: (width, height) => ipcRenderer.invoke('set-custom-dimensions', width, height),
   getCustomDimensions: () => ipcRenderer.invoke('get-custom-dimensions'),
 
+  // Background color
+  setBackgroundColor: (color) => ipcRenderer.invoke('set-background-color', color),
+  getBackgroundColor: () => ipcRenderer.invoke('get-background-color'),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
     ipcRenderer.on('state-update', (event, data) => callback(data));

@@ -19,8 +19,19 @@ class WindowManager {
     this.ownPid = process.pid;
     this.stackName = 'Managed Stack';
     this.hideAvailable = false;
+    this.backgroundColor = '#000000';
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
+  }
+
+  setBackgroundColor(color) {
+    if (typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color)) {
+      this.backgroundColor = color;
+    }
+  }
+
+  getBackgroundColor() {
+    return this.backgroundColor;
   }
 
   /**
@@ -379,6 +390,7 @@ class WindowManager {
     return {
       stackName: this.stackName,
       hideAvailable: this.hideAvailable,
+      backgroundColor: this.backgroundColor,
       customWidth: this.customWidth,
       customHeight: this.customHeight,
       windows: this.managedWindows.map(w => ({
@@ -401,6 +413,7 @@ class WindowManager {
 
     if (savedState.stackName) this.stackName = savedState.stackName;
     if (savedState.hideAvailable !== undefined) this.hideAvailable = savedState.hideAvailable;
+    if (savedState.backgroundColor) this.backgroundColor = savedState.backgroundColor;
 
     // Restore custom dimensions if present, applying the same minimum clamp of 200
     if (savedState.customWidth !== null && savedState.customWidth !== undefined) {

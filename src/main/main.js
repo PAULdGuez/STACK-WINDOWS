@@ -66,7 +66,8 @@ function sendStateUpdate() {
       stackName: windowManager.stackName,
       hideAvailable: windowManager.hideAvailable,
       customWidth: dims.customWidth,
-      customHeight: dims.customHeight
+      customHeight: dims.customHeight,
+      backgroundColor: windowManager.getBackgroundColor()
     });
   }
 }
@@ -124,7 +125,8 @@ function registerIPC() {
         activeHwnd: windowManager.getActiveHwnd(),
         stackName: windowManager.stackName,
         hideAvailable: windowManager.hideAvailable,
-        ...windowManager.getCustomDimensions()
+        ...windowManager.getCustomDimensions(),
+        backgroundColor: windowManager.getBackgroundColor()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -225,6 +227,22 @@ function registerIPC() {
 
   ipcMain.handle('get-custom-dimensions', async () => {
     return windowManager.getCustomDimensions();
+  });
+
+  ipcMain.handle('set-background-color', async (event, color) => {
+    try {
+      windowManager.setBackgroundColor(color);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-background-color error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('get-background-color', async () => {
+    return windowManager.getBackgroundColor();
   });
 }
 

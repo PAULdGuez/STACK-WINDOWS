@@ -38,6 +38,7 @@ class Persistence {
         hideAvailable: !!state.hideAvailable,
         customWidth: state.customWidth || null,
         customHeight: state.customHeight || null,
+        backgroundColor: state.backgroundColor || '#000000',
         bounds: state.bounds || null,
         windows: state.windows || []
       };
@@ -72,6 +73,7 @@ class Persistence {
           hideAvailable: false,
           customWidth: null,
           customHeight: null,
+          backgroundColor: '#000000',
           bounds: null,
           windows: data.windows
         };
@@ -88,6 +90,7 @@ class Persistence {
         hideAvailable: data.hideAvailable,
         customWidth: data.customWidth || null,
         customHeight: data.customHeight || null,
+        backgroundColor: data.backgroundColor || '#000000',
         bounds: data.bounds,
         windows: data.windows
       };
