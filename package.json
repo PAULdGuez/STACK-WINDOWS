@@ -1,0 +1,14 @@
+{
+  "name": "stack-windows-electron",
+  "version": "1.0.0",
+  "description": "Spatial window organizer - persistent window group manager using Win32 API",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "electron": "^28.2.0",
+    "koffi": "^2.15.1"
+  }
+}
