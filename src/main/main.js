@@ -13,9 +13,11 @@ let foregroundMonitor = null;
 let cleanupTimer = null;
 let saveTimer = null;
 
-function getWorkArea() {
-  const primaryDisplay = screen.getPrimaryDisplay();
-  return primaryDisplay.workArea;
+function getWorkArea(point) {
+  const display = point
+    ? screen.getDisplayNearestPoint(point)
+    : screen.getPrimaryDisplay();
+  return display.workArea;
 }
 
 function createWindow() {
@@ -69,13 +71,15 @@ function sendStateUpdate() {
 function doLayout() {
   if (!mainWindow) return;
   const bounds = mainWindow.getBounds();
-  const workArea = getWorkArea();
+  const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+  const workArea = display.workArea;
 
   windowManager.layoutStack({
     x: bounds.x,
     y: workArea.y,
     width: bounds.width,
-    height: workArea.height
+    height: workArea.height,
+    displayRightEdge: workArea.x + workArea.width
   });
 }
 
@@ -217,15 +221,19 @@ app.whenReady().then(() => {
     console.log('Restoring saved window group configuration...');
     windowManager.loadState(savedState);
 
-    if (savedState.bounds && savedState.bounds.width && savedState.bounds.height) {
-      mainWindow.setBounds(savedState.bounds);
-    }
-
     if (windowManager.managedWindows.length > 0) {
       console.log(`Reconnected to ${windowManager.managedWindows.length} windows`);
     } else {
       console.log('No saved windows could be reconnected');
     }
+  }
+
+  // Create the controller window
+  createWindow();
+
+  // Restore saved bounds now that mainWindow exists
+  if (savedState && savedState.bounds && savedState.bounds.width && savedState.bounds.height) {
+    mainWindow.setBounds(savedState.bounds);
   }
 
   // Initialize foreground monitor — detects when user clicks/focuses a managed window
@@ -235,9 +243,6 @@ app.whenReady().then(() => {
 
   // Register IPC handlers
   registerIPC();
-
-  // Create the controller window
-  createWindow();
 
   // Apply layout after a short delay
   setTimeout(() => {

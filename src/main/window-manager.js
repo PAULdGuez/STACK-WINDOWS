@@ -19,6 +19,8 @@ class WindowManager {
     this.ownPid = process.pid;
     this.stackName = 'Managed Stack';
     this.hideAvailable = false;
+    this.customWidth = null;  // null = use all available space (default behavior)
+    this.customHeight = null; // null = use all available space (default behavior)
   }
 
   /**
@@ -228,10 +230,12 @@ class WindowManager {
     // The starting X of the stack is the entire width of the controller window
     const startX = workArea.x + workArea.width;
 
-    // We assume the total width available on screen is what remains
-    const primaryDisplay = require('electron').screen.getPrimaryDisplay();
-    const screenRightEdge = primaryDisplay.workArea.x + primaryDisplay.workArea.width;
-    const availableWidth = screenRightEdge - startX;
+    // Use displayRightEdge passed from main.js (based on the display where the app lives).
+    // Fallback to a safe default if not provided (backward compat).
+    const displayRightEdge = screenBounds.displayRightEdge != null
+      ? screenBounds.displayRightEdge
+      : startX + 1920; // fallback: assume 1920px wide display starting at startX
+    const availableWidth = displayRightEdge - startX;
     const availableHeight = workArea.height;
 
     // Determine the active window
@@ -337,12 +341,38 @@ class WindowManager {
   }
 
   /**
+   * Set custom dimensions for managed windows.
+   * Pass null for either dimension to use all available space (default behavior).
+   * Values are clamped to a minimum of 200px.
+   * @param {number|null} width
+   * @param {number|null} height
+   */
+  setCustomDimensions(width, height) {
+    this.customWidth = width !== null && width !== undefined
+      ? Math.max(200, Number(width))
+      : null;
+    this.customHeight = height !== null && height !== undefined
+      ? Math.max(200, Number(height))
+      : null;
+  }
+
+  /**
+   * Get the current custom dimensions.
+   * @returns {{ customWidth: number|null, customHeight: number|null }}
+   */
+  getCustomDimensions() {
+    return { customWidth: this.customWidth, customHeight: this.customHeight };
+  }
+
+  /**
    * Get serializable state for persistence (version 2 compatible shape in main).
    */
   getState() {
     return {
       stackName: this.stackName,
       hideAvailable: this.hideAvailable,
+      customWidth: this.customWidth,
+      customHeight: this.customHeight,
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,
