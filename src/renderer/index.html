@@ -472,18 +472,16 @@
         isAvailableHidden = !isAvailableHidden;
       }
 
+      const sectionContainer = listEl.closest('.section');
+
       if (isAvailableHidden) {
         listEl.classList.add('hidden');
         btn.textContent = 'Show';
+        if (sectionContainer) sectionContainer.style.flex = 'none';
       } else {
         listEl.classList.remove('hidden');
         btn.textContent = 'Hide';
-
-        // Restore flex so it fills the screen cleanly
-        const sectionContainer = listEl.closest('.section');
-        if (sectionContainer) {
-          sectionContainer.style.flex = '1';
-        }
+        if (sectionContainer) sectionContainer.style.flex = '1';
       }
 
       try {
