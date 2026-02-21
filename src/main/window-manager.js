@@ -22,6 +22,7 @@ class WindowManager {
     this.backgroundColor = '#000000';
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
+    this._animationInterval = null;
   }
 
   setBackgroundColor(color) {
@@ -226,6 +227,117 @@ class WindowManager {
     this.activeHwnd = 0;
   }
 
+  _stopAnimation() {
+    if (this._animationInterval) {
+      clearInterval(this._animationInterval);
+      this._animationInterval = null;
+    }
+  }
+
+  _animateLayout(targetLayouts) {
+    this._stopAnimation();
+
+    if (targetLayouts.length === 0) return;
+
+    // Collect current positions
+    const layouts = targetLayouts.map(target => {
+      let rect = { left: target.x, top: target.y, right: target.x + target.cx, bottom: target.y + target.cy };
+      try {
+        if (target.restore) {
+          api.ShowWindow(target.hwnd, SW_RESTORE);
+        }
+        api.GetWindowRect(target.hwnd, rect);
+      } catch (e) {
+        // fallback to target
+      }
+      return {
+        hwnd: target.hwnd,
+        startX: rect.left,
+        startY: rect.top,
+        startCx: rect.right - rect.left,
+        startCy: rect.bottom - rect.top,
+        targetX: target.x,
+        targetY: target.y,
+        targetCx: target.cx,
+        targetCy: target.cy,
+        flags: target.flags
+      };
+    });
+
+    const DURATION = 200; // ms
+    const FPS = 60;
+    const TOTAL_FRAMES = Math.floor(DURATION / (1000 / FPS));
+    let currentFrame = 0;
+
+    this._animationInterval = setInterval(() => {
+      currentFrame++;
+      const progress = currentFrame / TOTAL_FRAMES;
+      // Use an ease-out timing function
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      try {
+        const hWinPosInfo = api.BeginDeferWindowPos(layouts.length);
+        if (!hWinPosInfo) {
+          // Fallback if BeginDeferWindowPos fails for some reason
+          for (const layout of layouts) {
+            api.SetWindowPos(layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
+          }
+          this._stopAnimation();
+          return;
+        }
+
+        let currentHWinPosInfo = hWinPosInfo;
+
+        for (const layout of layouts) {
+          const x = Math.round(layout.startX + (layout.targetX - layout.startX) * ease);
+          const y = Math.round(layout.startY + (layout.targetY - layout.startY) * ease);
+          const cx = Math.round(layout.startCx + (layout.targetCx - layout.startCx) * ease);
+          const cy = Math.round(layout.startCy + (layout.targetCy - layout.startCy) * ease);
+
+          currentHWinPosInfo = api.DeferWindowPos(
+            currentHWinPosInfo,
+            layout.hwnd,
+            HWND_TOP,
+            x,
+            y,
+            cx,
+            cy,
+            layout.flags
+          );
+
+          if (!currentHWinPosInfo) break;
+        }
+
+        if (currentHWinPosInfo) {
+          api.EndDeferWindowPos(currentHWinPosInfo);
+        }
+
+        if (currentFrame >= TOTAL_FRAMES) {
+          this._stopAnimation();
+          // Final snap to target
+          const finalHWinPosInfo = api.BeginDeferWindowPos(layouts.length);
+          if (finalHWinPosInfo) {
+            let hInfo = finalHWinPosInfo;
+            for (const layout of layouts) {
+              hInfo = api.DeferWindowPos(hInfo, layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
+              if (!hInfo) break;
+            }
+            if (hInfo) api.EndDeferWindowPos(hInfo);
+          }
+        }
+      } catch (e) {
+        console.error('Animation frame failed:', e);
+        this._stopAnimation();
+        // Attempt immediate final snap without animation if it failed
+        for (const layout of layouts) {
+          try {
+            api.SetWindowPos(layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
+          } catch (er) { }
+        }
+      }
+    }, 1000 / FPS);
+  }
+
   /**
    * Apply the spatial stack layout to all managed windows.
    *
@@ -264,6 +376,8 @@ class WindowManager {
 
     const inactiveCount = this.managedWindows.length - (activeWindow ? 1 : 0);
 
+    const targetLayouts = [];
+
     // Position background windows first (strips at top)
     let stripIndex = 0;
     for (const w of this.managedWindows) {
@@ -271,25 +385,15 @@ class WindowManager {
 
       const y = workArea.y + stripIndex * HEADER_HEIGHT;
 
-      try {
-        if (api.IsIconic(w.hwnd) || api.IsZoomed(w.hwnd)) {
-          // Restore minimized or maximized windows so SetWindowPos can position and resize them
-          api.ShowWindow(w.hwnd, SW_RESTORE);
-        }
-
-        // Full-size window positioned so only its top HEADER_HEIGHT strip is visible
-        api.SetWindowPos(
-          w.hwnd,
-          HWND_TOP,
-          startX,
-          y,
-          effectiveWidth,
-          effectiveHeight,
-          SWP_NOACTIVATE | SWP_SHOWWINDOW
-        );
-      } catch (e) {
-        console.error(`Failed to position background window ${w.hwnd}:`, e);
-      }
+      targetLayouts.push({
+        hwnd: w.hwnd,
+        x: startX,
+        y: y,
+        cx: effectiveWidth,
+        cy: effectiveHeight,
+        flags: SWP_NOACTIVATE | SWP_SHOWWINDOW,
+        restore: api.IsIconic(w.hwnd) || api.IsZoomed(w.hwnd)
+      });
 
       stripIndex++;
     }
@@ -299,25 +403,18 @@ class WindowManager {
       const activeY = workArea.y + inactiveCount * HEADER_HEIGHT;
       const activeHeight = effectiveHeight - (inactiveCount * HEADER_HEIGHT);
 
-      try {
-        if (api.IsIconic(activeWindow.hwnd) || api.IsZoomed(activeWindow.hwnd)) {
-          // Restore minimized or maximized windows so SetWindowPos can position and resize them
-          api.ShowWindow(activeWindow.hwnd, SW_RESTORE);
-        }
-
-        api.SetWindowPos(
-          activeWindow.hwnd,
-          HWND_TOP,
-          startX,
-          activeY,
-          effectiveWidth,
-          activeHeight > 100 ? activeHeight : effectiveHeight,
-          SWP_SHOWWINDOW | SWP_NOACTIVATE
-        );
-      } catch (e) {
-        console.error(`Failed to position active window ${activeWindow.hwnd}:`, e);
-      }
+      targetLayouts.push({
+        hwnd: activeWindow.hwnd,
+        x: startX,
+        y: activeY,
+        cx: effectiveWidth,
+        cy: activeHeight > 100 ? activeHeight : effectiveHeight,
+        flags: SWP_SHOWWINDOW | SWP_NOACTIVATE,
+        restore: api.IsIconic(activeWindow.hwnd) || api.IsZoomed(activeWindow.hwnd)
+      });
     }
+
+    this._animateLayout(targetLayouts);
   }
 
   _restoreWindow(entry) {
