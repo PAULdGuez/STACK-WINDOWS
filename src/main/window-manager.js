@@ -11,7 +11,7 @@ const CONTROLLER_WIDTH = 300;
 const HEADER_HEIGHT = 40;
 
 class WindowManager {
-  constructor() {
+  constructor(options = {}) {
     // Array of managed windows: [{ hwnd, title, processId, originalRect }]
     // Windows maintain their order here.
     this.managedWindows = [];
@@ -25,6 +25,29 @@ class WindowManager {
     this._animationTimer = null;
     this._currentTargets = null;
     this._restoreAnimationTimer = null;
+    this.animationDuration = options.animationDuration || 200;         // ms
+    this.animationEasing = options.animationEasing || 'ease-out-cubic';
+    this.restoreAnimationDuration = options.restoreAnimationDuration || 250; // ms
+  }
+
+  /**
+   * Map an easing name and progress value [0,1] to an eased value [0,1].
+   * Supported names: 'ease-out-cubic', 'ease-in-out-cubic', 'linear'.
+   * @param {number} progress - Raw linear progress in [0, 1]
+   * @returns {number} Eased value in [0, 1]
+   */
+  _applyEasing(progress) {
+    switch (this.animationEasing) {
+      case 'linear':
+        return progress;
+      case 'ease-in-out-cubic':
+        return progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      case 'ease-out-cubic':
+      default:
+        return 1 - Math.pow(1 - progress, 3);
+    }
   }
 
   setBackgroundColor(color) {
@@ -288,14 +311,14 @@ class WindowManager {
       // fallback to target (no animation, will snap immediately)
     }
 
-    const DURATION = 250; // ms — slightly longer than layout animation for visual distinction
+    const DURATION = this.restoreAnimationDuration; // ms — slightly longer than layout animation for visual distinction
     const startTime = Date.now();
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / DURATION, 1);
-      // Cubic ease-out — same easing as _animateLayout
-      const ease = 1 - Math.pow(1 - progress, 3);
+      // Apply configured easing — same as _animateLayout
+      const ease = this._applyEasing(progress);
 
       const x = Math.round(startX + (targetX - startX) * ease);
       const y = Math.round(startY + (targetY - startY) * ease);
@@ -377,15 +400,15 @@ class WindowManager {
       };
     });
 
-    const DURATION = 200; // ms
+    const DURATION = this.animationDuration; // ms
     const startTime = Date.now();
     let isFirstFrame = true;
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / DURATION, 1);
-      // Use an ease-out timing function
-      const ease = 1 - Math.pow(1 - progress, 3);
+      // Apply configured easing function
+      const ease = this._applyEasing(progress);
 
       // Determine if this is an intermediate frame (not first, not last).
       // First frame sets Z-order (HWND_TOP, no SWP_NOZORDER).
