@@ -13,6 +13,18 @@ let foregroundMonitor = null;
 let cleanupTimer = null;
 let saveTimer = null;
 let _layoutDebounceTimer = null;
+let _saveDebounceTimer = null;
+const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
+
+function debouncedSave() {
+  if (_saveDebounceTimer) clearTimeout(_saveDebounceTimer);
+  _saveDebounceTimer = setTimeout(() => {
+    _saveDebounceTimer = null;
+    if (windowManager) {
+      persistence.save(windowManager.getState());
+    }
+  }, SAVE_DEBOUNCE_MS);
+}
 
 function getWorkArea(point) {
   const display = point
@@ -49,7 +61,7 @@ function createWindow() {
   mainWindow.on('resize', () => {
     doLayout();
     if (saveTimer) {
-      persistence.save(windowManager.getState());
+      debouncedSave();
     }
   });
 
@@ -109,7 +121,7 @@ function onManagedWindowFocused(hwnd) {
   if (changed) {
     doLayoutDebounced();
     sendStateUpdate();
-    persistence.save(windowManager.getState());
+    debouncedSave();
   }
 }
 
@@ -324,7 +336,7 @@ app.on('window-all-closed', () => {
   if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
 
   if (windowManager) {
-    persistence.save(windowManager.getState());
+    persistence.saveSync(windowManager.getState());
     windowManager.restoreAll();
   }
 
@@ -335,7 +347,7 @@ app.on('before-quit', () => {
   if (foregroundMonitor) foregroundMonitor.stop();
 
   if (windowManager) {
-    persistence.save(windowManager.getState());
+    persistence.saveSync(windowManager.getState());
     windowManager.restoreAll();
   }
 });
