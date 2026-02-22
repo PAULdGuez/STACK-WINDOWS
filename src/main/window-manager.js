@@ -344,7 +344,7 @@ class WindowManager {
             x, y, cx, cy,
             SWP_SHOWWINDOW
           );
-          this._restoreAnimationTimer = setTimeout(tick, 1000 / 60);
+          this._restoreAnimationTimer = setTimeout(tick, 1000 / 30);
         }
       } catch (e) {
         console.error(`Restore animation frame failed for hwnd ${entry.hwnd}:`, e);
@@ -473,7 +473,7 @@ class WindowManager {
             if (hInfo) api.EndDeferWindowPos(hInfo);
           }
         } else {
-          this._animationTimer = setTimeout(tick, 1000 / 60);
+          this._animationTimer = setTimeout(tick, 1000 / 30);
         }
       } catch (e) {
         console.error('Animation frame failed:', e);
