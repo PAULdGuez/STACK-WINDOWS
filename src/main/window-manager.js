@@ -22,7 +22,7 @@ class WindowManager {
     this.backgroundColor = '#000000';
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
-    this._animationInterval = null;
+    this._animationTimer = null;
   }
 
   setBackgroundColor(color) {
@@ -228,9 +228,9 @@ class WindowManager {
   }
 
   _stopAnimation() {
-    if (this._animationInterval) {
-      clearInterval(this._animationInterval);
-      this._animationInterval = null;
+    if (this._animationTimer) {
+      clearTimeout(this._animationTimer);
+      this._animationTimer = null;
     }
   }
 
@@ -265,13 +265,11 @@ class WindowManager {
     });
 
     const DURATION = 200; // ms
-    const FPS = 60;
-    const TOTAL_FRAMES = Math.floor(DURATION / (1000 / FPS));
-    let currentFrame = 0;
+    const startTime = Date.now();
 
-    this._animationInterval = setInterval(() => {
-      currentFrame++;
-      const progress = currentFrame / TOTAL_FRAMES;
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / DURATION, 1);
       // Use an ease-out timing function
       const ease = 1 - Math.pow(1 - progress, 3);
 
@@ -312,7 +310,7 @@ class WindowManager {
           api.EndDeferWindowPos(currentHWinPosInfo);
         }
 
-        if (currentFrame >= TOTAL_FRAMES) {
+        if (progress >= 1) {
           this._stopAnimation();
           // Final snap to target
           const finalHWinPosInfo = api.BeginDeferWindowPos(layouts.length);
@@ -324,6 +322,8 @@ class WindowManager {
             }
             if (hInfo) api.EndDeferWindowPos(hInfo);
           }
+        } else {
+          this._animationTimer = setTimeout(tick, 1000 / 60);
         }
       } catch (e) {
         console.error('Animation frame failed:', e);
@@ -335,7 +335,9 @@ class WindowManager {
           } catch (er) { }
         }
       }
-    }, 1000 / FPS);
+    };
+
+    this._animationTimer = setTimeout(tick, 0);
   }
 
   /**
