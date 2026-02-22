@@ -11,6 +11,8 @@ const { app } = require('electron');
 class Persistence {
   constructor() {
     this.filePath = null;
+    this._writing = false;
+    this._pendingState = null;
   }
 
   /**
@@ -24,10 +26,54 @@ class Persistence {
   }
 
   /**
-   * Save the window group state and config.
+   * Save the window group state and config asynchronously.
+   * Uses a write guard to prevent concurrent writes; the latest state
+   * is always eventually flushed.
+   * @param {Object} state - Object containing settings and windows
+   * @returns {Promise<void>}
+   */
+  async save(state) {
+    if (!this.filePath) return;
+
+    if (this._writing) {
+      this._pendingState = state;
+      return;
+    }
+
+    this._writing = true;
+    try {
+      const data = {
+        version: 2,
+        savedAt: new Date().toISOString(),
+        stackName: state.stackName || 'Managed Stack',
+        hideAvailable: !!state.hideAvailable,
+        customWidth: state.customWidth || null,
+        customHeight: state.customHeight || null,
+        backgroundColor: state.backgroundColor || '#000000',
+        bounds: state.bounds || null,
+        windows: state.windows || []
+      };
+      await fs.promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
+      console.log(`Saved ${data.windows.length} windows and config to persistence`);
+    } catch (e) {
+      console.error('Failed to save persistence:', e);
+    } finally {
+      this._writing = false;
+      if (this._pendingState !== null) {
+        const pending = this._pendingState;
+        this._pendingState = null;
+        this.save(pending);
+      }
+    }
+  }
+
+  /**
+   * Save the window group state and config synchronously.
+   * Use this only in quit handlers (before-quit, window-all-closed)
+   * where the process may exit immediately after the call.
    * @param {Object} state - Object containing settings and windows
    */
-  save(state) {
+  saveSync(state) {
     if (!this.filePath) return;
 
     try {
@@ -43,9 +89,9 @@ class Persistence {
         windows: state.windows || []
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
-      console.log(`Saved ${data.windows.length} windows and config to persistence`);
+      console.log(`Saved ${data.windows.length} windows and config to persistence (sync)`);
     } catch (e) {
-      console.error('Failed to save persistence:', e);
+      console.error('Failed to save persistence (sync):', e);
     }
   }
 
