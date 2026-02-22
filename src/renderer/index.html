@@ -168,6 +168,7 @@
     .managed-item {
       border-left: 3px solid #333;
       cursor: pointer;
+      transition: border-left-color 0.2s ease, background-color 0.2s ease;
     }
 
     .managed-item.active {
@@ -177,6 +178,15 @@
 
     .managed-item.inactive {
       border-left-color: #48f;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .window-item.entering {
+      animation: fadeSlideIn 0.2s ease forwards;
     }
 
     .active-badge {
@@ -501,6 +511,7 @@
     /**
      * Render the managed stack — READ-ONLY status display.
      * No Activate buttons. The active window is determined by Win32 focus.
+     * Uses DOM-diffing to reuse existing elements and enable CSS transitions.
      */
     function renderManaged() {
       const container = document.getElementById('managedList');
@@ -512,53 +523,120 @@
         return;
       }
 
-      container.innerHTML = '';
+      // Build a map of existing DOM items keyed by hwnd
+      const existingItems = new Map();
+      container.querySelectorAll('.window-item[data-hwnd]').forEach(el => {
+        existingItems.set(Number(el.dataset.hwnd), el);
+      });
+
+      // Build the set of desired hwnds
+      const desiredHwnds = new Set(managedWindows.map(w => w.hwnd));
+
+      // Remove DOM elements whose hwnd is no longer in managedWindows
+      existingItems.forEach((el, hwnd) => {
+        if (!desiredHwnds.has(hwnd)) {
+          el.remove();
+          existingItems.delete(hwnd);
+        }
+      });
+
+      // If the container only had an empty-state element, clear it now
+      const emptyState = container.querySelector('.empty-state');
+      if (emptyState) {
+        emptyState.remove();
+      }
+
+      // For each window in managedWindows: update or create, then reorder
       managedWindows.forEach((win, index) => {
         const isActive = (win.hwnd === activeHwnd);
-        const item = document.createElement('div');
-        item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
+        let item = existingItems.get(win.hwnd);
 
-        // Add click listener to activate this window
-        item.onclick = async () => {
-          if (!isActive) {
-            await activateWindow(win.hwnd);
+        if (item) {
+          // UPDATE existing element in place
+          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
+
+          // Update click handler (rebind with current isActive closure)
+          item.onclick = async () => {
+            if (win.hwnd !== activeHwnd) {
+              await activateWindow(win.hwnd);
+            }
+          };
+
+          // Update title text
+          const titleEl = item.querySelector('.title');
+          titleEl.textContent = win.title || 'Untitled';
+
+          // Update badge
+          let badge = titleEl.querySelector('.active-badge, .strip-badge');
+          if (!badge) {
+            badge = document.createElement('span');
+            titleEl.appendChild(badge);
           }
-        };
-
-        const title = document.createElement('span');
-        title.className = 'title';
-        title.textContent = win.title || 'Untitled';
-
-        if (isActive) {
-          const badge = document.createElement('span');
-          badge.className = 'active-badge';
-          badge.textContent = '● ACTIVE';
-          title.appendChild(badge);
+          if (isActive) {
+            badge.className = 'active-badge';
+            badge.textContent = '● ACTIVE';
+          } else {
+            badge.className = 'strip-badge';
+            const bgIndex = managedWindows.filter(w => w.hwnd !== activeHwnd).findIndex(w => w.hwnd === win.hwnd);
+            badge.textContent = '▬ strip ' + bgIndex;
+          }
         } else {
-          const badge = document.createElement('span');
-          badge.className = 'strip-badge';
-          // Count the strip index relative to inactive windows
-          const bgIndex = managedWindows.filter(w => w.hwnd !== activeHwnd).findIndex(w => w.hwnd === win.hwnd);
-          badge.textContent = '▬ strip ' + bgIndex;
-          title.appendChild(badge);
+          // CREATE new element with 'entering' class for fade-in animation
+          item = document.createElement('div');
+          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive');
+          item.dataset.hwnd = win.hwnd;
+
+          item.onclick = async () => {
+            if (win.hwnd !== activeHwnd) {
+              await activateWindow(win.hwnd);
+            }
+          };
+
+          // Remove 'entering' class after animation completes
+          item.addEventListener('animationend', () => {
+            item.classList.remove('entering');
+          }, { once: true });
+
+          const title = document.createElement('span');
+          title.className = 'title';
+          title.textContent = win.title || 'Untitled';
+
+          if (isActive) {
+            const badge = document.createElement('span');
+            badge.className = 'active-badge';
+            badge.textContent = '● ACTIVE';
+            title.appendChild(badge);
+          } else {
+            const badge = document.createElement('span');
+            badge.className = 'strip-badge';
+            const bgIndex = managedWindows.filter(w => w.hwnd !== activeHwnd).findIndex(w => w.hwnd === win.hwnd);
+            badge.textContent = '▬ strip ' + bgIndex;
+            title.appendChild(badge);
+          }
+
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'btn btn-remove';
+          removeBtn.textContent = 'Remove';
+          removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeWindow(win.hwnd);
+          };
+          actions.appendChild(removeBtn);
+
+          item.appendChild(title);
+          item.appendChild(actions);
+
+          existingItems.set(win.hwnd, item);
         }
 
-        const actions = document.createElement('div');
-        actions.className = 'actions';
-
-        // Only action: Remove from stack
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'btn btn-remove';
-        removeBtn.textContent = 'Remove';
-        removeBtn.onclick = (e) => {
-          e.stopPropagation();
-          removeWindow(win.hwnd);
-        };
-        actions.appendChild(removeBtn);
-
-        item.appendChild(title);
-        item.appendChild(actions);
-        container.appendChild(item);
+        // Reorder: ensure item is at the correct position
+        const currentAtIndex = container.children[index];
+        if (currentAtIndex !== item) {
+          container.insertBefore(item, currentAtIndex || null);
+        }
       });
     }
 
@@ -600,7 +678,7 @@
       });
     }
 
-    // API calls — NO activateWindow. Activation is Win32-driven.
+    // API calls — activation is primarily Win32-driven, with UI fallback via activateWindow().
     async function refreshAvailable() {
       try {
         availableWindows = await window.electronAPI.getAvailableWindows();

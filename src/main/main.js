@@ -101,7 +101,8 @@ function syncMonitor() {
 
 /**
  * Called by ForegroundMonitor when a managed window gains OS focus.
- * This is the ONLY activation path — driven by real Win32 focus, not Electron UI.
+ * This is the primary activation path. A secondary path exists via the
+ * 'activate-window' IPC handler for explicit UI-driven activation.
  */
 function onManagedWindowFocused(hwnd) {
   const changed = windowManager.promoteToActive(hwnd);
@@ -112,8 +113,9 @@ function onManagedWindowFocused(hwnd) {
   }
 }
 
-// Register IPC handlers — NO activate-window handler.
-// Activation is driven by Win32 focus detection, not Electron.
+// Register IPC handlers.
+// Activation is primarily driven by Win32 focus detection (ForegroundMonitor),
+// but an activate-window handler also exists for explicit UI-driven activation.
 function registerIPC() {
   ipcMain.handle('get-available-windows', async () => {
     try {
