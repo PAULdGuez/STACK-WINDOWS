@@ -334,6 +334,10 @@ app.on('window-all-closed', () => {
   if (cleanupTimer) clearInterval(cleanupTimer);
   if (saveTimer) clearInterval(saveTimer);
   if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
+  if (_saveDebounceTimer) {
+    clearTimeout(_saveDebounceTimer);
+    _saveDebounceTimer = null;
+  }
 
   if (windowManager) {
     persistence.saveSync(windowManager.getState());
@@ -345,6 +349,10 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   if (foregroundMonitor) foregroundMonitor.stop();
+  if (_saveDebounceTimer) {
+    clearTimeout(_saveDebounceTimer);
+    _saveDebounceTimer = null;
+  }
 
   if (windowManager) {
     persistence.saveSync(windowManager.getState());
