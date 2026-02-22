@@ -12,6 +12,7 @@ let persistence = null;
 let foregroundMonitor = null;
 let cleanupTimer = null;
 let saveTimer = null;
+let _layoutDebounceTimer = null;
 
 function getWorkArea(point) {
   const display = point
@@ -87,6 +88,11 @@ function doLayout() {
   });
 }
 
+function doLayoutDebounced() {
+  if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
+  _layoutDebounceTimer = setTimeout(() => { doLayout(); }, 16);
+}
+
 function syncMonitor() {
   if (foregroundMonitor) {
     foregroundMonitor.updateManagedSet(windowManager.getManagedHwnds());
@@ -100,7 +106,7 @@ function syncMonitor() {
 function onManagedWindowFocused(hwnd) {
   const changed = windowManager.promoteToActive(hwnd);
   if (changed) {
-    doLayout();
+    doLayoutDebounced();
     sendStateUpdate();
     persistence.save(windowManager.getState());
   }
@@ -295,7 +301,7 @@ app.whenReady().then(() => {
     const changed = windowManager.removeDeadWindows();
     if (changed) {
       syncMonitor();
-      doLayout();
+      doLayoutDebounced();
       sendStateUpdate();
       persistence.save(windowManager.getState());
     }
@@ -313,6 +319,7 @@ app.on('window-all-closed', () => {
   if (foregroundMonitor) foregroundMonitor.stop();
   if (cleanupTimer) clearInterval(cleanupTimer);
   if (saveTimer) clearInterval(saveTimer);
+  if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
 
   if (windowManager) {
     persistence.save(windowManager.getState());
