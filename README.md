@@ -37,7 +37,7 @@ Within this stack:
 
 1. Clone the repository:
    ```bash
-   git clone <your-repo-url>
+   git clone <https://github.com/PAULdGuez/STACK-WINDOWS.git>
    cd StackWindowsElectron
    ```
 
