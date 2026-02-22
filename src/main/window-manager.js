@@ -25,9 +25,10 @@ class WindowManager {
     this._animationTimer = null;
     this._currentTargets = null;
     this._restoreAnimationTimer = null;
-    this.animationDuration = options.animationDuration || 200;         // ms
+    this.animationDuration = options.animationDuration || 100;         // ms
     this.animationEasing = options.animationEasing || 'ease-out-cubic';
-    this.restoreAnimationDuration = options.restoreAnimationDuration || 250; // ms
+    this.restoreAnimationDuration = options.restoreAnimationDuration || 150; // ms
+    this.skipAnimation = options.skipAnimation || false;
   }
 
   /**
@@ -286,6 +287,12 @@ class WindowManager {
    * @param {Function} callback - Called when animation completes
    */
   _animateRestore(entry, callback) {
+    if (this.skipAnimation) {
+      this._restoreWindow(entry);
+      callback();
+      return;
+    }
+
     // Cancel any in-flight restore animation before starting a new one
     this._stopRestoreAnimation();
 
@@ -362,6 +369,29 @@ class WindowManager {
 
   _animateLayout(targetLayouts) {
     if (targetLayouts.length === 0) return;
+
+    if (this.skipAnimation) {
+      // Instant snap: single DeferWindowPos batch, no animation loop
+      const hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
+      if (hWinPosInfo) {
+        let hInfo = hWinPosInfo;
+        for (const target of targetLayouts) {
+          if (target.restore) {
+            api.ShowWindow(target.hwnd, SW_RESTORE);
+          }
+          hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+          if (!hInfo) break;
+        }
+        if (hInfo) api.EndDeferWindowPos(hInfo);
+      } else {
+        // Fallback: individual SetWindowPos
+        for (const target of targetLayouts) {
+          if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
+          api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+        }
+      }
+      return;
+    }
 
     // Build a comparable key from the target positions
     const targetsKey = targetLayouts.map(t => t.hwnd + ':' + t.x + ',' + t.y + ',' + t.cx + ',' + t.cy).join('|');
