@@ -24,6 +24,7 @@ class WindowManager {
     this.customHeight = null; // null = use all available space (default behavior)
     this._animationTimer = null;
     this._currentTargets = null;
+    this._restoreAnimationTimer = null;
   }
 
   setBackgroundColor(color) {
@@ -146,7 +147,7 @@ class WindowManager {
   }
 
   /**
-   * Remove a window from the managed group and restore its original position.
+   * Remove a window from the managed group and animate it back to its original position.
    */
   removeWindow(hwnd) {
     const hwndNum = Number(hwnd);
@@ -161,7 +162,10 @@ class WindowManager {
       this.activeHwnd = this.managedWindows.length > 0 ? this.managedWindows[0].hwnd : 0;
     }
 
-    this._restoreWindow(entry);
+    // Animate the removed window back to its original position.
+    // The callback is a no-op here; doLayout for remaining windows is triggered
+    // by the caller (main.js) independently.
+    this._animateRestore(entry, () => {});
   }
 
   /**
@@ -218,9 +222,12 @@ class WindowManager {
   }
 
   /**
-   * Restore all managed windows to their original positions.
+   * Restore all managed windows to their original positions instantly (no animation).
+   * Used during app quit — no time for animation, must be synchronous and immediate.
    */
   restoreAll() {
+    // Cancel any in-flight restore animation to avoid interfering with instant snap
+    this._stopRestoreAnimation();
     for (const entry of this.managedWindows) {
       this._restoreWindow(entry);
     }
@@ -234,6 +241,100 @@ class WindowManager {
       this._animationTimer = null;
     }
     this._currentTargets = null;
+  }
+
+  /**
+   * Cancel any in-flight restore animation (separate timer from main layout animation).
+   */
+  _stopRestoreAnimation() {
+    if (this._restoreAnimationTimer) {
+      clearTimeout(this._restoreAnimationTimer);
+      this._restoreAnimationTimer = null;
+    }
+  }
+
+  /**
+   * Animate a single window sliding back to its originalRect position.
+   * Uses a separate timer (_restoreAnimationTimer) so it doesn't cancel the
+   * main layout animation (_animationTimer).
+   * Duration: 250ms (slightly longer than layout animation for visual distinction).
+   * Easing: cubic ease-out (same as _animateLayout).
+   * @param {{ hwnd: number, originalRect: {left,top,right,bottom} }} entry
+   * @param {Function} callback - Called when animation completes
+   */
+  _animateRestore(entry, callback) {
+    // Cancel any in-flight restore animation before starting a new one
+    this._stopRestoreAnimation();
+
+    const r = entry.originalRect;
+    const targetX = r.left;
+    const targetY = r.top;
+    const targetCx = (r.right - r.left) || 800;
+    const targetCy = (r.bottom - r.top) || 600;
+
+    // Get current position as animation start
+    let startX = targetX;
+    let startY = targetY;
+    let startCx = targetCx;
+    let startCy = targetCy;
+    try {
+      const currentRect = {};
+      api.GetWindowRect(entry.hwnd, currentRect);
+      startX = currentRect.left || targetX;
+      startY = currentRect.top || targetY;
+      startCx = (currentRect.right - currentRect.left) || targetCx;
+      startCy = (currentRect.bottom - currentRect.top) || targetCy;
+    } catch (e) {
+      // fallback to target (no animation, will snap immediately)
+    }
+
+    const DURATION = 250; // ms — slightly longer than layout animation for visual distinction
+    const startTime = Date.now();
+
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / DURATION, 1);
+      // Cubic ease-out — same easing as _animateLayout
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      const x = Math.round(startX + (targetX - startX) * ease);
+      const y = Math.round(startY + (targetY - startY) * ease);
+      const cx = Math.round(startCx + (targetCx - startCx) * ease);
+      const cy = Math.round(startCy + (targetCy - startCy) * ease);
+
+      try {
+        if (progress >= 1) {
+          // Final frame: snap to exact target and clear TOPMOST
+          this._stopRestoreAnimation();
+          api.SetWindowPos(
+            entry.hwnd,
+            HWND_NOTOPMOST,
+            targetX, targetY, targetCx, targetCy,
+            SWP_SHOWWINDOW
+          );
+          callback();
+        } else {
+          // Intermediate frame: single SetWindowPos (not DeferWindowPos — only one window)
+          api.SetWindowPos(
+            entry.hwnd,
+            HWND_NOTOPMOST,
+            x, y, cx, cy,
+            SWP_SHOWWINDOW
+          );
+          this._restoreAnimationTimer = setTimeout(tick, 1000 / 60);
+        }
+      } catch (e) {
+        console.error(`Restore animation frame failed for hwnd ${entry.hwnd}:`, e);
+        this._stopRestoreAnimation();
+        // Fallback: instant snap to original position
+        try {
+          api.SetWindowPos(entry.hwnd, HWND_NOTOPMOST, targetX, targetY, targetCx, targetCy, SWP_SHOWWINDOW);
+        } catch (er) { }
+        callback();
+      }
+    };
+
+    this._restoreAnimationTimer = setTimeout(tick, 0);
   }
 
   _animateLayout(targetLayouts) {
