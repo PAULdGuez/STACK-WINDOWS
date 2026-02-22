@@ -2,7 +2,7 @@
 
 const win32 = require('./win32');
 const { api, koffi, EnumWindowsProc, RECT,
-  SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE,
+  SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
   HWND_TOP, HWND_NOTOPMOST,
   SW_RESTORE,
   GWL_EXSTYLE, WS_EX_TOOLWINDOW } = win32;
@@ -23,6 +23,7 @@ class WindowManager {
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
     this._animationTimer = null;
+    this._currentTargets = null;
   }
 
   setBackgroundColor(color) {
@@ -232,12 +233,23 @@ class WindowManager {
       clearTimeout(this._animationTimer);
       this._animationTimer = null;
     }
+    this._currentTargets = null;
   }
 
   _animateLayout(targetLayouts) {
-    this._stopAnimation();
-
     if (targetLayouts.length === 0) return;
+
+    // Build a comparable key from the target positions
+    const targetsKey = targetLayouts.map(t => t.hwnd + ':' + t.x + ',' + t.y + ',' + t.cx + ',' + t.cy).join('|');
+
+    // Skip redundant animation: if already animating to these exact targets, do nothing
+    if (targetsKey === this._currentTargets && this._animationTimer !== null) {
+      console.log('[WindowManager] _animateLayout: skipping redundant call (already animating to same targets)');
+      return;
+    }
+
+    this._stopAnimation();
+    this._currentTargets = targetsKey;
 
     // Collect current positions
     const layouts = targetLayouts.map(target => {
@@ -266,12 +278,19 @@ class WindowManager {
 
     const DURATION = 200; // ms
     const startTime = Date.now();
+    let isFirstFrame = true;
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / DURATION, 1);
       // Use an ease-out timing function
       const ease = 1 - Math.pow(1 - progress, 3);
+
+      // Determine if this is an intermediate frame (not first, not last).
+      // First frame sets Z-order (HWND_TOP, no SWP_NOZORDER).
+      // Intermediate frames skip Z-order work to reduce flicker.
+      // Final snap (progress >= 1) re-asserts Z-order.
+      const isIntermediate = !isFirstFrame && progress < 1;
 
       try {
         const hWinPosInfo = api.BeginDeferWindowPos(layouts.length);
@@ -292,15 +311,20 @@ class WindowManager {
           const cx = Math.round(layout.startCx + (layout.targetCx - layout.startCx) * ease);
           const cy = Math.round(layout.startCy + (layout.targetCy - layout.startCy) * ease);
 
+          // On intermediate frames, add SWP_NOZORDER to skip redundant Z-order changes
+          // and pass 0 as hWndInsertAfter (ignored when SWP_NOZORDER is set).
+          const frameFlags = isIntermediate ? (layout.flags | SWP_NOZORDER) : layout.flags;
+          const insertAfter = isIntermediate ? 0 : HWND_TOP;
+
           currentHWinPosInfo = api.DeferWindowPos(
             currentHWinPosInfo,
             layout.hwnd,
-            HWND_TOP,
+            insertAfter,
             x,
             y,
             cx,
             cy,
-            layout.flags
+            frameFlags
           );
 
           if (!currentHWinPosInfo) break;
@@ -310,9 +334,11 @@ class WindowManager {
           api.EndDeferWindowPos(currentHWinPosInfo);
         }
 
+        isFirstFrame = false;
+
         if (progress >= 1) {
           this._stopAnimation();
-          // Final snap to target
+          // Final snap to target — re-assert Z-order with HWND_TOP (no SWP_NOZORDER)
           const finalHWinPosInfo = api.BeginDeferWindowPos(layouts.length);
           if (finalHWinPosInfo) {
             let hInfo = finalHWinPosInfo;
