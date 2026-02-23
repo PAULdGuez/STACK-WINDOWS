@@ -18,11 +18,36 @@ class Persistence {
   /**
    * Initialize the persistence file path.
    * Must be called after app.whenReady().
+   * @param {string|null} [instanceId] - Optional instance ID for per-instance file isolation.
+   *   If provided, saves to window-group-<instanceId>.json; otherwise uses window-group.json.
    */
-  init() {
+  init(instanceId) {
+    this.instanceId = instanceId || null;
     const userDataPath = app.getPath('userData');
-    this.filePath = path.join(userDataPath, 'window-group.json');
+    if (this.instanceId) {
+      this.filePath = path.join(userDataPath, `window-group-${this.instanceId}.json`);
+    } else {
+      this.filePath = path.join(userDataPath, 'window-group.json');
+    }
     console.log('Persistence file:', this.filePath);
+  }
+
+  /**
+   * Delete the instance-specific persistence file.
+   * Only deletes when instanceId is set (instance-aware mode).
+   * In legacy mode (instanceId is null), does nothing to preserve backward compat.
+   * Safe to call from quit handlers — never throws.
+   */
+  cleanupFile() {
+    if (!this.instanceId) return;
+    try {
+      if (this.filePath && fs.existsSync(this.filePath)) {
+        fs.unlinkSync(this.filePath);
+        console.log('Persistence file cleaned up:', this.filePath);
+      }
+    } catch (e) {
+      console.error('Failed to cleanup persistence file:', e);
+    }
   }
 
   /**
