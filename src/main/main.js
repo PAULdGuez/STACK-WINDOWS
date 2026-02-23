@@ -291,6 +291,10 @@ app.whenReady().then(() => {
   // Create the controller window
   createWindow();
 
+  // Set window title with short instance ID for visual distinction between instances
+  const shortId = instanceId.substring(0, 8);
+  mainWindow.setTitle('Stack Windows [' + shortId + ']');
+
   // Initialize foreground monitor — detects when user clicks/focuses a managed window
   foregroundMonitor = new ForegroundMonitor();
   foregroundMonitor.start(onManagedWindowFocused);
