@@ -203,6 +203,20 @@ function registerIPC() {
     }
   });
 
+  ipcMain.handle('rename-window', async (event, hwnd, customTitle) => {
+    try {
+      const found = windowManager.renameWindow(hwnd, customTitle);
+      if (found) {
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+      }
+      return { success: found };
+    } catch (e) {
+      console.error('rename-window error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   ipcMain.handle('refresh', async () => {
     try {
       const excludeHwnds = instanceRegistry.getOtherInstancesHwnds();

@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Activate an already managed window
   activateWindow: (hwnd) => ipcRenderer.invoke('activate-window', hwnd),
 
+  // Rename a managed window's display title
+  renameWindow: (hwnd, customTitle) => ipcRenderer.invoke('rename-window', hwnd, customTitle),
+
   // Refresh available windows list
   refresh: () => ipcRenderer.invoke('refresh'),
 
