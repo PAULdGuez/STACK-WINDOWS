@@ -5,11 +5,13 @@ const path = require('path');
 const { WindowManager, CONTROLLER_WIDTH } = require('./window-manager');
 const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
+const { InstanceRegistry } = require('./instance-registry');
 
 let mainWindow = null;
 let windowManager = null;
 let persistence = null;
 let foregroundMonitor = null;
+let instanceRegistry = null;
 let cleanupTimer = null;
 let saveTimer = null;
 let _layoutDebounceTimer = null;
@@ -131,7 +133,8 @@ function onManagedWindowFocused(hwnd) {
 function registerIPC() {
   ipcMain.handle('get-available-windows', async () => {
     try {
-      return windowManager.getAvailableWindows();
+      const excludeHwnds = instanceRegistry.getOtherInstancesHwnds();
+      return windowManager.getAvailableWindows(excludeHwnds);
     } catch (e) {
       console.error('get-available-windows error:', e);
       return [];
@@ -161,6 +164,7 @@ function registerIPC() {
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
+      instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
       return { success: true };
     } catch (e) {
       console.error('add-window error:', e);
@@ -175,6 +179,7 @@ function registerIPC() {
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
+      instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
       return { success: true };
     } catch (e) {
       console.error('remove-window error:', e);
@@ -200,7 +205,8 @@ function registerIPC() {
 
   ipcMain.handle('refresh', async () => {
     try {
-      return windowManager.getAvailableWindows();
+      const excludeHwnds = instanceRegistry.getOtherInstancesHwnds();
+      return windowManager.getAvailableWindows(excludeHwnds);
     } catch (e) {
       console.error('refresh error:', e);
       return [];
@@ -267,33 +273,23 @@ function registerIPC() {
 }
 
 app.whenReady().then(() => {
-  // Initialize persistence
-  persistence = new Persistence();
-  persistence.init();
+  // 1. Initialize instance registry
+  instanceRegistry = new InstanceRegistry();
+  const instanceId = instanceRegistry.init();
 
-  // Initialize window manager
+  // 2. Initialize persistence with instance-specific file
+  persistence = new Persistence();
+  persistence.init(instanceId);
+
+  // 3. Initialize window manager — starts EMPTY, no loadState()
   windowManager = new WindowManager();
 
-  // Load saved state and try to reconnect to windows
-  const savedState = persistence.load();
-  if (savedState) {
-    console.log('Restoring saved window group configuration...');
-    windowManager.loadState(savedState);
-
-    if (windowManager.managedWindows.length > 0) {
-      console.log(`Reconnected to ${windowManager.managedWindows.length} windows`);
-    } else {
-      console.log('No saved windows could be reconnected');
-    }
-  }
+  // NOTE: We intentionally do NOT call persistence.load() or windowManager.loadState().
+  // Each new instance starts with an empty managed stack.
+  // The user adds windows manually to this instance's group.
 
   // Create the controller window
   createWindow();
-
-  // Restore saved bounds now that mainWindow exists
-  if (savedState && savedState.bounds && savedState.bounds.width && savedState.bounds.height) {
-    mainWindow.setBounds(savedState.bounds);
-  }
 
   // Initialize foreground monitor — detects when user clicks/focuses a managed window
   foregroundMonitor = new ForegroundMonitor();
@@ -303,13 +299,6 @@ app.whenReady().then(() => {
   // Register IPC handlers
   registerIPC();
 
-  // Apply layout after a short delay
-  setTimeout(() => {
-    if (windowManager.managedWindows.length > 0) {
-      doLayout();
-    }
-  }, 500);
-
   // Cleanup timer: remove dead windows every 2 seconds
   cleanupTimer = setInterval(() => {
     const changed = windowManager.removeDeadWindows();
@@ -318,6 +307,7 @@ app.whenReady().then(() => {
       doLayoutDebounced();
       sendStateUpdate();
       persistence.save(windowManager.getState());
+      instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
     }
   }, 2000);
 
@@ -344,6 +334,9 @@ app.on('window-all-closed', () => {
     windowManager.restoreAll();
   }
 
+  persistence.cleanupFile();
+  instanceRegistry.unregister();
+
   app.quit();
 });
 
@@ -358,4 +351,7 @@ app.on('before-quit', () => {
     persistence.saveSync(windowManager.getState());
     windowManager.restoreAll();
   }
+
+  persistence.cleanupFile();
+  instanceRegistry.unregister();
 });
