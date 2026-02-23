@@ -180,6 +180,48 @@
       border-left-color: #48f;
     }
 
+    .managed-title {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .managed-title .display-name {
+      cursor: pointer;
+      padding: 1px 3px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .managed-title .display-name:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .managed-title .display-name[contenteditable='true']:focus {
+      background: #222;
+      border-color: #555;
+      outline: none;
+      cursor: text;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    .managed-title .original-title {
+      font-size: 9px;
+      color: #555;
+      display: block;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     @keyframes fadeSlideIn {
       from { opacity: 0; transform: translateX(-8px); }
       to { opacity: 1; transform: translateX(0); }
@@ -563,14 +605,32 @@
           };
 
           // Update title text
-          const titleEl = item.querySelector('.title');
-          titleEl.textContent = win.title || 'Untitled';
+          const titleEl = item.querySelector('.managed-title');
+          if (titleEl) {
+            const displayEl = titleEl.querySelector('.display-name');
+            const origEl = titleEl.querySelector('.original-title');
+            const displayText = win.customTitle || win.title || 'Untitled';
+            // Only update if not currently being edited
+            if (displayEl && document.activeElement !== displayEl) {
+              displayEl.textContent = displayText;
+            }
+            if (origEl) {
+              // Show original title hint only when a custom name is set
+              if (win.customTitle) {
+                origEl.textContent = win.title || '';
+                origEl.style.display = 'block';
+              } else {
+                origEl.textContent = '';
+                origEl.style.display = 'none';
+              }
+            }
+          }
 
           // Update badge
-          let badge = titleEl.querySelector('.active-badge, .strip-badge');
+          let badge = titleEl ? titleEl.querySelector('.active-badge, .strip-badge') : null;
           if (!badge) {
             badge = document.createElement('span');
-            titleEl.appendChild(badge);
+            if (titleEl) titleEl.appendChild(badge);
           }
           if (isActive) {
             badge.className = 'active-badge';
@@ -597,9 +657,61 @@
             item.classList.remove('entering');
           }, { once: true });
 
-          const title = document.createElement('span');
-          title.className = 'title';
-          title.textContent = win.title || 'Untitled';
+          const title = document.createElement('div');
+          title.className = 'managed-title';
+
+          const displayName = document.createElement('span');
+          displayName.className = 'display-name';
+          displayName.contentEditable = 'true';
+          displayName.spellcheck = false;
+          displayName.textContent = win.customTitle || win.title || 'Untitled';
+
+          // Double-click selects all text for easy replacement
+          displayName.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(displayName);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          });
+
+          // Blur saves the rename
+          displayName.addEventListener('blur', () => {
+            const newName = displayName.textContent.trim();
+            renameWindowTitle(win.hwnd, newName || null);
+          });
+
+          // Enter confirms (blur triggers save)
+          displayName.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              displayName.blur();
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              displayName.textContent = win.customTitle || win.title || 'Untitled';
+              displayName.blur();
+            }
+          });
+
+          // Prevent click from activating the window while editing
+          displayName.addEventListener('click', (e) => {
+            e.stopPropagation();
+          });
+
+          title.appendChild(displayName);
+
+          // Show original Win32 title as a hint when custom name is set
+          const origTitle = document.createElement('span');
+          origTitle.className = 'original-title';
+          if (win.customTitle) {
+            origTitle.textContent = win.title || '';
+            origTitle.style.display = 'block';
+          } else {
+            origTitle.style.display = 'none';
+          }
+          title.appendChild(origTitle);
 
           if (isActive) {
             const badge = document.createElement('span');
@@ -759,6 +871,14 @@
         await refreshManaged();
       } catch (e) {
         console.error('Failed to activate:', e);
+      }
+    }
+
+    async function renameWindowTitle(hwnd, newTitle) {
+      try {
+        await window.electronAPI.renameWindow(hwnd, newTitle);
+      } catch (e) {
+        console.error('Failed to rename:', e);
       }
     }
 
