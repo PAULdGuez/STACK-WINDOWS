@@ -277,6 +277,25 @@ app.whenReady().then(() => {
   instanceRegistry = new InstanceRegistry();
   const instanceId = instanceRegistry.init();
 
+  // Clean up orphaned persistence files from crashed instances
+  const userDataPath = app.getPath('userData');
+  const fs = require('fs');
+  try {
+    const files = fs.readdirSync(userDataPath);
+    const registry = instanceRegistry.getRegistry();
+    const liveIds = new Set(Object.keys(registry.instances || {}));
+
+    for (const file of files) {
+      const match = file.match(/^window-group-(.+)\.json$/);
+      if (match && !liveIds.has(match[1])) {
+        fs.unlinkSync(path.join(userDataPath, file));
+        console.log('Cleaned up orphaned persistence file:', file);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to clean orphaned files:', e);
+  }
+
   // 2. Initialize persistence with instance-specific file
   persistence = new Persistence();
   persistence.init(instanceId);
