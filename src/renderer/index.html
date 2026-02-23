@@ -198,7 +198,7 @@
       transition: background 0.15s, border-color 0.15s;
     }
 
-    .managed-title .display-name:hover {
+    .managed-title .display-name[contenteditable='true']:hover {
       background: rgba(255, 255, 255, 0.08);
     }
 
@@ -351,6 +351,30 @@
     .color-picker-btn:hover {
       border-color: #888;
     }
+
+    .rename-toggle {
+      background: none;
+      border: 1px solid #444;
+      color: #666;
+      font-size: 9px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      -webkit-app-region: no-drag;
+      margin-right: 6px;
+    }
+
+    .rename-toggle:hover {
+      border-color: #888;
+      color: #aaa;
+    }
+
+    .rename-toggle.active {
+      border-color: #f90;
+      color: #f90;
+      background: rgba(255, 153, 0, 0.1);
+    }
   </style>
 </head>
 
@@ -398,7 +422,10 @@
   <div class="section" style="flex: 1;">
     <div class="section-header">
       <span id="managedSubtitle">MANAGED STACK</span>
-      <span id="managedCount">0</span>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <button id="renameToggleBtn" class="rename-toggle" onclick="toggleRenameMode()" title="Toggle rename mode">✏️ Rename</button>
+        <span id="managedCount">0</span>
+      </div>
     </div>
     <div class="window-list" id="managedList"></div>
   </div>
@@ -424,6 +451,7 @@
 
     let isAvailableHidden = false;
     let customSizeEnabled = false;
+    let renameModeEnabled = false;
 
     async function onBackgroundColorChange(color) {
       document.body.style.backgroundColor = color;
@@ -433,6 +461,18 @@
       } catch (e) {
         console.error('Failed to set background color:', e);
       }
+    }
+
+    function toggleRenameMode() {
+      renameModeEnabled = !renameModeEnabled;
+      const btn = document.getElementById('renameToggleBtn');
+      if (renameModeEnabled) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      // Re-render to apply/remove contentEditable
+      renderManaged();
     }
 
     function toggleDimensionsSection() {
@@ -614,6 +654,9 @@
             if (displayEl && document.activeElement !== displayEl) {
               displayEl.textContent = displayText;
             }
+            if (displayEl) {
+              displayEl.contentEditable = renameModeEnabled ? 'true' : 'false';
+            }
             if (origEl) {
               // Show original title hint only when a custom name is set
               if (win.customTitle) {
@@ -662,12 +705,13 @@
 
           const displayName = document.createElement('span');
           displayName.className = 'display-name';
-          displayName.contentEditable = 'true';
+          displayName.contentEditable = renameModeEnabled ? 'true' : 'false';
           displayName.spellcheck = false;
           displayName.textContent = win.customTitle || win.title || 'Untitled';
 
           // Double-click selects all text for easy replacement
           displayName.addEventListener('dblclick', (e) => {
+            if (!renameModeEnabled) return;
             e.stopPropagation();
             const selection = window.getSelection();
             const range = document.createRange();
@@ -678,12 +722,14 @@
 
           // Blur saves the rename
           displayName.addEventListener('blur', () => {
+            if (!renameModeEnabled) return;
             const newName = displayName.textContent.trim();
             renameWindowTitle(win.hwnd, newName || null);
           });
 
           // Enter confirms (blur triggers save)
           displayName.addEventListener('keydown', (e) => {
+            if (!renameModeEnabled) return;
             if (e.key === 'Enter') {
               e.preventDefault();
               displayName.blur();
@@ -695,9 +741,11 @@
             }
           });
 
-          // Prevent click from activating the window while editing
+          // Only prevent click propagation (window activation) when rename mode is on
           displayName.addEventListener('click', (e) => {
-            e.stopPropagation();
+            if (renameModeEnabled) {
+              e.stopPropagation();
+            }
           });
 
           title.appendChild(displayName);
