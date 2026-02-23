@@ -149,6 +149,7 @@ class WindowManager {
     const entry = {
       hwnd: hwndNum,
       title: title || this._getWindowTitle(hwndNum) || 'Untitled',
+      customTitle: null,
       processId: pidBuf[0],
       originalRect: {
         left: rect.left || 0,
@@ -638,8 +639,24 @@ class WindowManager {
     return this.managedWindows.map(w => ({
       hwnd: w.hwnd,
       title: w.title,
+      customTitle: w.customTitle || null,
       processId: w.processId
     }));
+  }
+
+  /**
+   * Set a custom display name for a managed window.
+   * Pass null or empty string to clear the custom name (revert to Win32 title).
+   * @param {number} hwnd
+   * @param {string|null} customTitle
+   * @returns {boolean} true if the window was found and renamed
+   */
+  renameWindow(hwnd, customTitle) {
+    const hwndNum = Number(hwnd);
+    const entry = this.managedWindows.find(w => w.hwnd === hwndNum);
+    if (!entry) return false;
+    entry.customTitle = (customTitle && customTitle.trim()) || null;
+    return true;
   }
 
   /**
@@ -679,6 +696,7 @@ class WindowManager {
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,
+        customTitle: w.customTitle || null,
         processId: w.processId,
         originalRect: w.originalRect
       }))
@@ -732,6 +750,7 @@ class WindowManager {
         this.managedWindows.push({
           hwnd: hwndNum,
           title: title,
+          customTitle: saved.customTitle || null,
           processId: saved.processId || 0,
           originalRect: saved.originalRect || { left: 100, top: 100, right: 900, bottom: 700 }
         });
