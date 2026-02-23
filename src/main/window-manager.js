@@ -75,8 +75,9 @@ class WindowManager {
   /**
    * Enumerate all visible, titled, non-tool windows on the system.
    * Excludes our own process and already-managed windows.
+   * @param {Set<number>} [excludeHwnds=new Set()] - Optional set of HWNDs to exclude (e.g. windows managed by other instances)
    */
-  getAvailableWindows() {
+  getAvailableWindows(excludeHwnds = new Set()) {
     const windows = [];
     const managedHwnds = new Set(this.managedWindows.map(w => w.hwnd));
 
@@ -95,6 +96,7 @@ class WindowManager {
         if (pidBuf[0] === this.ownPid) return true;
 
         if (managedHwnds.has(hwndNum)) return true;
+        if (excludeHwnds.has(hwndNum)) return true;
 
         const title = this._getWindowTitle(hwndNum);
         if (!title) return true;
