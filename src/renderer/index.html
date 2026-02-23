@@ -223,8 +223,15 @@
     }
 
     @keyframes fadeSlideIn {
-      from { opacity: 0; transform: translateX(-8px); }
-      to { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .window-item.entering {
@@ -382,8 +389,10 @@
   <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
-      <div id="colorPickerBtn" class="color-picker-btn" onclick="document.getElementById('bgColorInput').click()" title="Change background color"></div>
-      <input type="color" id="bgColorInput" value="#000000" style="display: none;" onchange="onBackgroundColorChange(this.value)">
+      <div id="colorPickerBtn" class="color-picker-btn" onclick="document.getElementById('bgColorInput').click()"
+        title="Change background color"></div>
+      <input type="color" id="bgColorInput" value="#000000" style="display: none;"
+        onchange="onBackgroundColorChange(this.value)">
     </div>
   </div>
 
@@ -423,7 +432,8 @@
     <div class="section-header">
       <span id="managedSubtitle">MANAGED STACK</span>
       <div style="display: flex; align-items: center; gap: 4px;">
-        <button id="renameToggleBtn" class="rename-toggle" onclick="toggleRenameMode()" title="Toggle rename mode">✏️ Rename</button>
+        <button id="renameToggleBtn" class="rename-toggle" onclick="toggleRenameMode()"
+          title="Toggle rename mode">Rename</button>
         <span id="managedCount">0</span>
       </div>
     </div>
