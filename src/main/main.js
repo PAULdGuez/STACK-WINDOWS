@@ -16,7 +16,30 @@ let cleanupTimer = null;
 let saveTimer = null;
 let _layoutDebounceTimer = null;
 let _saveDebounceTimer = null;
+let _cleanedUp = false;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
+
+function performCleanup() {
+  if (_cleanedUp) return;
+  _cleanedUp = true;
+
+  if (foregroundMonitor) foregroundMonitor.stop();
+  if (cleanupTimer) clearInterval(cleanupTimer);
+  if (saveTimer) clearInterval(saveTimer);
+  if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
+  if (_saveDebounceTimer) {
+    clearTimeout(_saveDebounceTimer);
+    _saveDebounceTimer = null;
+  }
+
+  if (windowManager) {
+    persistence.saveSync(windowManager.getState());
+    windowManager.restoreAll();
+  }
+
+  persistence.cleanupFile();
+  instanceRegistry.unregister();
+}
 
 function debouncedSave() {
   if (_saveDebounceTimer) clearTimeout(_saveDebounceTimer);
@@ -357,38 +380,10 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (foregroundMonitor) foregroundMonitor.stop();
-  if (cleanupTimer) clearInterval(cleanupTimer);
-  if (saveTimer) clearInterval(saveTimer);
-  if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
-  if (_saveDebounceTimer) {
-    clearTimeout(_saveDebounceTimer);
-    _saveDebounceTimer = null;
-  }
-
-  if (windowManager) {
-    persistence.saveSync(windowManager.getState());
-    windowManager.restoreAll();
-  }
-
-  persistence.cleanupFile();
-  instanceRegistry.unregister();
-
+  performCleanup();
   app.quit();
 });
 
 app.on('before-quit', () => {
-  if (foregroundMonitor) foregroundMonitor.stop();
-  if (_saveDebounceTimer) {
-    clearTimeout(_saveDebounceTimer);
-    _saveDebounceTimer = null;
-  }
-
-  if (windowManager) {
-    persistence.saveSync(windowManager.getState());
-    windowManager.restoreAll();
-  }
-
-  persistence.cleanupFile();
-  instanceRegistry.unregister();
+  performCleanup();
 });
