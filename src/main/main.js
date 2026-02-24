@@ -7,6 +7,12 @@ const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
 const { InstanceRegistry } = require('./instance-registry');
 
+function validateHwnd(hwnd) {
+  const n = Number(hwnd);
+  if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid hwnd: ' + hwnd);
+  return n;
+}
+
 let mainWindow = null;
 let windowManager = null;
 let persistence = null;
@@ -77,7 +83,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -182,6 +188,9 @@ function registerIPC() {
 
   ipcMain.handle('add-window', async (event, hwnd, title) => {
     try {
+      hwnd = validateHwnd(hwnd);
+      if (typeof title !== 'string') throw new Error('Invalid title: must be a string');
+      title = title.slice(0, 500);
       windowManager.addWindow(hwnd, title);
       syncMonitor();
       doLayout();
@@ -197,6 +206,7 @@ function registerIPC() {
 
   ipcMain.handle('remove-window', async (event, hwnd) => {
     try {
+      hwnd = validateHwnd(hwnd);
       windowManager.removeWindow(hwnd);
       syncMonitor();
       doLayout();
@@ -212,6 +222,7 @@ function registerIPC() {
 
   ipcMain.handle('activate-window', async (event, hwnd) => {
     try {
+      hwnd = validateHwnd(hwnd);
       const changed = windowManager.promoteToActive(hwnd, true);
       if (changed) {
         syncMonitor();
@@ -228,6 +239,9 @@ function registerIPC() {
 
   ipcMain.handle('rename-window', async (event, hwnd, customTitle) => {
     try {
+      hwnd = validateHwnd(hwnd);
+      if (customTitle !== null && typeof customTitle !== 'string') throw new Error('Invalid customTitle: must be string or null');
+      if (typeof customTitle === 'string') customTitle = customTitle.slice(0, 200);
       const found = windowManager.renameWindow(hwnd, customTitle);
       if (found) {
         sendStateUpdate();
@@ -263,6 +277,8 @@ function registerIPC() {
   });
 
   ipcMain.handle('resize-app', async (event, width, height) => {
+    if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) throw new Error('Invalid width: must be a positive number');
+    if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) throw new Error('Invalid height: must be a positive number');
     if (mainWindow && !mainWindow.isDestroyed()) {
       const currentBounds = mainWindow.getBounds();
       mainWindow.setBounds({
@@ -277,6 +293,8 @@ function registerIPC() {
 
   ipcMain.handle('set-custom-dimensions', async (event, width, height) => {
     try {
+      if (width !== null && (typeof width !== 'number' || !Number.isFinite(width) || width < 200)) throw new Error('Invalid width: must be null or a number >= 200');
+      if (height !== null && (typeof height !== 'number' || !Number.isFinite(height) || height < 200)) throw new Error('Invalid height: must be null or a number >= 200');
       windowManager.setCustomDimensions(width, height);
       doLayout();
       sendStateUpdate();
@@ -294,6 +312,7 @@ function registerIPC() {
 
   ipcMain.handle('set-background-color', async (event, color) => {
     try {
+      if (!/^#[0-9a-fA-F]{6}$/.test(color)) throw new Error('Invalid color: must match #rrggbb format');
       windowManager.setBackgroundColor(color);
       sendStateUpdate();
       persistence.save(windowManager.getState());
