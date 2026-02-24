@@ -266,6 +266,7 @@ class WindowManager {
     // Cancel any in-flight restore animation to avoid interfering with instant snap
     this._stopRestoreAnimation();
     for (const entry of this.managedWindows) {
+      if (!api.IsWindow(entry.hwnd)) continue;
       this._restoreWindow(entry);
     }
     this.managedWindows = [];
@@ -282,11 +283,23 @@ class WindowManager {
 
   /**
    * Cancel any in-flight restore animation (separate timer from main layout animation).
+   * If hwnd is provided, stops only that window's timer.
+   * If hwnd is omitted (or null/undefined), stops all restore timers.
+   * @param {number} [hwnd]
    */
-  _stopRestoreAnimation() {
-    if (this._restoreAnimationTimer) {
-      clearTimeout(this._restoreAnimationTimer);
-      this._restoreAnimationTimer = null;
+  _stopRestoreAnimation(hwnd) {
+    if (hwnd != null) {
+      const timer = this._restoreAnimationTimers.get(hwnd);
+      if (timer) {
+        clearTimeout(timer);
+        this._restoreAnimationTimers.delete(hwnd);
+      }
+    } else {
+      // Stop all
+      for (const timer of this._restoreAnimationTimers.values()) {
+        clearTimeout(timer);
+      }
+      this._restoreAnimationTimers.clear();
     }
   }
 
@@ -494,7 +507,25 @@ class WindowManager {
             frameFlags
           );
 
-          if (!currentHWinPosInfo) break;
+          if (!currentHWinPosInfo) {
+            // DeferWindowPos failed — fall back to individual SetWindowPos for remaining
+            console.warn('DeferWindowPos failed, falling back to SetWindowPos');
+            const failedIdx = layouts.indexOf(layout);
+            for (let j = failedIdx; j < layouts.length; j++) {
+              const fb = layouts[j];
+              const fbX = Math.round(fb.startX + (fb.targetX - fb.startX) * ease);
+              const fbY = Math.round(fb.startY + (fb.targetY - fb.startY) * ease);
+              const fbCx = Math.round(fb.startCx + (fb.targetCx - fb.startCx) * ease);
+              const fbCy = Math.round(fb.startCy + (fb.targetCy - fb.startCy) * ease);
+              try {
+                api.SetWindowPos(fb.hwnd, HWND_TOP, fbX, fbY, fbCx, fbCy, SWP_NOACTIVATE | SWP_NOZORDER);
+              } catch (e) {
+                // Skip this window
+              }
+            }
+            currentHWinPosInfo = 0;
+            break;
+          }
         }
 
         if (currentHWinPosInfo) {
@@ -509,9 +540,23 @@ class WindowManager {
           const finalHWinPosInfo = api.BeginDeferWindowPos(layouts.length);
           if (finalHWinPosInfo) {
             let hInfo = finalHWinPosInfo;
-            for (const layout of layouts) {
+            for (let i = 0; i < layouts.length; i++) {
+              const layout = layouts[i];
               hInfo = api.DeferWindowPos(hInfo, layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
-              if (!hInfo) break;
+              if (!hInfo) {
+                // DeferWindowPos failed in final snap — fall back to individual SetWindowPos for remaining
+                console.warn('DeferWindowPos failed in final snap, falling back to SetWindowPos');
+                for (let j = i; j < layouts.length; j++) {
+                  const fb = layouts[j];
+                  try {
+                    api.SetWindowPos(fb.hwnd, HWND_TOP, fb.targetX, fb.targetY, fb.targetCx, fb.targetCy, SWP_NOACTIVATE | SWP_NOZORDER);
+                  } catch (e) {
+                    // Skip this window
+                  }
+                }
+                hInfo = 0;
+                break;
+              }
             }
             if (hInfo) api.EndDeferWindowPos(hInfo);
           }
