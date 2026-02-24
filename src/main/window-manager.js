@@ -24,7 +24,7 @@ class WindowManager {
     this.customHeight = null; // null = use all available space (default behavior)
     this._animationTimer = null;
     this._currentTargets = null;
-    this._restoreAnimationTimer = null;
+    this._restoreAnimationTimers = new Map(); // Map<hwnd, timerId>
     this.animationDuration = options.animationDuration || 100;         // ms
     this.animationEasing = options.animationEasing || 'ease-out-cubic';
     this.restoreAnimationDuration = options.restoreAnimationDuration || 150; // ms
@@ -544,16 +544,20 @@ class WindowManager {
   layoutStack(screenBounds) {
     if (this.managedWindows.length === 0) return;
 
-    const workArea = screenBounds || { x: 0, y: 0, width: 1920, height: 1040 };
+    const workArea = screenBounds || { x: 0, y: 0, width: 1920, height: 1040, displayRightEdge: null };
     // The starting X of the stack is the entire width of the controller window
     const startX = workArea.x + workArea.width;
 
     // Use displayRightEdge passed from main.js (based on the display where the app lives).
     // Fallback to a safe default if not provided (backward compat).
-    const displayRightEdge = screenBounds.displayRightEdge != null
-      ? screenBounds.displayRightEdge
+    const displayRightEdge = workArea.displayRightEdge != null
+      ? workArea.displayRightEdge
       : startX + 1920; // fallback: assume 1920px wide display starting at startX
     const availableWidth = displayRightEdge - startX;
+    if (availableWidth < 200) {
+      console.warn('layoutStack: not enough space to the right of controller, skipping layout');
+      return;
+    }
     const availableHeight = workArea.height;
 
     // Apply custom dimensions (clamped to available space so we never exceed the monitor)

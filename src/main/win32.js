@@ -18,7 +18,7 @@ const RECT = koffi.struct('RECT', {
 });
 
 // Callback prototype for EnumWindows
-const EnumWindowsProc = koffi.proto('bool EnumWindowsProc(intptr hwnd, intptr lParam)');
+const EnumWindowsProc = koffi.proto('int EnumWindowsProc(intptr hwnd, intptr lParam)');
 
 // Win32 API function declarations
 const api = {
@@ -30,9 +30,9 @@ const api = {
   IsIconic: user32.func('BOOL IsIconic(size_t hWnd)'),
   IsZoomed: user32.func('BOOL IsZoomed(size_t hWnd)'),
   GetWindowRect: user32.func('BOOL GetWindowRect(size_t hWnd, _Out_ RECT *lpRect)'),
-  SetWindowPos: user32.func('BOOL SetWindowPos(size_t hWnd, size_t hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags)'),
+  SetWindowPos: user32.func('BOOL SetWindowPos(size_t hWnd, intptr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags)'),
   BeginDeferWindowPos: user32.func('intptr BeginDeferWindowPos(int nNumWindows)'),
-  DeferWindowPos: user32.func('intptr DeferWindowPos(intptr hWinPosInfo, size_t hWnd, size_t hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags)'),
+  DeferWindowPos: user32.func('intptr DeferWindowPos(intptr hWinPosInfo, size_t hWnd, intptr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags)'),
   EndDeferWindowPos: user32.func('BOOL EndDeferWindowPos(intptr hWinPosInfo)'),
   ShowWindow: user32.func('BOOL ShowWindow(size_t hWnd, int nCmdShow)'),
   SetForegroundWindow: user32.func('BOOL SetForegroundWindow(size_t hWnd)'),
