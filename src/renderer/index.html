@@ -567,6 +567,12 @@
       }
     });
 
+    stackTitle.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text.substring(0, 100));
+    });
+
     async function saveStackTitle() {
       const newName = stackTitle.textContent.trim() || 'Managed Stack';
       stackTitle.textContent = newName.toUpperCase();
@@ -759,6 +765,12 @@
             }
           });
 
+          displayName.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            document.execCommand('insertText', false, text.substring(0, 200));
+          });
+
           // Only prevent click propagation (window activation) when rename mode is on
           displayName.addEventListener('click', (e) => {
             if (renameModeEnabled) {
@@ -800,6 +812,15 @@
           removeBtn.textContent = 'Remove';
           removeBtn.onclick = (e) => {
             e.stopPropagation();
+            // If a displayName is focused, blur it without saving
+            const focused = item.querySelector('.display-name:focus');
+            if (focused) {
+              // Temporarily disable rename mode to prevent blur from saving
+              const wasEnabled = renameModeEnabled;
+              renameModeEnabled = false;
+              focused.blur();
+              renameModeEnabled = wasEnabled;
+            }
             removeWindow(win.hwnd);
           };
           actions.appendChild(removeBtn);
