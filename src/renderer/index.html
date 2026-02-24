@@ -25,13 +25,13 @@
     }
 
     .header {
-      padding: 12px;
+      padding: 6px 12px;
       border-bottom: 1px solid #333;
       -webkit-app-region: drag;
     }
 
     .header h1 {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.5px;
     }
@@ -39,7 +39,7 @@
     .header .subtitle {
       font-size: 10px;
       color: #666;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .status-bar {
@@ -64,7 +64,7 @@
     }
 
     .section-header {
-      padding: 8px 12px;
+      padding: 4px 12px;
       font-size: 11px;
       font-weight: 600;
       color: #888;
@@ -97,11 +97,11 @@
     .window-list {
       flex: 1;
       overflow-y: auto;
-      padding: 4px 0;
+      padding: 2px 0;
     }
 
     .window-item {
-      padding: 8px 12px;
+      padding: 4px 12px;
       border-bottom: 1px solid #111;
       display: flex;
       justify-content: space-between;
@@ -236,19 +236,6 @@
 
     .window-item.entering {
       animation: fadeSlideIn 0.2s ease forwards;
-    }
-
-    .active-badge {
-      font-size: 9px;
-      color: #4f4;
-      font-weight: 600;
-      margin-left: 6px;
-    }
-
-    .strip-badge {
-      font-size: 9px;
-      color: #48f;
-      margin-left: 6px;
     }
 
     .empty-state {
@@ -698,14 +685,8 @@
               displayEl.dataset.currentTitle = win.title || 'Untitled';
             }
             if (origEl) {
-              // Show original title hint only when a custom name is set
-              if (win.customTitle) {
-                origEl.textContent = win.title || '';
-                origEl.style.display = 'block';
-              } else {
-                origEl.textContent = '';
-                origEl.style.display = 'none';
-              }
+              origEl.textContent = '';
+              origEl.style.display = 'none';
             }
           }
 
@@ -800,15 +781,9 @@
 
           title.appendChild(displayName);
 
-          // Show original Win32 title as a hint when custom name is set
           const origTitle = document.createElement('span');
           origTitle.className = 'original-title';
-          if (win.customTitle) {
-            origTitle.textContent = win.title || '';
-            origTitle.style.display = 'block';
-          } else {
-            origTitle.style.display = 'none';
-          }
+          origTitle.style.display = 'none';
           title.appendChild(origTitle);
 
           if (isActive) {
