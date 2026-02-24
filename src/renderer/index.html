@@ -286,6 +286,18 @@
       cursor: text;
     }
 
+    h1[contenteditable='true'] {
+      -webkit-app-region: no-drag;
+    }
+
+    h1[contenteditable='true']:focus {
+      user-select: text;
+    }
+
+    .managed-title .display-name[contenteditable='true']:focus {
+      user-select: text;
+    }
+
     .dimensions-section {
       flex: none;
     }
@@ -945,7 +957,7 @@
         // Update Title if changed externally
         if (data.stackName) {
           const upperName = data.stackName.toUpperCase();
-          if (stackTitle && stackTitle.textContent !== upperName) {
+          if (stackTitle && stackTitle.textContent !== upperName && document.activeElement !== stackTitle) {
             stackTitle.textContent = upperName;
           }
           if (managedSubtitle && managedSubtitle.textContent !== upperName) {
