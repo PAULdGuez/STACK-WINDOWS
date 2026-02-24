@@ -682,6 +682,9 @@
             }
             if (displayEl) {
               displayEl.contentEditable = renameModeEnabled ? 'true' : 'false';
+              // Keep data attributes in sync so Escape handler reads current values
+              displayEl.dataset.currentCustomTitle = win.customTitle || '';
+              displayEl.dataset.currentTitle = win.title || 'Untitled';
             }
             if (origEl) {
               // Show original title hint only when a custom name is set
@@ -732,6 +735,9 @@
           displayName.contentEditable = renameModeEnabled ? 'true' : 'false';
           displayName.spellcheck = false;
           displayName.textContent = win.customTitle || win.title || 'Untitled';
+          // Store current title values as data attributes to avoid stale closure bugs
+          displayName.dataset.currentCustomTitle = win.customTitle || '';
+          displayName.dataset.currentTitle = win.title || 'Untitled';
 
           // Double-click selects all text for easy replacement
           displayName.addEventListener('dblclick', (e) => {
@@ -760,7 +766,10 @@
             }
             if (e.key === 'Escape') {
               e.preventDefault();
-              displayName.textContent = win.customTitle || win.title || 'Untitled';
+              // Read from data attributes instead of stale closure to get current title
+              const ct = displayName.dataset.currentCustomTitle;
+              const t = displayName.dataset.currentTitle;
+              displayName.textContent = ct || t || 'Untitled';
               displayName.blur();
             }
           });
@@ -963,6 +972,11 @@
 
     async function renameWindowTitle(hwnd, newTitle) {
       try {
+        // Optimistic local update to prevent flicker before next state-update arrives
+        const entry = managedWindows.find(w => w.hwnd === hwnd);
+        if (entry) {
+          entry.customTitle = newTitle || null;
+        }
         await window.electronAPI.renameWindow(hwnd, newTitle);
       } catch (e) {
         console.error('Failed to rename:', e);
