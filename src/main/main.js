@@ -6,6 +6,7 @@ const { WindowManager, CONTROLLER_WIDTH } = require('./window-manager');
 const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
 const { InstanceRegistry } = require('./instance-registry');
+const api = require('./win32');
 
 function validateHwnd(hwnd) {
   const n = Number(hwnd);
@@ -98,6 +99,20 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  mainWindow.on('focus', () => {
+    if (!windowManager) return;
+    const activeHwnd = windowManager.getActiveHwnd();
+    if (activeHwnd > 0) {
+      try {
+        if (api.IsWindow(activeHwnd) !== 0) {
+          api.SetForegroundWindow(activeHwnd);
+        }
+      } catch (e) {
+        // Silently ignore — window may have been closed
+      }
+    }
   });
 }
 
