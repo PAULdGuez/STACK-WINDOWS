@@ -305,9 +305,9 @@ class WindowManager {
 
   /**
    * Animate a single window sliding back to its originalRect position.
-   * Uses a separate timer (_restoreAnimationTimer) so it doesn't cancel the
-   * main layout animation (_animationTimer).
-   * Duration: 250ms (slightly longer than layout animation for visual distinction).
+   * Uses a per-window timer keyed by hwnd in _restoreAnimationTimers so that
+   * multiple windows can animate concurrently without cancelling each other.
+   * Duration: restoreAnimationDuration ms (slightly longer than layout animation for visual distinction).
    * Easing: cubic ease-out (same as _animateLayout).
    * @param {{ hwnd: number, originalRect: {left,top,right,bottom} }} entry
    * @param {Function} callback - Called when animation completes
@@ -319,8 +319,8 @@ class WindowManager {
       return;
     }
 
-    // Cancel any in-flight restore animation before starting a new one
-    this._stopRestoreAnimation();
+    // Cancel any in-flight restore animation for this specific window only
+    this._stopRestoreAnimation(entry.hwnd);
 
     const r = entry.originalRect;
     const targetX = r.left;
@@ -361,7 +361,7 @@ class WindowManager {
       try {
         if (progress >= 1) {
           // Final frame: snap to exact target and clear TOPMOST
-          this._stopRestoreAnimation();
+          this._restoreAnimationTimers.delete(entry.hwnd);
           api.SetWindowPos(
             entry.hwnd,
             HWND_NOTOPMOST,
@@ -377,11 +377,11 @@ class WindowManager {
             x, y, cx, cy,
             SWP_SHOWWINDOW
           );
-          this._restoreAnimationTimer = setTimeout(tick, 1000 / 30);
+          this._restoreAnimationTimers.set(entry.hwnd, setTimeout(tick, 1000 / 30));
         }
       } catch (e) {
         console.error(`Restore animation frame failed for hwnd ${entry.hwnd}:`, e);
-        this._stopRestoreAnimation();
+        this._restoreAnimationTimers.delete(entry.hwnd);
         // Fallback: instant snap to original position
         try {
           api.SetWindowPos(entry.hwnd, HWND_NOTOPMOST, targetX, targetY, targetCx, targetCy, SWP_SHOWWINDOW);
@@ -390,7 +390,7 @@ class WindowManager {
       }
     };
 
-    this._restoreAnimationTimer = setTimeout(tick, 0);
+    this._restoreAnimationTimers.set(entry.hwnd, setTimeout(tick, 0));
   }
 
   _animateLayout(targetLayouts) {
