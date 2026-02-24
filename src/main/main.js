@@ -108,6 +108,7 @@ function createWindow() {
       try {
         if (api.IsWindow(activeHwnd) !== 0) {
           api.SetForegroundWindow(activeHwnd);
+          instanceRegistry.updateActiveHwnd(activeHwnd);
         }
       } catch (e) {
         // Silently ignore — window may have been closed
@@ -168,6 +169,7 @@ function onManagedWindowFocused(hwnd) {
     doLayoutDebounced();
     sendStateUpdate();
     debouncedSave();
+    instanceRegistry.updateActiveHwnd(hwnd);
   }
 }
 
@@ -212,6 +214,7 @@ function registerIPC() {
       sendStateUpdate();
       persistence.save(windowManager.getState());
       instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
+      instanceRegistry.updateActiveHwnd(windowManager.getActiveHwnd());
       return { success: true };
     } catch (e) {
       console.error('add-window error:', e);
@@ -244,6 +247,19 @@ function registerIPC() {
         doLayout();
         sendStateUpdate();
         persistence.save(windowManager.getState());
+        instanceRegistry.updateActiveHwnd(hwnd);
+      } else {
+        // Already active — try cross-stack toggle
+        const otherHwnd = instanceRegistry.getLastActiveHwndFromOtherInstances();
+        if (otherHwnd > 0) {
+          try {
+            if (api.IsWindow(otherHwnd) !== 0) {
+              api.SetForegroundWindow(otherHwnd);
+            }
+          } catch (e) {
+            // Silently ignore — other instance's window may have been closed
+          }
+        }
       }
       return { success: true };
     } catch (e) {
