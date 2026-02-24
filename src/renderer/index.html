@@ -259,7 +259,9 @@
 
         // Add click listener to activate this window
         item.onclick = async () => {
-          await activateWindow(win.hwnd);
+          if (!isActive) {
+            await activateWindow(win.hwnd);
+          }
         };
 
         const title = document.createElement('span');
