@@ -494,7 +494,7 @@
         btn.classList.remove('active');
       }
       // Re-render to apply/remove contentEditable
-      renderManaged();
+      scheduleRenderManaged();
     }
 
     function toggleDimensionsSection() {
@@ -616,6 +616,17 @@
       } catch (e) {
         console.error('Failed to toggle visibility', e);
       }
+    }
+
+    let _renderManagedPending = false;
+
+    function scheduleRenderManaged() {
+      if (_renderManagedPending) return;
+      _renderManagedPending = true;
+      requestAnimationFrame(() => {
+        _renderManagedPending = false;
+        renderManaged();
+      });
     }
 
     /**
@@ -935,7 +946,7 @@
           document.getElementById('bgColorInput').value = result.backgroundColor;
         }
 
-        renderManaged();
+        scheduleRenderManaged();
       } catch (e) {
         console.error('Failed to refresh managed:', e);
       }
@@ -944,7 +955,6 @@
     async function addWindow(hwnd, title) {
       try {
         await window.electronAPI.addWindow(hwnd, title);
-        await refreshManaged();
         await refreshAvailable();
       } catch (e) {
         console.error('Failed to add:', e);
@@ -954,7 +964,6 @@
     async function removeWindow(hwnd) {
       try {
         await window.electronAPI.removeWindow(hwnd);
-        await refreshManaged();
         await refreshAvailable();
       } catch (e) {
         console.error('Failed to remove:', e);
@@ -964,7 +973,6 @@
     async function activateWindow(hwnd) {
       try {
         await window.electronAPI.activateWindow(hwnd);
-        await refreshManaged();
       } catch (e) {
         console.error('Failed to activate:', e);
       }
@@ -1038,14 +1046,13 @@
           document.getElementById('bgColorInput').value = data.backgroundColor;
         }
 
-        renderManaged();
+        scheduleRenderManaged();
       }
     });
 
     // Initial load
     async function init() {
-      await refreshManaged();
-      await refreshAvailable();
+      await Promise.all([refreshManaged(), refreshAvailable()]);
     }
 
     init();
