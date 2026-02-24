@@ -207,7 +207,17 @@ class WindowManager {
     const idx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
     if (idx === -1) return false;
 
-    if (this.activeHwnd === hwndNum) return false; // Already active
+    if (this.activeHwnd === hwndNum) {
+      // Already active in our stack, but may be behind other windows.
+      // If explicitly requested, bring to foreground anyway.
+      if (forceNativeForeground) {
+        if (api.IsIconic(hwndNum)) {
+          api.ShowWindow(hwndNum, SW_RESTORE);
+        }
+        api.SetForegroundWindow(hwndNum);
+      }
+      return false;
+    }
 
     this.activeHwnd = hwndNum;
 

@@ -649,9 +649,7 @@
 
           // Update click handler (rebind with current isActive closure)
           item.onclick = async () => {
-            if (win.hwnd !== activeHwnd) {
-              await activateWindow(win.hwnd);
-            }
+            await activateWindow(win.hwnd);
           };
 
           // Update title text
@@ -700,9 +698,7 @@
           item.dataset.hwnd = win.hwnd;
 
           item.onclick = async () => {
-            if (win.hwnd !== activeHwnd) {
-              await activateWindow(win.hwnd);
-            }
+            await activateWindow(win.hwnd);
           };
 
           // Remove 'entering' class after animation completes
