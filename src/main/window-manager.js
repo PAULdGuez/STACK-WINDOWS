@@ -121,13 +121,15 @@ class WindowManager {
     }, koffi.pointer(EnumWindowsProc));
 
     try {
-      api.EnumWindows(koffi.address(callback), 0);
-    } catch (e) {
-      console.error('EnumWindows failed:', e);
+      try {
+        api.EnumWindows(koffi.address(callback), 0);
+      } catch (e) {
+        console.error('EnumWindows failed:', e);
+      }
+      return windows;
+    } finally {
+      koffi.unregister(callback);
     }
-
-    koffi.unregister(callback);
-    return windows;
   }
 
   /**
@@ -140,8 +142,13 @@ class WindowManager {
 
     if (this.managedWindows.some(w => w.hwnd === hwndNum)) return;
 
-    const rect = {};
-    api.GetWindowRect(hwndNum, rect);
+    if (!api.IsWindow(hwndNum)) return;
+
+    const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+    const success = api.GetWindowRect(hwndNum, rect);
+    if (!success) {
+      console.warn('GetWindowRect failed for hwnd:', hwndNum);
+    }
 
     const pidBuf = [0];
     api.GetWindowThreadProcessId(hwndNum, pidBuf);
@@ -620,6 +627,13 @@ class WindowManager {
 
     const inactiveCount = this.managedWindows.length - (activeWindow ? 1 : 0);
 
+    // Cap strip area to max 60% of effectiveHeight, reduce header height if needed
+    const maxStripArea = Math.floor(effectiveHeight * 0.6);
+    let effectiveHeaderHeight = HEADER_HEIGHT;
+    if (inactiveCount * effectiveHeaderHeight > maxStripArea) {
+      effectiveHeaderHeight = Math.max(Math.floor(maxStripArea / inactiveCount), 10); // min 10px per strip
+    }
+
     const targetLayouts = [];
 
     // Position background windows first (strips at top)
@@ -627,7 +641,7 @@ class WindowManager {
     for (const w of this.managedWindows) {
       if (w.hwnd === trueActiveHwnd) continue; // Skip the active window
 
-      const y = workArea.y + stripIndex * HEADER_HEIGHT;
+      const y = workArea.y + stripIndex * effectiveHeaderHeight;
 
       targetLayouts.push({
         hwnd: w.hwnd,
@@ -644,8 +658,8 @@ class WindowManager {
 
     // Position active window on top, covering background window bodies
     if (activeWindow) {
-      const activeY = workArea.y + inactiveCount * HEADER_HEIGHT;
-      const activeHeight = effectiveHeight - (inactiveCount * HEADER_HEIGHT);
+      const activeY = workArea.y + inactiveCount * effectiveHeaderHeight;
+      const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
 
       targetLayouts.push({
         hwnd: activeWindow.hwnd,
