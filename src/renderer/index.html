@@ -775,19 +775,6 @@
           origTitle.style.display = 'none';
           title.appendChild(origTitle);
 
-          if (isActive) {
-            const badge = document.createElement('span');
-            badge.className = 'active-badge';
-            badge.textContent = '● ACTIVE';
-            title.appendChild(badge);
-          } else {
-            const badge = document.createElement('span');
-            badge.className = 'strip-badge';
-            const bgIndex = managedWindows.filter(w => w.hwnd !== activeHwnd).findIndex(w => w.hwnd === win.hwnd);
-            badge.textContent = '▬ strip ' + bgIndex;
-            title.appendChild(badge);
-          }
-
           const actions = document.createElement('div');
           actions.className = 'actions';
 
