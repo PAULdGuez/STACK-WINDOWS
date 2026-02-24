@@ -85,21 +85,21 @@ class WindowManager {
       try {
         const hwndNum = Number(hwnd);
 
-        if (!api.IsWindowVisible(hwndNum)) return true;
-        if (api.IsIconic(hwndNum)) return true;
+        if (!api.IsWindowVisible(hwndNum)) return 1;
+        if (api.IsIconic(hwndNum)) return 1;
 
         const exStyle = Number(api.GetWindowLongPtrW(hwndNum, GWL_EXSTYLE));
-        if (exStyle & WS_EX_TOOLWINDOW) return true;
+        if (exStyle & WS_EX_TOOLWINDOW) return 1;
 
         const pidBuf = [0];
         api.GetWindowThreadProcessId(hwndNum, pidBuf);
-        if (pidBuf[0] === this.ownPid) return true;
+        if (pidBuf[0] === this.ownPid) return 1;
 
-        if (managedHwnds.has(hwndNum)) return true;
-        if (excludeHwnds.has(hwndNum)) return true;
+        if (managedHwnds.has(hwndNum)) return 1;
+        if (excludeHwnds.has(hwndNum)) return 1;
 
         const title = this._getWindowTitle(hwndNum);
-        if (!title) return true;
+        if (!title) return 1;
 
         const rect = {};
         api.GetWindowRect(hwndNum, rect);
@@ -117,7 +117,7 @@ class WindowManager {
       } catch (e) {
         // Skip windows that cause errors
       }
-      return true;
+      return 1;
     }, koffi.pointer(EnumWindowsProc));
 
     try {
