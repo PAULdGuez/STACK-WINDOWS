@@ -690,20 +690,9 @@
             }
           }
 
-          // Update badge
-          let badge = titleEl ? titleEl.querySelector('.active-badge, .strip-badge') : null;
-          if (!badge) {
-            badge = document.createElement('span');
-            if (titleEl) titleEl.appendChild(badge);
-          }
-          if (isActive) {
-            badge.className = 'active-badge';
-            badge.textContent = '● ACTIVE';
-          } else {
-            badge.className = 'strip-badge';
-            const bgIndex = managedWindows.filter(w => w.hwnd !== activeHwnd).findIndex(w => w.hwnd === win.hwnd);
-            badge.textContent = '▬ strip ' + bgIndex;
-          }
+          // Remove badge if present (no longer displayed)
+          const badge = titleEl ? titleEl.querySelector('.active-badge, .strip-badge') : null;
+          if (badge) badge.remove();
         } else {
           // CREATE new element with 'entering' class for fade-in animation
           item = document.createElement('div');
