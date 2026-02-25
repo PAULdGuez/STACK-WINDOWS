@@ -55,9 +55,7 @@ class InstanceRegistry {
     registry.instances[this.instanceId] = {
       pid: process.pid,
       startedAt: new Date().toISOString(),
-      managedHwnds: [],
-      activeHwnd: 0,
-      lastActivatedAt: 0
+      managedHwnds: []
     };
 
     this._writeRegistry(registry);
@@ -168,24 +166,6 @@ class InstanceRegistry {
   }
 
   /**
-   * Update the activeHwnd for this instance in the registry.
-   * Written immediately (no debounce) so other instances can read it.
-   * @param {number} hwnd - The currently active window handle (0 if none)
-   */
-  updateActiveHwnd(hwnd) {
-    try {
-      const registry = this._readRegistry();
-      if (registry.instances[this.instanceId]) {
-        registry.instances[this.instanceId].activeHwnd = hwnd;
-        registry.instances[this.instanceId].lastActivatedAt = Date.now();
-        this._writeRegistry(registry);
-      }
-    } catch (e) {
-      console.error('InstanceRegistry: failed to update activeHwnd:', e);
-    }
-  }
-
-  /**
    * Return a Set of all managedHwnds from OTHER live instances (not this one).
    * Prunes dead instances as a side effect.
    * @returns {Set<number>}
@@ -208,34 +188,6 @@ class InstanceRegistry {
     } catch (e) {
       console.error('InstanceRegistry: failed to get other instances hwnds:', e);
       return new Set();
-    }
-  }
-
-  /**
-   * Get the most recently activated window handle from OTHER instances.
-   * Used for cross-stack toggle: when clicking an already-active window,
-   * switch to the last active window from another stack.
-   * @returns {number} The hwnd of the most recently active window from another instance, or 0
-   */
-  getLastActiveHwndFromOtherInstances() {
-    try {
-      const registry = this._readRegistry();
-      let bestHwnd = 0;
-      let bestTime = 0;
-      for (const [id, entry] of Object.entries(registry.instances)) {
-        if (id === this.instanceId) continue;
-        if (!this._isPidAlive(entry.pid)) continue;
-        const hwnd = entry.activeHwnd || 0;
-        const time = entry.lastActivatedAt || 0;
-        if (hwnd > 0 && time > bestTime) {
-          bestHwnd = hwnd;
-          bestTime = time;
-        }
-      }
-      return bestHwnd;
-    } catch (e) {
-      console.error('InstanceRegistry: failed to get last active hwnd from other instances:', e);
-      return 0;
     }
   }
 
