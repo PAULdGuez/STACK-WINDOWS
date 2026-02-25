@@ -23,6 +23,7 @@ let cleanupTimer = null;
 let saveTimer = null;
 let _layoutDebounceTimer = null;
 let _saveDebounceTimer = null;
+let _focusBringTimer = null;
 let _cleanedUp = false;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
 
@@ -34,6 +35,7 @@ function performCleanup() {
   if (cleanupTimer) clearInterval(cleanupTimer);
   if (saveTimer) clearInterval(saveTimer);
   if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
+  if (_focusBringTimer) clearTimeout(_focusBringTimer);
   if (_saveDebounceTimer) {
     clearTimeout(_saveDebounceTimer);
     _saveDebounceTimer = null;
@@ -106,6 +108,15 @@ function createWindow() {
     const activeHwnd = windowManager.getActiveHwnd();
     if (activeHwnd > 0) {
       instanceRegistry.updateActiveHwnd(activeHwnd);
+      if (_focusBringTimer) clearTimeout(_focusBringTimer);
+      _focusBringTimer = setTimeout(() => {
+        _focusBringTimer = null;
+        try {
+          if (api.IsWindow(activeHwnd) !== 0) {
+            api.SetForegroundWindow(activeHwnd);
+          }
+        } catch (e) {}
+      }, 150);
     }
   });
 }
@@ -234,6 +245,10 @@ function registerIPC() {
   ipcMain.handle('activate-window', async (event, hwnd) => {
     try {
       hwnd = validateHwnd(hwnd);
+      if (_focusBringTimer) {
+        clearTimeout(_focusBringTimer);
+        _focusBringTimer = null;
+      }
       const changed = windowManager.promoteToActive(hwnd, true);
       if (changed) {
         syncMonitor();
