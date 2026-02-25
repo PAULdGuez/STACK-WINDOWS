@@ -20,6 +20,7 @@ class WindowManager {
     this.stackName = 'Managed Stack';
     this.hideAvailable = false;
     this.backgroundColor = '#000000';
+    this.stackGap = 0; // pixels of horizontal gap between controller and managed windows
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
     this._animationTimer = null;
@@ -598,7 +599,7 @@ class WindowManager {
 
     const workArea = screenBounds || { x: 0, y: 0, width: 1920, height: 1040, displayRightEdge: null };
     // The starting X of the stack is the entire width of the controller window
-    const startX = workArea.x + workArea.width;
+    const startX = workArea.x + workArea.width + this.stackGap;
 
     // Use displayRightEdge passed from main.js (based on the display where the app lives).
     // Fallback to a safe default if not provided (backward compat).
@@ -749,6 +750,24 @@ class WindowManager {
   }
 
   /**
+   * Set the horizontal gap between the controller panel and managed windows.
+   * @param {number} gap - Gap in pixels (0 = no gap, clamped to 0-500)
+   */
+  setStackGap(gap) {
+    this.stackGap = gap !== null && gap !== undefined
+      ? Math.max(0, Math.min(500, Math.round(Number(gap))))
+      : 0;
+  }
+
+  /**
+   * Get the current stack gap.
+   * @returns {number}
+   */
+  getStackGap() {
+    return this.stackGap;
+  }
+
+  /**
    * Get the current custom dimensions.
    * @returns {{ customWidth: number|null, customHeight: number|null }}
    */
@@ -766,6 +785,7 @@ class WindowManager {
       backgroundColor: this.backgroundColor,
       customWidth: this.customWidth,
       customHeight: this.customHeight,
+      stackGap: this.stackGap,
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,
@@ -799,6 +819,11 @@ class WindowManager {
       this.customHeight = Math.max(200, Number(savedState.customHeight));
     } else {
       this.customHeight = null;
+    }
+    if (savedState.stackGap !== null && savedState.stackGap !== undefined) {
+      this.stackGap = Math.max(0, Math.min(500, Math.round(Number(savedState.stackGap))));
+    } else {
+      this.stackGap = 0;
     }
 
     for (const saved of savedWindows) {
