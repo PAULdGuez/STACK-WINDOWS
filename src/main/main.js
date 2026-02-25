@@ -126,7 +126,8 @@ function sendStateUpdate() {
       hideAvailable: windowManager.hideAvailable,
       customWidth: dims.customWidth,
       customHeight: dims.customHeight,
-      backgroundColor: windowManager.getBackgroundColor()
+      backgroundColor: windowManager.getBackgroundColor(),
+      stackGap: windowManager.getStackGap()
     });
   }
 }
@@ -193,7 +194,8 @@ function registerIPC() {
         stackName: windowManager.stackName,
         hideAvailable: windowManager.hideAvailable,
         ...windowManager.getCustomDimensions(),
-        backgroundColor: windowManager.getBackgroundColor()
+        backgroundColor: windowManager.getBackgroundColor(),
+        stackGap: windowManager.getStackGap()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -340,6 +342,22 @@ function registerIPC() {
 
   ipcMain.handle('get-background-color', async () => {
     return windowManager.getBackgroundColor();
+  });
+
+  ipcMain.handle('set-stack-gap', async (event, gap) => {
+    try {
+      if (gap !== null && (typeof gap !== 'number' || !Number.isFinite(gap) || gap < 0)) {
+        throw new Error('Invalid gap: must be null or a non-negative number');
+      }
+      windowManager.setStackGap(gap);
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-stack-gap error:', e);
+      return { success: false, error: e.message };
+    }
   });
 }
 

@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setBackgroundColor: (color) => ipcRenderer.invoke('set-background-color', color),
   getBackgroundColor: () => ipcRenderer.invoke('get-background-color'),
 
+  // Stack gap (space between controller and managed windows)
+  setStackGap: (gap) => ipcRenderer.invoke('set-stack-gap', gap),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
     ipcRenderer.on('state-update', (event, data) => callback(data));
