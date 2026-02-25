@@ -215,14 +215,7 @@ class WindowManager {
     if (idx === -1) return false;
 
     if (this.activeHwnd === hwndNum) {
-      // Already active in our stack, but may be behind other windows.
-      // If explicitly requested, bring to foreground anyway.
-      if (forceNativeForeground) {
-        if (api.IsIconic(hwndNum)) {
-          api.ShowWindow(hwndNum, SW_RESTORE);
-        }
-        api.SetForegroundWindow(hwndNum);
-      }
+      // Already active — return false so caller can decide (e.g. cross-stack toggle)
       return false;
     }
 

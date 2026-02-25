@@ -105,14 +105,7 @@ function createWindow() {
     if (!windowManager) return;
     const activeHwnd = windowManager.getActiveHwnd();
     if (activeHwnd > 0) {
-      try {
-        if (api.IsWindow(activeHwnd) !== 0) {
-          api.SetForegroundWindow(activeHwnd);
-          instanceRegistry.updateActiveHwnd(activeHwnd);
-        }
-      } catch (e) {
-        // Silently ignore — window may have been closed
-      }
+      instanceRegistry.updateActiveHwnd(activeHwnd);
     }
   });
 }
@@ -257,7 +250,16 @@ function registerIPC() {
               api.SetForegroundWindow(otherHwnd);
             }
           } catch (e) {
-            // Silently ignore — other instance's window may have been closed
+            // Silently ignore
+          }
+        } else {
+          // No other instance — just bring current window to front (original behavior)
+          try {
+            if (api.IsWindow(hwnd) !== 0) {
+              api.SetForegroundWindow(hwnd);
+            }
+          } catch (e) {
+            // Silently ignore
           }
         }
       }
