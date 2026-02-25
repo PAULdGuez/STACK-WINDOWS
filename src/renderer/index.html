@@ -417,6 +417,10 @@
           <label class="dims-input-label">HEIGHT</label>
           <input type="number" id="customHeightInput" min="200" step="10" placeholder="auto">
         </div>
+        <div class="dims-field">
+          <label class="dims-input-label">GAP</label>
+          <input type="number" id="stackGapInput" min="0" max="500" step="10" placeholder="0">
+        </div>
       </div>
       <div class="dims-row dims-inputs hidden" id="dimsButtons">
         <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
@@ -515,11 +519,15 @@
     async function applyCustomDimensions() {
       const w = parseInt(document.getElementById('customWidthInput').value);
       const h = parseInt(document.getElementById('customHeightInput').value);
+      const gap = parseInt(document.getElementById('stackGapInput').value);
       if (!w || w < 200 || !h || h < 200) {
         return; // Don't apply invalid values
       }
       try {
         await window.electronAPI.setCustomDimensions(w, h);
+        if (!isNaN(gap) && gap >= 0) {
+          await window.electronAPI.setStackGap(gap);
+        }
       } catch (e) {
         console.error('Failed to set custom dimensions:', e);
       }
@@ -528,8 +536,10 @@
     async function resetCustomDimensions() {
       try {
         await window.electronAPI.setCustomDimensions(null, null);
+        await window.electronAPI.setStackGap(0);
         document.getElementById('customWidthInput').value = '';
         document.getElementById('customHeightInput').value = '';
+        document.getElementById('stackGapInput').value = '';
         document.getElementById('customSizeToggle').checked = false;
         document.getElementById('dimsInputs').classList.add('hidden');
         document.getElementById('dimsButtons').classList.add('hidden');
@@ -891,6 +901,10 @@
           }
         }
 
+        if (result.stackGap !== undefined && result.stackGap > 0) {
+          document.getElementById('stackGapInput').value = result.stackGap;
+        }
+
         if (result.backgroundColor) {
           document.body.style.backgroundColor = result.backgroundColor;
           document.getElementById('colorPickerBtn').style.background = result.backgroundColor;
@@ -988,6 +1002,14 @@
             buttons.classList.add('hidden');
             widthInput.value = '';
             heightInput.value = '';
+          }
+        }
+
+        // Sync stack gap from state
+        if (data.stackGap !== undefined) {
+          const gapInput = document.getElementById('stackGapInput');
+          if (gapInput && document.activeElement !== gapInput) {
+            gapInput.value = data.stackGap || '';
           }
         }
 
