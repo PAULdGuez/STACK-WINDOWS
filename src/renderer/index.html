@@ -974,76 +974,78 @@
       }
     }
 
-    // Listen for real-time state updates from the foreground monitor
-    window.electronAPI.onStateUpdate((data) => {
-      if (data.managed) {
-        managedWindows = data.managed;
-        activeHwnd = data.activeHwnd || 0;
-
-        // Update Title if changed externally
-        if (data.stackName) {
-          const upperName = data.stackName.toUpperCase();
-          if (stackTitle && stackTitle.textContent !== upperName && document.activeElement !== stackTitle) {
-            stackTitle.textContent = upperName;
-          }
-          if (managedSubtitle && managedSubtitle.textContent !== upperName) {
-            managedSubtitle.textContent = upperName;
-          }
-        }
-
-        // Ensure visibility state is correct on load
-        if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
-          toggleAvailableVisibility(data.hideAvailable);
-        }
-
-        // Sync custom dimensions from state
-        if (data.customWidth !== undefined || data.customHeight !== undefined) {
-          const toggle = document.getElementById('customSizeToggle');
-          const inputs = document.getElementById('dimsInputs');
-          const buttons = document.getElementById('dimsButtons');
-          const widthInput = document.getElementById('customWidthInput');
-          const heightInput = document.getElementById('customHeightInput');
-
-          if (data.customWidth !== null && data.customHeight !== null) {
-            if (!customSizeEnabled) {
-              customSizeEnabled = true;
-              toggle.checked = true;
-              inputs.classList.remove('hidden');
-              buttons.classList.remove('hidden');
-            }
-            widthInput.value = data.customWidth;
-            heightInput.value = data.customHeight;
-          } else {
-            customSizeEnabled = false;
-            toggle.checked = false;
-            inputs.classList.add('hidden');
-            buttons.classList.add('hidden');
-            widthInput.value = '';
-            heightInput.value = '';
-          }
-        }
-
-        // Sync stack gap from state
-        if (data.stackGap !== undefined) {
-          const gapInput = document.getElementById('stackGapInput');
-          if (gapInput && document.activeElement !== gapInput) {
-            gapInput.value = data.stackGap || '';
-          }
-        }
-
-        if (data.backgroundColor) {
-          document.body.style.backgroundColor = data.backgroundColor;
-          document.getElementById('colorPickerBtn').style.background = data.backgroundColor;
-          document.getElementById('bgColorInput').value = data.backgroundColor;
-        }
-
-        scheduleRenderManaged();
-      }
-    });
-
     // Initial load
     async function init() {
+      // Clear any stale listeners from a previous page load, THEN register fresh
       window.electronAPI.removeAllStateListeners();
+
+      // Listen for real-time state updates from the foreground monitor
+      window.electronAPI.onStateUpdate((data) => {
+        if (data.managed) {
+          managedWindows = data.managed;
+          activeHwnd = data.activeHwnd || 0;
+
+          // Update Title if changed externally
+          if (data.stackName) {
+            const upperName = data.stackName.toUpperCase();
+            if (stackTitle && stackTitle.textContent !== upperName && document.activeElement !== stackTitle) {
+              stackTitle.textContent = upperName;
+            }
+            if (managedSubtitle && managedSubtitle.textContent !== upperName) {
+              managedSubtitle.textContent = upperName;
+            }
+          }
+
+          // Ensure visibility state is correct on load
+          if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
+            toggleAvailableVisibility(data.hideAvailable);
+          }
+
+          // Sync custom dimensions from state
+          if (data.customWidth !== undefined || data.customHeight !== undefined) {
+            const toggle = document.getElementById("customSizeToggle");
+            const inputs = document.getElementById("dimsInputs");
+            const buttons = document.getElementById("dimsButtons");
+            const widthInput = document.getElementById("customWidthInput");
+            const heightInput = document.getElementById("customHeightInput");
+
+            if (data.customWidth !== null && data.customHeight !== null) {
+              if (!customSizeEnabled) {
+                customSizeEnabled = true;
+                toggle.checked = true;
+                inputs.classList.remove("hidden");
+                buttons.classList.remove("hidden");
+              }
+              widthInput.value = data.customWidth;
+              heightInput.value = data.customHeight;
+            } else {
+              customSizeEnabled = false;
+              toggle.checked = false;
+              inputs.classList.add("hidden");
+              buttons.classList.add("hidden");
+              widthInput.value = "";
+              heightInput.value = "";
+            }
+          }
+
+          // Sync stack gap from state
+          if (data.stackGap !== undefined) {
+            const gapInput = document.getElementById("stackGapInput");
+            if (gapInput && document.activeElement !== gapInput) {
+              gapInput.value = data.stackGap || "";
+            }
+          }
+
+          if (data.backgroundColor) {
+            document.body.style.backgroundColor = data.backgroundColor;
+            document.getElementById("colorPickerBtn").style.background = data.backgroundColor;
+            document.getElementById("bgColorInput").value = data.backgroundColor;
+          }
+
+          scheduleRenderManaged();
+        }
+      });
+
       await Promise.all([refreshManaged(), refreshAvailable()]);
     }
 
