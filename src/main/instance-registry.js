@@ -120,6 +120,14 @@ class InstanceRegistry {
 
   /**
    * Check whether a PID is still alive using signal 0.
+   *
+   * Known limitation on Windows: process.kill(pid, 0) can return false
+   * positives if Windows has reused the PID for a different process.
+   * This is acceptable because:
+   * 1. PID reuse within a single user session is rare
+   * 2. The worst case is keeping a stale registry entry (harmless)
+   * 3. The alternative (execSync tasklist) blocks the event loop ~100ms
+   *
    * @param {number} pid
    * @returns {boolean}
    * @private
