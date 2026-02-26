@@ -282,9 +282,18 @@ function registerIPC() {
   });
 
   ipcMain.handle('update-stack-name', async (event, name) => {
-    windowManager.setStackName(name);
-    persistence.save(windowManager.getState());
-    return { success: true };
+    try {
+      if (typeof name !== 'string' && name !== null && name !== undefined) {
+        throw new Error('Invalid name: must be a string, null, or undefined');
+      }
+      if (typeof name === 'string') name = name.slice(0, 200);
+      windowManager.setStackName(name);
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('update-stack-name error:', e);
+      return { success: false, error: e.message };
+    }
   });
 
   ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
