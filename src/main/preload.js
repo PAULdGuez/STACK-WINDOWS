@@ -42,6 +42,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
-    ipcRenderer.on('state-update', (event, data) => callback(data));
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('state-update', handler);
+    return () => ipcRenderer.removeListener('state-update', handler);
+  },
+
+  // Remove all state-update listeners (call before re-registering on page reload)
+  removeAllStateListeners: () => {
+    ipcRenderer.removeAllListeners('state-update');
   }
 });
