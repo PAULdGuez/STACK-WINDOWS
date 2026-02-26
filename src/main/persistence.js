@@ -75,6 +75,7 @@ class Persistence {
         customWidth: state.customWidth || null,
         customHeight: state.customHeight || null,
         backgroundColor: state.backgroundColor || '#000000',
+        stackGap: state.stackGap || 0,
         bounds: state.bounds || null,
         windows: state.windows || []
       };
@@ -87,7 +88,9 @@ class Persistence {
       if (this._pendingState !== null) {
         const pending = this._pendingState;
         this._pendingState = null;
-        this.save(pending);
+        this.save(pending).catch(e => {
+          console.error('Failed to flush pending persistence state:', e);
+        });
       }
     }
   }
@@ -110,6 +113,7 @@ class Persistence {
         customWidth: state.customWidth || null,
         customHeight: state.customHeight || null,
         backgroundColor: state.backgroundColor || '#000000',
+        stackGap: state.stackGap || 0,
         bounds: state.bounds || null,
         windows: state.windows || []
       };
@@ -145,6 +149,7 @@ class Persistence {
           customWidth: null,
           customHeight: null,
           backgroundColor: '#000000',
+          stackGap: 0,
           bounds: null,
           windows: data.windows
         };
@@ -162,6 +167,7 @@ class Persistence {
         customWidth: data.customWidth || null,
         customHeight: data.customHeight || null,
         backgroundColor: data.backgroundColor || '#000000',
+        stackGap: data.stackGap || 0,
         bounds: data.bounds,
         windows: data.windows
       };

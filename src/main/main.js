@@ -23,6 +23,7 @@ let cleanupTimer = null;
 let saveTimer = null;
 let _layoutDebounceTimer = null;
 let _saveDebounceTimer = null;
+let _focusDebounceTimer = null;
 let _cleanedUp = false;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
 
@@ -37,6 +38,10 @@ function performCleanup() {
   if (_saveDebounceTimer) {
     clearTimeout(_saveDebounceTimer);
     _saveDebounceTimer = null;
+  }
+  if (_focusDebounceTimer) {
+    clearTimeout(_focusDebounceTimer);
+    _focusDebounceTimer = null;
   }
 
   if (windowManager) {
@@ -103,16 +108,20 @@ function createWindow() {
 
   mainWindow.on('focus', () => {
     if (!windowManager) return;
-    const activeHwnd = windowManager.getActiveHwnd();
-    if (activeHwnd > 0) {
-      try {
-        if (api.IsWindow(activeHwnd) !== 0) {
-          api.SetForegroundWindow(activeHwnd);
+    if (_focusDebounceTimer) clearTimeout(_focusDebounceTimer);
+    _focusDebounceTimer = setTimeout(() => {
+      _focusDebounceTimer = null;
+      const activeHwnd = windowManager.getActiveHwnd();
+      if (activeHwnd > 0) {
+        try {
+          if (api.IsWindow(activeHwnd) !== 0) {
+            api.SetForegroundWindow(activeHwnd);
+          }
+        } catch (e) {
+          // Silently ignore — window may have been closed
         }
-      } catch (e) {
-        // Silently ignore — window may have been closed
       }
-    }
+    }, 200);
   });
 }
 
