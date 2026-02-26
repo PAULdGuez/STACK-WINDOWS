@@ -2,7 +2,7 @@
 
 const win32 = require('./win32');
 const { api, koffi, EnumWindowsProc, RECT,
-  SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
+  SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE,
   HWND_TOP, HWND_NOTOPMOST,
   SW_RESTORE,
   GWL_EXSTYLE, WS_EX_TOOLWINDOW } = win32;
@@ -23,33 +23,9 @@ class WindowManager {
     this.stackGap = 0; // pixels of horizontal gap between controller and managed windows
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
-    this._animationTimer = null;
-    this._currentTargets = null;
     this._restoreAnimationTimers = new Map(); // Map<hwnd, timerId>
-    this.animationDuration = options.animationDuration || 100;         // ms
-    this.animationEasing = options.animationEasing || 'ease-out-cubic';
     this.restoreAnimationDuration = options.restoreAnimationDuration || 150; // ms
-    this.skipAnimation = options.skipAnimation || false;
-  }
-
-  /**
-   * Map an easing name and progress value [0,1] to an eased value [0,1].
-   * Supported names: 'ease-out-cubic', 'ease-in-out-cubic', 'linear'.
-   * @param {number} progress - Raw linear progress in [0, 1]
-   * @returns {number} Eased value in [0, 1]
-   */
-  _applyEasing(progress) {
-    switch (this.animationEasing) {
-      case 'linear':
-        return progress;
-      case 'ease-in-out-cubic':
-        return progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      case 'ease-out-cubic':
-      default:
-        return 1 - Math.pow(1 - progress, 3);
-    }
+    this.skipAnimation = true;
   }
 
   setBackgroundColor(color) {
@@ -281,14 +257,6 @@ class WindowManager {
     this.activeHwnd = 0;
   }
 
-  _stopAnimation() {
-    if (this._animationTimer) {
-      clearTimeout(this._animationTimer);
-      this._animationTimer = null;
-    }
-    this._currentTargets = null;
-  }
-
   /**
    * Cancel any in-flight restore animation (separate timer from main layout animation).
    * If hwnd is provided, stops only that window's timer.
@@ -358,8 +326,8 @@ class WindowManager {
     const tick = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / DURATION, 1);
-      // Apply configured easing — same as _animateLayout
-      const ease = this._applyEasing(progress);
+      // Apply ease-out-cubic easing
+      const ease = 1 - Math.pow(1 - progress, 3);
 
       const x = Math.round(startX + (targetX - startX) * ease);
       const y = Math.round(startY + (targetY - startY) * ease);
@@ -401,189 +369,28 @@ class WindowManager {
     this._restoreAnimationTimers.set(entry.hwnd, setTimeout(tick, 0));
   }
 
-  _animateLayout(targetLayouts) {
+  _applyLayout(targetLayouts) {
     if (targetLayouts.length === 0) return;
 
-    if (this.skipAnimation) {
-      // Instant snap: single DeferWindowPos batch, no animation loop
-      const hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
-      if (hWinPosInfo) {
-        let hInfo = hWinPosInfo;
-        for (const target of targetLayouts) {
-          if (target.restore) {
-            api.ShowWindow(target.hwnd, SW_RESTORE);
-          }
-          hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
-          if (!hInfo) break;
-        }
-        if (hInfo) api.EndDeferWindowPos(hInfo);
-      } else {
-        // Fallback: individual SetWindowPos
-        for (const target of targetLayouts) {
-          if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
-          api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
-        }
-      }
-      return;
-    }
-
-    // Build a comparable key from the target positions
-    const targetsKey = targetLayouts.map(t => t.hwnd + ':' + t.x + ',' + t.y + ',' + t.cx + ',' + t.cy).join('|');
-
-    // Skip redundant animation: if already animating to these exact targets, do nothing
-    if (targetsKey === this._currentTargets && this._animationTimer !== null) {
-      console.log('[WindowManager] _animateLayout: skipping redundant call (already animating to same targets)');
-      return;
-    }
-
-    this._stopAnimation();
-    this._currentTargets = targetsKey;
-
-    // Collect current positions
-    const layouts = targetLayouts.map(target => {
-      let rect = { left: target.x, top: target.y, right: target.x + target.cx, bottom: target.y + target.cy };
-      try {
+    // Instant snap: single DeferWindowPos batch, no animation loop
+    const hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
+    if (hWinPosInfo) {
+      let hInfo = hWinPosInfo;
+      for (const target of targetLayouts) {
         if (target.restore) {
           api.ShowWindow(target.hwnd, SW_RESTORE);
         }
-        api.GetWindowRect(target.hwnd, rect);
-      } catch (e) {
-        // fallback to target
+        hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+        if (!hInfo) break;
       }
-      return {
-        hwnd: target.hwnd,
-        startX: rect.left,
-        startY: rect.top,
-        startCx: rect.right - rect.left,
-        startCy: rect.bottom - rect.top,
-        targetX: target.x,
-        targetY: target.y,
-        targetCx: target.cx,
-        targetCy: target.cy,
-        flags: target.flags
-      };
-    });
-
-    const DURATION = this.animationDuration; // ms
-    const startTime = Date.now();
-    let isFirstFrame = true;
-
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / DURATION, 1);
-      // Apply configured easing function
-      const ease = this._applyEasing(progress);
-
-      // Determine if this is an intermediate frame (not first, not last).
-      // First frame sets Z-order (HWND_TOP, no SWP_NOZORDER).
-      // Intermediate frames skip Z-order work to reduce flicker.
-      // Final snap (progress >= 1) re-asserts Z-order.
-      const isIntermediate = !isFirstFrame && progress < 1;
-
-      try {
-        const hWinPosInfo = api.BeginDeferWindowPos(layouts.length);
-        if (!hWinPosInfo) {
-          // Fallback if BeginDeferWindowPos fails for some reason
-          for (const layout of layouts) {
-            api.SetWindowPos(layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
-          }
-          this._stopAnimation();
-          return;
-        }
-
-        let currentHWinPosInfo = hWinPosInfo;
-
-        for (const layout of layouts) {
-          const x = Math.round(layout.startX + (layout.targetX - layout.startX) * ease);
-          const y = Math.round(layout.startY + (layout.targetY - layout.startY) * ease);
-          const cx = Math.round(layout.startCx + (layout.targetCx - layout.startCx) * ease);
-          const cy = Math.round(layout.startCy + (layout.targetCy - layout.startCy) * ease);
-
-          // On intermediate frames, add SWP_NOZORDER to skip redundant Z-order changes
-          // and pass 0 as hWndInsertAfter (ignored when SWP_NOZORDER is set).
-          const frameFlags = isIntermediate ? (layout.flags | SWP_NOZORDER) : layout.flags;
-          const insertAfter = isIntermediate ? 0 : HWND_TOP;
-
-          currentHWinPosInfo = api.DeferWindowPos(
-            currentHWinPosInfo,
-            layout.hwnd,
-            insertAfter,
-            x,
-            y,
-            cx,
-            cy,
-            frameFlags
-          );
-
-          if (!currentHWinPosInfo) {
-            // DeferWindowPos failed — fall back to individual SetWindowPos for remaining
-            console.warn('DeferWindowPos failed, falling back to SetWindowPos');
-            const failedIdx = layouts.indexOf(layout);
-            for (let j = failedIdx; j < layouts.length; j++) {
-              const fb = layouts[j];
-              const fbX = Math.round(fb.startX + (fb.targetX - fb.startX) * ease);
-              const fbY = Math.round(fb.startY + (fb.targetY - fb.startY) * ease);
-              const fbCx = Math.round(fb.startCx + (fb.targetCx - fb.startCx) * ease);
-              const fbCy = Math.round(fb.startCy + (fb.targetCy - fb.startCy) * ease);
-              try {
-                api.SetWindowPos(fb.hwnd, HWND_TOP, fbX, fbY, fbCx, fbCy, SWP_NOACTIVATE | SWP_NOZORDER);
-              } catch (e) {
-                // Skip this window
-              }
-            }
-            currentHWinPosInfo = 0;
-            break;
-          }
-        }
-
-        if (currentHWinPosInfo) {
-          api.EndDeferWindowPos(currentHWinPosInfo);
-        }
-
-        isFirstFrame = false;
-
-        if (progress >= 1) {
-          this._stopAnimation();
-          // Final snap to target — re-assert Z-order with HWND_TOP (no SWP_NOZORDER)
-          const finalHWinPosInfo = api.BeginDeferWindowPos(layouts.length);
-          if (finalHWinPosInfo) {
-            let hInfo = finalHWinPosInfo;
-            for (let i = 0; i < layouts.length; i++) {
-              const layout = layouts[i];
-              hInfo = api.DeferWindowPos(hInfo, layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
-              if (!hInfo) {
-                // DeferWindowPos failed in final snap — fall back to individual SetWindowPos for remaining
-                console.warn('DeferWindowPos failed in final snap, falling back to SetWindowPos');
-                for (let j = i; j < layouts.length; j++) {
-                  const fb = layouts[j];
-                  try {
-                    api.SetWindowPos(fb.hwnd, HWND_TOP, fb.targetX, fb.targetY, fb.targetCx, fb.targetCy, SWP_NOACTIVATE | SWP_NOZORDER);
-                  } catch (e) {
-                    // Skip this window
-                  }
-                }
-                hInfo = 0;
-                break;
-              }
-            }
-            if (hInfo) api.EndDeferWindowPos(hInfo);
-          }
-        } else {
-          this._animationTimer = setTimeout(tick, 1000 / 30);
-        }
-      } catch (e) {
-        console.error('Animation frame failed:', e);
-        this._stopAnimation();
-        // Attempt immediate final snap without animation if it failed
-        for (const layout of layouts) {
-          try {
-            api.SetWindowPos(layout.hwnd, HWND_TOP, layout.targetX, layout.targetY, layout.targetCx, layout.targetCy, layout.flags);
-          } catch (er) { }
-        }
+      if (hInfo) api.EndDeferWindowPos(hInfo);
+    } else {
+      // Fallback: individual SetWindowPos
+      for (const target of targetLayouts) {
+        if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
+        api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
       }
-    };
-
-    this._animationTimer = setTimeout(tick, 0);
+    }
   }
 
   /**
@@ -673,7 +480,7 @@ class WindowManager {
       });
     }
 
-    this._animateLayout(targetLayouts);
+    this._applyLayout(targetLayouts);
   }
 
   _restoreWindow(entry) {
