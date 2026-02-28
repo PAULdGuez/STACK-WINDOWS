@@ -1,6 +1,6 @@
 'use strict';
 
-const { api, koffi, WinEventProc, EVENT_SYSTEM_MOVESIZEEND, WINEVENT_OUTOFCONTEXT, OBJID_WINDOW } = require('./win32');
+const { api, koffi, WinEventProc, EVENT_SYSTEM_MOVESIZEEND, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS, OBJID_WINDOW } = require('./win32');
 
 /**
  * Monitors when the user finishes resizing or moving a managed window using
@@ -25,26 +25,34 @@ class ResizeMonitor {
 
     this._callback = koffi.register(
       (hWinEventHook, event, hwnd, idObject, idChild, idEventThread, dwmsEventTime) => {
-        if (idObject !== OBJID_WINDOW) return;
-        const hwndNum = Number(hwnd);
-        if (hwndNum === 0) return;
-        if (!this._managedHwnds.has(hwndNum)) return;
-        this._onResizeEnd(hwndNum);
+        try {
+          const hwndNum = Number(hwnd);
+          if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
+          if (!this._managedHwnds.has(hwndNum)) return;
+          console.log('[ResizeMonitor] Managed window resize/move ended — hwnd:', hwndNum);
+          this._onResizeEnd(hwndNum);
+        } catch (e) {
+          console.error('[ResizeMonitor] Callback error:', e);
+        }
       },
       koffi.pointer(WinEventProc)
     );
 
     this._hook = api.SetWinEventHook(
-      EVENT_SYSTEM_MOVESIZEEND,  // eventMin
-      EVENT_SYSTEM_MOVESIZEEND,  // eventMax (same = only this event)
-      0,                          // hmodWinEventProc (null = no DLL)
-      this._callback,             // lpfnWinEventProc
-      0,                          // idProcess (0 = all processes)
-      0,                          // idThread (0 = all threads)
-      WINEVENT_OUTOFCONTEXT       // dwFlags (callback in our process context)
+      EVENT_SYSTEM_MOVESIZEEND,                           // eventMin
+      EVENT_SYSTEM_MOVESIZEEND,                           // eventMax
+      0,                                                   // hmodWinEventProc (null for out-of-context)
+      this._callback,                                      // lpfnWinEventProc
+      0,                                                   // idProcess (0 = all processes)
+      0,                                                   // idThread (0 = all threads)
+      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS      // skip events from our own process
     );
 
-    console.log('[ResizeMonitor] Started — listening for EVENT_SYSTEM_MOVESIZEEND');
+    if (this._hook) {
+      console.log('[ResizeMonitor] Started — hook handle:', Number(this._hook));
+    } else {
+      console.error('[ResizeMonitor] FAILED — SetWinEventHook returned null');
+    }
   }
 
   /**

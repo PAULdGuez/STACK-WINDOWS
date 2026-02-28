@@ -311,9 +311,9 @@
     }
 
     .dims-inputs {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
-      align-items: center;
     }
 
     .dims-field {
@@ -334,7 +334,8 @@
       color: #fff;
       font-size: 12px;
       padding: 4px 10px;
-      width: 80px;
+      width: 100%;
+      box-sizing: border-box;
       border-radius: 999px;
       -webkit-app-region: no-drag;
     }
