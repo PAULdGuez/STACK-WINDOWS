@@ -1022,8 +1022,8 @@
               toggle.checked = true;
               inputs.classList.remove("hidden");
               buttons.classList.remove("hidden");
-              if (data.customWidth != null) widthInput.value = data.customWidth;
-              if (data.customHeight != null) heightInput.value = data.customHeight;
+              if (data.customWidth != null && document.activeElement !== widthInput) widthInput.value = data.customWidth;
+              if (data.customHeight != null && document.activeElement !== heightInput) heightInput.value = data.customHeight;
               customSizeEnabled = true;
             } else {
               // both null — disable
@@ -1046,7 +1046,7 @@
 
           // Sync topOffset
           const topInput = document.getElementById('topOffsetInput');
-          if (topInput) {
+          if (topInput && document.activeElement !== topInput) {
             topInput.value = data.topOffset || '';
           }
 
