@@ -7,7 +7,7 @@ const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
 const { ResizeMonitor } = require('./resize-monitor');
 const { InstanceRegistry } = require('./instance-registry');
-const api = require('./win32');
+const { api } = require('./win32');
 
 function validateHwnd(hwnd) {
   const n = Number(hwnd);
@@ -483,7 +483,7 @@ app.whenReady().then(() => {
   foregroundMonitor = new ForegroundMonitor();
   foregroundMonitor.start(onManagedWindowFocused);
   resizeMonitor = new ResizeMonitor();
-  resizeMonitor.start(onManagedWindowResized);
+  try { resizeMonitor.start(onManagedWindowResized); } catch (e) { console.error("[ResizeMonitor] Failed to start:", e); }
   syncMonitors();
 
   // Register IPC handlers
