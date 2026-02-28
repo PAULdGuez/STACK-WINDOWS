@@ -42,7 +42,7 @@ class ResizeMonitor {
       EVENT_SYSTEM_MOVESIZEEND,                           // eventMin
       EVENT_SYSTEM_MOVESIZEEND,                           // eventMax
       0,                                                   // hmodWinEventProc (null for out-of-context)
-      this._callback,                                      // lpfnWinEventProc
+      koffi.address(this._callback),                       // lpfnWinEventProc
       0,                                                   // idProcess (0 = all processes)
       0,                                                   // idThread (0 = all threads)
       WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS      // skip events from our own process
