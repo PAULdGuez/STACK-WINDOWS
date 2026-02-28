@@ -136,7 +136,8 @@ function sendStateUpdate() {
       customWidth: dims.customWidth,
       customHeight: dims.customHeight,
       backgroundColor: windowManager.getBackgroundColor(),
-      stackGap: windowManager.getStackGap()
+      stackGap: windowManager.getStackGap(),
+      topOffset: windowManager.getTopOffset()
     });
   }
 }
@@ -204,7 +205,8 @@ function registerIPC() {
         hideAvailable: windowManager.hideAvailable,
         ...windowManager.getCustomDimensions(),
         backgroundColor: windowManager.getBackgroundColor(),
-        stackGap: windowManager.getStackGap()
+        stackGap: windowManager.getStackGap(),
+        topOffset: windowManager.getTopOffset()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -374,6 +376,22 @@ function registerIPC() {
       return { success: true };
     } catch (e) {
       console.error('set-stack-gap error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('set-top-offset', async (event, offset) => {
+    try {
+      if (offset !== null && (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0)) {
+        throw new Error('Invalid offset: must be null or a non-negative number');
+      }
+      windowManager.setTopOffset(offset);
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-top-offset error:', e);
       return { success: false, error: e.message };
     }
   });

@@ -40,6 +40,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Stack gap (space between controller and managed windows)
   setStackGap: (gap) => ipcRenderer.invoke('set-stack-gap', gap),
 
+  // Top offset (vertical offset from top of work area)
+  setTopOffset: (offset) => ipcRenderer.invoke('set-top-offset', offset),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
     const handler = (event, data) => callback(data);
