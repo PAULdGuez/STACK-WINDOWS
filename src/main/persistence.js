@@ -76,6 +76,7 @@ class Persistence {
         customHeight: state.customHeight || null,
         backgroundColor: state.backgroundColor || '#000000',
         stackGap: state.stackGap || 0,
+        topOffset: state.topOffset || 0,
         bounds: state.bounds || null,
         windows: state.windows || []
       };
@@ -114,6 +115,7 @@ class Persistence {
         customHeight: state.customHeight || null,
         backgroundColor: state.backgroundColor || '#000000',
         stackGap: state.stackGap || 0,
+        topOffset: state.topOffset || 0,
         bounds: state.bounds || null,
         windows: state.windows || []
       };
@@ -150,6 +152,7 @@ class Persistence {
           customHeight: null,
           backgroundColor: '#000000',
           stackGap: 0,
+          topOffset: 0,
           bounds: null,
           windows: data.windows
         };
@@ -168,6 +171,7 @@ class Persistence {
         customHeight: data.customHeight || null,
         backgroundColor: data.backgroundColor || '#000000',
         stackGap: data.stackGap || 0,
+        topOffset: data.topOffset || 0,
         bounds: data.bounds,
         windows: data.windows
       };

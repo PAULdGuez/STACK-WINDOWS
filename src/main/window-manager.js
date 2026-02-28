@@ -21,6 +21,7 @@ class WindowManager {
     this.hideAvailable = false;
     this.backgroundColor = '#000000';
     this.stackGap = 0; // pixels of horizontal gap between controller and managed windows
+    this.topOffset = 0; // pixels of vertical offset from top of work area
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
     this._restoreAnimationTimers = new Map(); // Map<hwnd, timerId>
@@ -418,7 +419,8 @@ class WindowManager {
       console.warn('layoutStack: not enough space to the right of controller, skipping layout');
       return;
     }
-    const availableHeight = workArea.height;
+    const startY = workArea.y + this.topOffset;
+    const availableHeight = workArea.height - this.topOffset;
 
     // Apply custom dimensions (clamped to available space so we never exceed the monitor)
     const effectiveWidth = this.customWidth !== null
@@ -449,7 +451,7 @@ class WindowManager {
     for (const w of this.managedWindows) {
       if (w.hwnd === trueActiveHwnd) continue; // Skip the active window
 
-      const y = workArea.y + stripIndex * effectiveHeaderHeight;
+      const y = startY + stripIndex * effectiveHeaderHeight;
 
       targetLayouts.push({
         hwnd: w.hwnd,
@@ -466,7 +468,7 @@ class WindowManager {
 
     // Position active window on top, covering background window bodies
     if (activeWindow) {
-      const activeY = workArea.y + inactiveCount * effectiveHeaderHeight;
+      const activeY = startY + inactiveCount * effectiveHeaderHeight;
       const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
 
       targetLayouts.push({
@@ -575,6 +577,23 @@ class WindowManager {
   }
 
   /**
+   * Set the vertical offset from the top of the work area.
+   * @param {number} offset - Offset in pixels (0 = no offset, clamped to 0-500)
+   */
+  setTopOffset(offset) {
+    this.topOffset = offset !== null && offset !== undefined
+      ? Math.max(0, Math.min(500, Math.round(Number(offset)))) : 0;
+  }
+
+  /**
+   * Get the current top offset.
+   * @returns {number}
+   */
+  getTopOffset() {
+    return this.topOffset;
+  }
+
+  /**
    * Get the current custom dimensions.
    * @returns {{ customWidth: number|null, customHeight: number|null }}
    */
@@ -593,6 +612,7 @@ class WindowManager {
       customWidth: this.customWidth,
       customHeight: this.customHeight,
       stackGap: this.stackGap,
+      topOffset: this.topOffset,
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,
@@ -631,6 +651,11 @@ class WindowManager {
       this.stackGap = Math.max(0, Math.min(500, Math.round(Number(savedState.stackGap))));
     } else {
       this.stackGap = 0;
+    }
+    if (savedState.topOffset !== null && savedState.topOffset !== undefined) {
+      this.topOffset = Math.max(0, Math.min(500, Math.round(Number(savedState.topOffset))));
+    } else {
+      this.topOffset = 0;
     }
 
     for (const saved of savedWindows) {
