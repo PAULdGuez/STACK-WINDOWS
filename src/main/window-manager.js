@@ -119,16 +119,26 @@ class WindowManager {
 
     if (this.managedWindows.some(w => w.hwnd === hwndNum)) return;
 
-    if (!api.IsWindow(hwndNum)) return;
+    try {
+      if (!api.IsWindow(hwndNum)) return;
+    } catch (e) { return; }
 
     const rect = { left: 0, top: 0, right: 0, bottom: 0 };
-    const success = api.GetWindowRect(hwndNum, rect);
-    if (!success) {
-      console.warn('GetWindowRect failed for hwnd:', hwndNum);
+    try {
+      const success = api.GetWindowRect(hwndNum, rect);
+      if (!success) {
+        console.warn('GetWindowRect failed for hwnd:', hwndNum);
+      }
+    } catch (e) {
+      // use defaults (rect stays zeroed)
     }
 
     const pidBuf = [0];
-    api.GetWindowThreadProcessId(hwndNum, pidBuf);
+    try {
+      api.GetWindowThreadProcessId(hwndNum, pidBuf);
+    } catch (e) {
+      // pid stays 0
+    }
 
     const entry = {
       hwnd: hwndNum,
@@ -149,12 +159,15 @@ class WindowManager {
     // Set as the active window immediately
     this.activeHwnd = hwndNum;
 
-    if (api.IsIconic(hwndNum)) {
-      api.ShowWindow(hwndNum, SW_RESTORE);
+    try {
+      if (api.IsIconic(hwndNum)) {
+        api.ShowWindow(hwndNum, SW_RESTORE);
+      }
+      // Only place we call SetForegroundWindow — user explicitly added this window
+      api.SetForegroundWindow(hwndNum);
+    } catch (e) {
+      // Window may have been closed, but it's already in our list
     }
-
-    // Only place we call SetForegroundWindow — user explicitly added this window
-    api.SetForegroundWindow(hwndNum);
   }
 
   /**
@@ -195,22 +208,29 @@ class WindowManager {
       // Already active in our stack, but may be behind other windows.
       // If explicitly requested, bring to foreground anyway.
       if (forceNativeForeground) {
-        if (api.IsIconic(hwndNum)) {
-          api.ShowWindow(hwndNum, SW_RESTORE);
+        try {
+          if (api.IsIconic(hwndNum)) {
+            api.ShowWindow(hwndNum, SW_RESTORE);
+          }
+          api.SetForegroundWindow(hwndNum);
+        } catch (e) {
+          // Window may have been closed — activation still recorded
         }
-        api.SetForegroundWindow(hwndNum);
       }
       return false;
     }
 
     this.activeHwnd = hwndNum;
 
-    if (api.IsIconic(hwndNum)) {
-      api.ShowWindow(hwndNum, SW_RESTORE);
-    }
-
-    if (forceNativeForeground) {
-      api.SetForegroundWindow(hwndNum);
+    try {
+      if (api.IsIconic(hwndNum)) {
+        api.ShowWindow(hwndNum, SW_RESTORE);
+      }
+      if (forceNativeForeground) {
+        api.SetForegroundWindow(hwndNum);
+      }
+    } catch (e) {
+      // Window may have been closed — activation still recorded
     }
 
     return true;
@@ -463,6 +483,9 @@ class WindowManager {
 
       const y = startY + stripIndex * effectiveHeaderHeight;
 
+      let needsRestore = false;
+      try { needsRestore = api.IsIconic(w.hwnd) || api.IsZoomed(w.hwnd); } catch (_) {}
+
       targetLayouts.push({
         hwnd: w.hwnd,
         x: startX,
@@ -470,7 +493,7 @@ class WindowManager {
         cx: effectiveWidth,
         cy: effectiveHeight,
         flags: SWP_NOACTIVATE | SWP_SHOWWINDOW,
-        restore: api.IsIconic(w.hwnd) || api.IsZoomed(w.hwnd)
+        restore: needsRestore
       });
 
       stripIndex++;
@@ -481,6 +504,9 @@ class WindowManager {
       const activeY = startY + inactiveCount * effectiveHeaderHeight;
       const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
 
+      let activeNeedsRestore = false;
+      try { activeNeedsRestore = api.IsIconic(activeWindow.hwnd) || api.IsZoomed(activeWindow.hwnd); } catch (_) {}
+
       targetLayouts.push({
         hwnd: activeWindow.hwnd,
         x: startX,
@@ -488,7 +514,7 @@ class WindowManager {
         cx: effectiveWidth,
         cy: activeHeight > 100 ? activeHeight : effectiveHeight,
         flags: SWP_SHOWWINDOW | SWP_NOACTIVATE,
-        restore: api.IsIconic(activeWindow.hwnd) || api.IsZoomed(activeWindow.hwnd)
+        restore: activeNeedsRestore
       });
     }
 
