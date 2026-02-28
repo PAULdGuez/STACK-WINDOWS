@@ -1017,22 +1017,21 @@
             const widthInput = document.getElementById("customWidthInput");
             const heightInput = document.getElementById("customHeightInput");
 
-            if (data.customWidth !== null && data.customHeight !== null) {
-              if (!customSizeEnabled) {
-                customSizeEnabled = true;
-                toggle.checked = true;
-                inputs.classList.remove("hidden");
-                buttons.classList.remove("hidden");
-              }
-              widthInput.value = data.customWidth;
-              heightInput.value = data.customHeight;
+            if (data.customWidth != null || data.customHeight != null) {
+              toggle.checked = true;
+              inputs.classList.remove("hidden");
+              buttons.classList.remove("hidden");
+              if (data.customWidth != null) widthInput.value = data.customWidth;
+              if (data.customHeight != null) heightInput.value = data.customHeight;
+              customSizeEnabled = true;
             } else {
-              customSizeEnabled = false;
+              // both null — disable
               toggle.checked = false;
               inputs.classList.add("hidden");
               buttons.classList.add("hidden");
               widthInput.value = "";
               heightInput.value = "";
+              customSizeEnabled = false;
             }
           }
 
