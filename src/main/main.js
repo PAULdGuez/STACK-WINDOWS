@@ -100,7 +100,7 @@ function createWindow() {
 
   mainWindow.on('resize', () => {
     doLayout();
-    if (saveTimer) {
+    if (windowManager) {
       debouncedSave();
     }
   });
@@ -360,24 +360,29 @@ function registerIPC() {
   });
 
   ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
-    windowManager.setHideAvailable(isHidden);
-    persistence.save(windowManager.getState());
-    return { success: true };
+    try {
+      windowManager.setHideAvailable(isHidden);
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('toggle-available-visibility error:', e);
+      return { success: false, error: e.message };
+    }
   });
 
   ipcMain.handle('resize-app', async (event, width, height) => {
-    if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) throw new Error('Invalid width: must be a positive number');
-    if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) throw new Error('Invalid height: must be a positive number');
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const currentBounds = mainWindow.getBounds();
-      mainWindow.setBounds({
-        x: currentBounds.x,
-        y: currentBounds.y,
-        width: width || currentBounds.width,
-        height: height || currentBounds.height
-      });
+    try {
+      if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) throw new Error('Invalid width');
+      if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) throw new Error('Invalid height');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const currentBounds = mainWindow.getBounds();
+        mainWindow.setBounds({ x: currentBounds.x, y: currentBounds.y, width, height });
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('resize-app error:', e);
+      return { success: false, error: e.message };
     }
-    return { success: true };
   });
 
   ipcMain.handle('set-custom-dimensions', async (event, width, height) => {
@@ -396,7 +401,12 @@ function registerIPC() {
   });
 
   ipcMain.handle('get-custom-dimensions', async () => {
-    return windowManager.getCustomDimensions();
+    try {
+      return windowManager.getCustomDimensions();
+    } catch (e) {
+      console.error('get-custom-dimensions error:', e);
+      return { customWidth: null, customHeight: null };
+    }
   });
 
   ipcMain.handle('set-background-color', async (event, color) => {
@@ -413,7 +423,12 @@ function registerIPC() {
   });
 
   ipcMain.handle('get-background-color', async () => {
-    return windowManager.getBackgroundColor();
+    try {
+      return windowManager.getBackgroundColor();
+    } catch (e) {
+      console.error('get-background-color error:', e);
+      return '#000000';
+    }
   });
 
   ipcMain.handle('set-stack-gap', async (event, gap) => {
