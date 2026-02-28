@@ -372,24 +372,35 @@ class WindowManager {
 
   _applyLayout(targetLayouts) {
     if (targetLayouts.length === 0) return;
-
-    // Instant snap: single DeferWindowPos batch, no animation loop
-    const hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
+    let hWinPosInfo;
+    try {
+      hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
+    } catch (e) {
+      console.error('BeginDeferWindowPos failed:', e);
+      hWinPosInfo = null;
+    }
     if (hWinPosInfo) {
       let hInfo = hWinPosInfo;
-      for (const target of targetLayouts) {
-        if (target.restore) {
-          api.ShowWindow(target.hwnd, SW_RESTORE);
+      try {
+        for (const target of targetLayouts) {
+          if (target.restore) {
+            try { api.ShowWindow(target.hwnd, SW_RESTORE); } catch (_) {}
+          }
+          hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+          if (!hInfo) break;
         }
-        hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
-        if (!hInfo) break;
+      } finally {
+        try { if (hInfo) api.EndDeferWindowPos(hInfo); } catch (_) {}
       }
-      if (hInfo) api.EndDeferWindowPos(hInfo);
     } else {
-      // Fallback: individual SetWindowPos
+      // Fallback: position one by one
       for (const target of targetLayouts) {
-        if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
-        api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+        try {
+          if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
+          api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+        } catch (e) {
+          console.error('SetWindowPos fallback failed for hwnd:', target.hwnd, e);
+        }
       }
     }
   }
