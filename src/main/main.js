@@ -197,21 +197,33 @@ function onManagedWindowResized(hwnd) {
     const workArea = display.workArea;
     const panelRightEdge = bounds.x + bounds.width;
 
-    // Compute new dimensions from the resized window
-    const newWidth = rect.right - rect.left;
+    // 1. Compute new gap (horizontal position)
     const newGap = rect.left - panelRightEdge;
-
-    // For height: compute total stack height from the top of the first strip
-    // to the bottom of the resized window
-    const topOfStack = workArea.y + (windowManager.topOffset || 0);
-    const newHeight = rect.bottom - topOfStack;
-
-    // Apply if values are reasonable
-    if (newWidth >= 200) {
-      windowManager.setCustomDimensions(newWidth, newHeight >= 200 ? newHeight : null);
-    }
     if (newGap >= 0) {
       windowManager.setStackGap(newGap);
+    }
+
+    // 2. Compute new topOffset (vertical position)
+    const isActive = hwnd === windowManager.getActiveHwnd();
+    const inactiveCount = windowManager.managedWindows.length - 1;
+    let newTopOffset;
+    if (isActive && inactiveCount > 0) {
+      newTopOffset = rect.top - workArea.y - (inactiveCount * 40);
+    } else {
+      newTopOffset = rect.top - workArea.y;
+    }
+    if (newTopOffset >= 0 && newTopOffset <= 500) {
+      windowManager.setTopOffset(newTopOffset);
+    }
+
+    // 3. Compute new dimensions (width and height)
+    const newWidth = rect.right - rect.left;
+    const effectiveTopOffset = windowManager.topOffset || 0;
+    const topOfStack = workArea.y + effectiveTopOffset;
+    const newHeight = rect.bottom - topOfStack;
+
+    if (newWidth >= 200) {
+      windowManager.setCustomDimensions(newWidth, newHeight >= 200 ? newHeight : null);
     }
 
     doLayout();
