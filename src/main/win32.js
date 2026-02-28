@@ -20,6 +20,9 @@ const RECT = koffi.struct('RECT', {
 // Callback prototype for EnumWindows
 const EnumWindowsProc = koffi.proto('int EnumWindowsProc(intptr hwnd, intptr lParam)');
 
+// Callback prototype for SetWinEventHook
+const WinEventProc = koffi.proto('void WinEventProc(intptr hWinEventHook, uint32_t event, intptr hwnd, int32_t idObject, int32_t idChild, uint32_t idEventThread, uint32_t dwmsEventTime)');
+
 // Win32 API function declarations
 const api = {
   EnumWindows: user32.func('BOOL EnumWindows(intptr lpEnumFunc, intptr lParam)'),
@@ -38,7 +41,9 @@ const api = {
   SetForegroundWindow: user32.func('BOOL SetForegroundWindow(size_t hWnd)'),
   GetForegroundWindow: user32.func('size_t GetForegroundWindow()'),
   GetWindowLongPtrW: user32.func('intptr GetWindowLongPtrW(size_t hWnd, int nIndex)'),
-  GetWindowThreadProcessId: user32.func('uint32_t GetWindowThreadProcessId(size_t hWnd, _Out_ uint32_t *lpdwProcessId)')
+  GetWindowThreadProcessId: user32.func('uint32_t GetWindowThreadProcessId(size_t hWnd, _Out_ uint32_t *lpdwProcessId)'),
+  SetWinEventHook: user32.func('intptr SetWinEventHook(uint32_t eventMin, uint32_t eventMax, intptr hmodWinEventProc, intptr lpfnWinEventProc, uint32_t idProcess, uint32_t idThread, uint32_t dwFlags)'),
+  UnhookWinEvent: user32.func('BOOL UnhookWinEvent(intptr hWinEventHook)')
 };
 
 // Constants
@@ -59,10 +64,15 @@ const GWL_EXSTYLE = -20;
 const WS_EX_TOOLWINDOW = 0x00000080;
 const WS_EX_APPWINDOW = 0x00040000;
 
+const EVENT_SYSTEM_MOVESIZEEND = 0x000B;
+const WINEVENT_OUTOFCONTEXT = 0x0000;
+const OBJID_WINDOW = 0;
+
 module.exports = {
   koffi,
   api,
   EnumWindowsProc,
+  WinEventProc,
   RECT,
   SWP_NOSIZE,
   SWP_NOMOVE,
@@ -76,5 +86,8 @@ module.exports = {
   SW_SHOW,
   GWL_EXSTYLE,
   WS_EX_TOOLWINDOW,
-  WS_EX_APPWINDOW
+  WS_EX_APPWINDOW,
+  EVENT_SYSTEM_MOVESIZEEND,
+  WINEVENT_OUTOFCONTEXT,
+  OBJID_WINDOW
 };
