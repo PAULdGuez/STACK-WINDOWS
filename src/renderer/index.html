@@ -210,6 +210,7 @@
       white-space: normal;
       overflow: visible;
       text-overflow: clip;
+      user-select: text;
     }
 
     .managed-title .original-title {
@@ -267,22 +268,15 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    h1[contenteditable="true"]:focus {
+    h1[contenteditable='true']:focus {
       background: #222;
       border-color: #555;
       cursor: text;
+      user-select: text;
     }
 
     h1[contenteditable='true'] {
       -webkit-app-region: no-drag;
-    }
-
-    h1[contenteditable='true']:focus {
-      user-select: text;
-    }
-
-    .managed-title .display-name[contenteditable='true']:focus {
-      user-select: text;
     }
 
     .dimensions-section {
@@ -526,17 +520,21 @@
       const h = parseInt(document.getElementById('customHeightInput').value);
       const gap = parseInt(document.getElementById('stackGapInput').value);
       const top = parseInt(document.getElementById('topOffsetInput').value);
-      if (!w || w < 200 || !h || h < 200) { return; }
       try {
-        await window.electronAPI.setCustomDimensions(w, h);
+        // Apply width/height only if both are valid
+        if (w >= 200 && h >= 200) {
+          await window.electronAPI.setCustomDimensions(w, h);
+        }
+        // Apply gap independently
         if (!isNaN(gap) && gap >= 0) {
           await window.electronAPI.setStackGap(gap);
         }
+        // Apply top independently
         if (!isNaN(top) && top >= 0) {
           await window.electronAPI.setTopOffset(top);
         }
       } catch (e) {
-        console.error('Failed to set custom dimensions:', e);
+        console.error('Failed to apply dimensions:', e);
       }
     }
 
@@ -928,8 +926,12 @@
           }
         }
 
-        if (result.stackGap !== undefined && result.stackGap > 0) {
-          document.getElementById('stackGapInput').value = result.stackGap;
+        if (result.stackGap !== undefined) {
+          document.getElementById('stackGapInput').value = result.stackGap || '';
+        }
+
+        if (result.topOffset !== undefined && result.topOffset > 0) {
+          document.getElementById('topOffsetInput').value = result.topOffset;
         }
 
         if (result.backgroundColor) {
