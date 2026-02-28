@@ -1,11 +1,10 @@
 'use strict';
 
-const win32 = require('./win32');
-const { api, koffi, EnumWindowsProc, RECT,
-  SWP_NOACTIVATE, SWP_SHOWWINDOW, SWP_NOMOVE, SWP_NOSIZE,
+const { api, koffi, EnumWindowsProc,
+  SWP_NOACTIVATE, SWP_SHOWWINDOW,
   HWND_TOP, HWND_NOTOPMOST,
   SW_RESTORE,
-  GWL_EXSTYLE, WS_EX_TOOLWINDOW } = win32;
+  GWL_EXSTYLE, WS_EX_TOOLWINDOW } = require('./win32');
 
 const CONTROLLER_WIDTH = 300;
 const HEADER_HEIGHT = 40;
@@ -634,77 +633,7 @@ class WindowManager {
     };
   }
 
-  /**
-   * Load state from persistence. Tries to reconnect to existing windows.
-   */
-  loadState(savedState) {
-    if (!savedState) return;
-
-    // Support either direct array (version 1) or config object (version 2)
-    const savedWindows = Array.isArray(savedState) ? savedState : (savedState.windows || []);
-
-    if (savedState.stackName) this.stackName = savedState.stackName;
-    if (savedState.hideAvailable !== undefined) this.hideAvailable = savedState.hideAvailable;
-    if (savedState.backgroundColor) this.backgroundColor = savedState.backgroundColor;
-
-    // Restore custom dimensions if present, applying the same minimum clamp of 200
-    if (savedState.customWidth !== null && savedState.customWidth !== undefined) {
-      this.customWidth = Math.max(200, Number(savedState.customWidth));
-    } else {
-      this.customWidth = null;
-    }
-    if (savedState.customHeight !== null && savedState.customHeight !== undefined) {
-      this.customHeight = Math.max(200, Number(savedState.customHeight));
-    } else {
-      this.customHeight = null;
-    }
-    if (savedState.stackGap !== null && savedState.stackGap !== undefined) {
-      this.stackGap = Math.max(0, Math.min(500, Math.round(Number(savedState.stackGap))));
-    } else {
-      this.stackGap = 0;
-    }
-    if (savedState.topOffset !== null && savedState.topOffset !== undefined) {
-      this.topOffset = Math.max(0, Math.min(500, Math.round(Number(savedState.topOffset))));
-    } else {
-      this.topOffset = 0;
-    }
-
-    for (const saved of savedWindows) {
-      try {
-        const hwndNum = Number(saved.hwnd);
-
-        if (!api.IsWindow(hwndNum)) {
-          console.log(`Window ${saved.title} (${hwndNum}) no longer exists, skipping`);
-          continue;
-        }
-
-        if (!api.IsWindowVisible(hwndNum)) {
-          api.ShowWindow(hwndNum, SW_RESTORE);
-          if (!api.IsWindowVisible(hwndNum)) {
-            console.log(`Window ${saved.title} (${hwndNum}) not visible, skipping`);
-            continue;
-          }
-        }
-
-        const title = this._getWindowTitle(hwndNum) || saved.title;
-
-        this.managedWindows.push({
-          hwnd: hwndNum,
-          title: title,
-          customTitle: saved.customTitle || null,
-          processId: saved.processId || 0,
-          originalRect: saved.originalRect || { left: 100, top: 100, right: 900, bottom: 700 }
-        });
-      } catch (e) {
-        console.error(`Failed to restore window ${saved.title}:`, e);
-      }
-    }
-
-    // Attempt to select the topmost window as active if available to prevent no active windows.
-    if (this.managedWindows.length > 0) {
-      this.activeHwnd = this.managedWindows[0].hwnd;
-    }
-  }
+  // loadState removed — each instance starts empty by design
 
   setStackName(name) {
     this.stackName = name || 'Managed Stack';
@@ -715,4 +644,4 @@ class WindowManager {
   }
 }
 
-module.exports = { WindowManager, CONTROLLER_WIDTH, HEADER_HEIGHT };
+module.exports = { WindowManager, CONTROLLER_WIDTH };

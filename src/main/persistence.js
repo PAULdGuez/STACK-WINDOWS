@@ -126,76 +126,8 @@ class Persistence {
     }
   }
 
-  /**
-   * Load the application state and window group.
-   * @returns {Object|null} State object, or null if no saved state
-   */
-  load() {
-    if (!this.filePath) return null;
-
-    try {
-      if (!fs.existsSync(this.filePath)) {
-        console.log('No persistence file found');
-        return null;
-      }
-
-      const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const data = JSON.parse(raw);
-
-      // Support migration from version 1
-      if (data.version === 1 && Array.isArray(data.windows)) {
-        console.log('Migrating persistence from version 1 to 2');
-        return {
-          stackName: 'Managed Stack',
-          hideAvailable: false,
-          customWidth: null,
-          customHeight: null,
-          backgroundColor: '#000000',
-          stackGap: 0,
-          topOffset: 0,
-          bounds: null,
-          windows: data.windows
-        };
-      }
-
-      if (data.version !== 2 || !Array.isArray(data.windows)) {
-        console.log('Invalid persistence format');
-        return null;
-      }
-
-      console.log(`Loaded ${data.windows.length} windows and config from persistence (saved at ${data.savedAt})`);
-      return {
-        stackName: data.stackName,
-        hideAvailable: data.hideAvailable,
-        customWidth: data.customWidth ?? null,
-        customHeight: data.customHeight ?? null,
-        backgroundColor: data.backgroundColor || '#000000',
-        stackGap: data.stackGap || 0,
-        topOffset: data.topOffset || 0,
-        bounds: data.bounds,
-        windows: data.windows
-      };
-    } catch (e) {
-      console.error('Failed to load persistence:', e);
-      return null;
-    }
-  }
-
-  /**
-   * Clear the saved state.
-   */
-  clear() {
-    if (!this.filePath) return;
-
-    try {
-      if (fs.existsSync(this.filePath)) {
-        fs.unlinkSync(this.filePath);
-        console.log('Persistence cleared');
-      }
-    } catch (e) {
-      console.error('Failed to clear persistence:', e);
-    }
-  }
+  // load() removed — instances start empty by design
+  // clear() removed — instances start empty by design
 }
 
 module.exports = { Persistence };

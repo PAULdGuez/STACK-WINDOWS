@@ -236,14 +236,6 @@ class InstanceRegistry {
   }
 
   /**
-   * Return this instance's ID string.
-   * @returns {string}
-   */
-  getInstanceId() {
-    return this.instanceId;
-  }
-
-  /**
    * Return the current registry contents (public accessor for cleanup tasks).
    * @returns {{ instances: Object }}
    */
