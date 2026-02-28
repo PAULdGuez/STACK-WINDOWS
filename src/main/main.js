@@ -5,6 +5,7 @@ const path = require('path');
 const { WindowManager, CONTROLLER_WIDTH } = require('./window-manager');
 const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
+const { ResizeMonitor } = require('./resize-monitor');
 const { InstanceRegistry } = require('./instance-registry');
 const api = require('./win32');
 
@@ -18,6 +19,7 @@ let mainWindow = null;
 let windowManager = null;
 let persistence = null;
 let foregroundMonitor = null;
+let resizeMonitor = null;
 let instanceRegistry = null;
 let cleanupTimer = null;
 let saveTimer = null;
@@ -32,6 +34,7 @@ function performCleanup() {
   _cleanedUp = true;
 
   if (foregroundMonitor) foregroundMonitor.stop();
+  if (resizeMonitor) resizeMonitor.stop();
   if (cleanupTimer) clearInterval(cleanupTimer);
   if (saveTimer) clearInterval(saveTimer);
   if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
@@ -162,10 +165,10 @@ function doLayoutDebounced() {
   _layoutDebounceTimer = setTimeout(() => { doLayout(); }, 16);
 }
 
-function syncMonitor() {
-  if (foregroundMonitor) {
-    foregroundMonitor.updateManagedSet(windowManager.getManagedHwnds());
-  }
+function syncMonitors() {
+  const hwnds = windowManager.getManagedHwnds();
+  foregroundMonitor.updateManagedSet(hwnds);
+  resizeMonitor.updateManagedSet(hwnds);
 }
 
 /**
@@ -179,6 +182,43 @@ function onManagedWindowFocused(hwnd) {
     doLayoutDebounced();
     sendStateUpdate();
     debouncedSave();
+  }
+}
+
+function onManagedWindowResized(hwnd) {
+  if (!windowManager || !mainWindow) return;
+  try {
+    const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+    const success = api.GetWindowRect(hwnd, rect);
+    if (!success) return;
+
+    const bounds = mainWindow.getBounds();
+    const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+    const workArea = display.workArea;
+    const panelRightEdge = bounds.x + bounds.width;
+
+    // Compute new dimensions from the resized window
+    const newWidth = rect.right - rect.left;
+    const newGap = rect.left - panelRightEdge;
+
+    // For height: compute total stack height from the top of the first strip
+    // to the bottom of the resized window
+    const topOfStack = workArea.y + (windowManager.topOffset || 0);
+    const newHeight = rect.bottom - topOfStack;
+
+    // Apply if values are reasonable
+    if (newWidth >= 200) {
+      windowManager.setCustomDimensions(newWidth, newHeight >= 200 ? newHeight : null);
+    }
+    if (newGap >= 0) {
+      windowManager.setStackGap(newGap);
+    }
+
+    doLayout();
+    sendStateUpdate();
+    persistence.save(windowManager.getState());
+  } catch (e) {
+    console.error('onManagedWindowResized error:', e);
   }
 }
 
@@ -220,7 +260,7 @@ function registerIPC() {
       if (typeof title !== 'string') throw new Error('Invalid title: must be a string');
       title = title.slice(0, 500);
       windowManager.addWindow(hwnd, title);
-      syncMonitor();
+      syncMonitors();
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
@@ -236,7 +276,7 @@ function registerIPC() {
     try {
       hwnd = validateHwnd(hwnd);
       windowManager.removeWindow(hwnd);
-      syncMonitor();
+      syncMonitors();
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
@@ -253,7 +293,7 @@ function registerIPC() {
       hwnd = validateHwnd(hwnd);
       const changed = windowManager.promoteToActive(hwnd, true);
       if (changed) {
-        syncMonitor();
+        syncMonitors();
         doLayout();
         sendStateUpdate();
         persistence.save(windowManager.getState());
@@ -442,7 +482,9 @@ app.whenReady().then(() => {
   // Initialize foreground monitor — detects when user clicks/focuses a managed window
   foregroundMonitor = new ForegroundMonitor();
   foregroundMonitor.start(onManagedWindowFocused);
-  syncMonitor();
+  resizeMonitor = new ResizeMonitor();
+  resizeMonitor.start(onManagedWindowResized);
+  syncMonitors();
 
   // Register IPC handlers
   registerIPC();
@@ -451,7 +493,7 @@ app.whenReady().then(() => {
   cleanupTimer = setInterval(() => {
     const changed = windowManager.removeDeadWindows();
     if (changed) {
-      syncMonitor();
+      syncMonitors();
       doLayoutDebounced();
       sendStateUpdate();
       persistence.save(windowManager.getState());
