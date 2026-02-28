@@ -228,7 +228,7 @@ function onManagedWindowResized(hwnd) {
 
     doLayout();
     sendStateUpdate();
-    persistence.save(windowManager.getState());
+    debouncedSave();
   } catch (e) {
     console.error('onManagedWindowResized error:', e);
   }
