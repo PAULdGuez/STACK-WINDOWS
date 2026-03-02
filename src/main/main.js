@@ -27,6 +27,7 @@ let _layoutDebounceTimer = null;
 let _saveDebounceTimer = null;
 let _focusDebounceTimer = null;
 let _cleanedUp = false;
+let _renameFocusLocked = false;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
 
 function performCleanup() {
@@ -114,6 +115,7 @@ function createWindow() {
     if (_focusDebounceTimer) clearTimeout(_focusDebounceTimer);
     _focusDebounceTimer = setTimeout(() => {
       _focusDebounceTimer = null;
+      if (_renameFocusLocked) return;  // Skip — user is editing a name
       const activeHwnd = windowManager.getActiveHwnd();
       if (activeHwnd > 0) {
         try {
@@ -461,6 +463,10 @@ function registerIPC() {
       console.error('set-top-offset error:', e);
       return { success: false, error: e.message };
     }
+  });
+
+  ipcMain.handle('set-rename-focus-lock', async (event, locked) => {
+    _renameFocusLocked = !!locked;
   });
 }
 

@@ -53,5 +53,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove all state-update listeners (call before re-registering on page reload)
   removeAllStateListeners: () => {
     ipcRenderer.removeAllListeners('state-update');
-  }
+  },
+
+  // Suppress SetForegroundWindow while user is editing a rename field
+  setRenameFocusLock: (locked) => ipcRenderer.invoke('set-rename-focus-lock', locked)
 });
