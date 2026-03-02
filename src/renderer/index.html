@@ -483,6 +483,11 @@
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
+        // Safety: release focus lock when exiting rename mode
+        _isEditingName = false;
+        if (window.electronAPI.setRenameFocusLock) {
+          window.electronAPI.setRenameFocusLock(false);
+        }
       }
       // Re-render to apply/remove contentEditable
       scheduleRenderManaged();
@@ -771,12 +776,22 @@
           // Blur saves the rename
           displayName.addEventListener('blur', () => {
             if (!renameModeEnabled) return;
-            const newName = displayName.textContent.trim();
-            renameWindowTitle(win.hwnd, newName || null);
-            _isEditingName = false;
-            if (window.electronAPI.setRenameFocusLock) {
-              window.electronAPI.setRenameFocusLock(false);
-            }
+            // If the whole window lost focus (e.g. SetForegroundWindow stole it),
+            // don't save — the user didn't intentionally leave the field.
+            // Use a microtask to let the browser settle the new activeElement.
+            setTimeout(() => {
+              if (!document.hasFocus()) {
+                // Window lost focus — re-focus the field so user can continue editing
+                displayName.focus();
+                return;
+              }
+              const newName = displayName.textContent.trim();
+              renameWindowTitle(win.hwnd, newName || null);
+              _isEditingName = false;
+              if (window.electronAPI.setRenameFocusLock) {
+                window.electronAPI.setRenameFocusLock(false);
+              }
+            }, 50);
           });
 
           // Enter confirms (blur triggers save)
