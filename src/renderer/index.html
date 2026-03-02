@@ -464,6 +464,7 @@
     let isAvailableHidden = false;
     let customSizeEnabled = false;
     let renameModeEnabled = false;
+    let _isEditingName = false;
 
     async function onBackgroundColorChange(color) {
       document.body.style.backgroundColor = color;
@@ -701,11 +702,13 @@
             const origEl = titleEl.querySelector('.original-title');
             const displayText = win.customTitle || win.title || 'Untitled';
             // Only update if not currently being edited
-            if (displayEl && document.activeElement !== displayEl) {
+            if (displayEl && !_isEditingName && document.activeElement !== displayEl) {
               displayEl.textContent = displayText;
             }
             if (displayEl) {
-              displayEl.contentEditable = renameModeEnabled ? 'true' : 'false';
+              if (!_isEditingName && document.activeElement !== displayEl) {
+                displayEl.contentEditable = renameModeEnabled ? 'true' : 'false';
+              }
               // Keep data attributes in sync so Escape handler reads current values
               displayEl.dataset.currentCustomTitle = win.customTitle || '';
               displayEl.dataset.currentTitle = win.title || 'Untitled';
@@ -746,6 +749,14 @@
           displayName.dataset.currentCustomTitle = win.customTitle || '';
           displayName.dataset.currentTitle = win.title || 'Untitled';
 
+          // Focus sets the editing lock
+          displayName.addEventListener('focus', () => {
+            _isEditingName = true;
+            if (window.electronAPI.setRenameFocusLock) {
+              window.electronAPI.setRenameFocusLock(true);
+            }
+          });
+
           // Double-click selects all text for easy replacement
           displayName.addEventListener('dblclick', (e) => {
             if (!renameModeEnabled) return;
@@ -762,6 +773,10 @@
             if (!renameModeEnabled) return;
             const newName = displayName.textContent.trim();
             renameWindowTitle(win.hwnd, newName || null);
+            _isEditingName = false;
+            if (window.electronAPI.setRenameFocusLock) {
+              window.electronAPI.setRenameFocusLock(false);
+            }
           });
 
           // Enter confirms (blur triggers save)
