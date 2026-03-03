@@ -498,6 +498,14 @@
     .undo-toast.hiding { animation: toastOut 0.2s ease forwards; }
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+    .status-dot.active { background: #4f4; box-shadow: 0 0 4px #4f4; }
+    .status-dot.inactive { background: #48f; }
+    .managed-item.active.enhanced { background: #0d2a0d; border-left-color: #4f4; border-left-width: 4px; }
+    .managed-item.inactive.enhanced { border-left-color: #48f; }
+    .managed-item.dragging { opacity: 0.4; }
+    .managed-item.drag-over { border-top: 2px solid #4f4; }
   </style>
 </head>
 
@@ -1002,7 +1010,7 @@
 
         if (item) {
           // UPDATE existing element in place
-          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
+          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive') + (currentSettings.enhancedActiveIndicator ? ' enhanced' : '');
 
           // Update click handler (rebind with current isActive closure)
           item.onclick = async () => {
@@ -1031,6 +1039,13 @@
               origEl.textContent = '';
               origEl.style.display = 'none';
             }
+
+            // Update status dot visibility and class
+            const dot = titleEl.querySelector('.status-dot');
+            if (dot) {
+              dot.className = 'status-dot ' + (isActive ? 'active' : 'inactive');
+              dot.style.display = currentSettings.enhancedActiveIndicator ? 'inline-block' : 'none';
+            }
           }
 
           // Remove badge if present (no longer displayed)
@@ -1039,7 +1054,7 @@
         } else {
           // CREATE new element with 'entering' class for fade-in animation
           item = document.createElement('div');
-          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive');
+          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive') + (currentSettings.enhancedActiveIndicator ? ' enhanced' : '');
           item.dataset.hwnd = win.hwnd;
 
           item.onclick = async () => {
@@ -1142,6 +1157,10 @@
             }
           });
 
+          const statusDot = document.createElement('span');
+          statusDot.className = 'status-dot ' + (isActive ? 'active' : 'inactive');
+          statusDot.style.display = currentSettings.enhancedActiveIndicator ? 'inline-block' : 'none';
+          title.appendChild(statusDot);
           title.appendChild(displayName);
 
           const origTitle = document.createElement('span');
@@ -1422,6 +1441,40 @@
       // Refresh available windows immediately when the Electron window gains focus
       window.addEventListener('focus', () => {
         refreshAvailable();
+      });
+
+      // Keyboard shortcuts (only active when currentSettings.keyboardShortcuts is true)
+      document.addEventListener('keydown', (e) => {
+        if (!currentSettings.keyboardShortcuts) return;
+        // Don't intercept when editing text
+        if (_isEditingName || document.activeElement.contentEditable === 'true' || document.activeElement.tagName === 'INPUT') return;
+
+        // Ctrl+1 through Ctrl+9: activate window at index N-1
+        if (e.ctrlKey && !e.shiftKey && e.key >= '1' && e.key <= '9') {
+          e.preventDefault();
+          const idx = parseInt(e.key) - 1;
+          if (idx < managedWindows.length) {
+            activateWindow(managedWindows[idx].hwnd);
+          }
+        }
+
+        // Ctrl+ArrowUp: move active window up in the list
+        if (e.ctrlKey && e.key === 'ArrowUp') {
+          e.preventDefault();
+          const idx = managedWindows.findIndex(w => w.hwnd === activeHwnd);
+          if (idx > 0 && window.electronAPI.reorderWindow) {
+            window.electronAPI.reorderWindow(activeHwnd, idx - 1);
+          }
+        }
+
+        // Ctrl+ArrowDown: move active window down in the list
+        if (e.ctrlKey && e.key === 'ArrowDown') {
+          e.preventDefault();
+          const idx = managedWindows.findIndex(w => w.hwnd === activeHwnd);
+          if (idx >= 0 && idx < managedWindows.length - 1 && window.electronAPI.reorderWindow) {
+            window.electronAPI.reorderWindow(activeHwnd, idx + 1);
+          }
+        }
       });
 
       try {
