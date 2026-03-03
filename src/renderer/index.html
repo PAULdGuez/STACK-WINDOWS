@@ -1363,6 +1363,18 @@
 
       await Promise.all([refreshManaged(), refreshAvailable()]);
 
+      // Auto-refresh available windows every 5 seconds
+      setInterval(() => {
+        if (!isAvailableHidden) {
+          refreshAvailable();
+        }
+      }, 5000);
+
+      // Refresh available windows immediately when the Electron window gains focus
+      window.addEventListener('focus', () => {
+        refreshAvailable();
+      });
+
       try {
         if (window.electronAPI.getSettings) {
           const settings = await window.electronAPI.getSettings();
