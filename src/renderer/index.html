@@ -567,7 +567,18 @@
     const managedSubtitle = document.getElementById('managedSubtitle');
 
     stackTitle.addEventListener('blur', () => {
-      saveStackTitle();
+      setTimeout(() => {
+        if (!document.hasFocus()) {
+          // Window lost OS focus (e.g. SetForegroundWindow stole it) — re-focus
+          stackTitle.focus();
+          return;
+        }
+        _isEditingName = false;
+        if (window.electronAPI.setRenameFocusLock) {
+          window.electronAPI.setRenameFocusLock(false);
+        }
+        saveStackTitle();
+      }, 50);
     });
 
     stackTitle.addEventListener('keydown', (e) => {
@@ -589,6 +600,13 @@
         range.collapse(false);
         selection.removeAllRanges();
         selection.addRange(range);
+      }
+    });
+
+    stackTitle.addEventListener('focus', () => {
+      _isEditingName = true;
+      if (window.electronAPI.setRenameFocusLock) {
+        window.electronAPI.setRenameFocusLock(true);
       }
     });
 
@@ -931,7 +949,9 @@
 
         if (result.stackName) {
           const upperName = result.stackName.toUpperCase();
-          if (stackTitle) stackTitle.textContent = upperName;
+          if (stackTitle && !_isEditingName && document.activeElement !== stackTitle) {
+            stackTitle.textContent = upperName;
+          }
           if (managedSubtitle) managedSubtitle.textContent = upperName;
         }
 
@@ -1029,7 +1049,7 @@
           // Update Title if changed externally
           if (data.stackName) {
             const upperName = data.stackName.toUpperCase();
-            if (stackTitle && stackTitle.textContent !== upperName && document.activeElement !== stackTitle) {
+            if (stackTitle && stackTitle.textContent !== upperName && !_isEditingName && document.activeElement !== stackTitle) {
               stackTitle.textContent = upperName;
             }
             if (managedSubtitle && managedSubtitle.textContent !== upperName) {
