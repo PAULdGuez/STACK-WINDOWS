@@ -381,6 +381,116 @@
     .window-list::-webkit-scrollbar-track { background: transparent; }
     .window-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
     .window-list::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    /* Settings button (gear icon) */
+    .settings-btn {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #444;
+      border-radius: 50%;
+      background: none;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+      -webkit-app-region: no-drag;
+      transition: all 0.15s ease;
+    }
+
+    .settings-btn:hover {
+      border-color: #888;
+      color: #fff;
+    }
+
+    .settings-btn:active,
+    .settings-btn.active {
+      border-color: #4f4;
+      color: #4f4;
+      background: rgba(68, 255, 68, 0.1);
+    }
+
+    /* Settings section */
+    .settings-section {
+      flex: none;
+    }
+
+    /* Setting rows */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 12px;
+      border-bottom: 1px solid #111;
+    }
+
+    .setting-info {
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .setting-label {
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    .setting-description {
+      font-size: 9px;
+      color: #555;
+      margin-top: 1px;
+    }
+
+    /* Toggle switch (iOS-style) */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #333;
+      border-radius: 16px;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: 2px;
+      top: 2px;
+      background: #888;
+      border-radius: 50%;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: #4f4;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(16px);
+      background: #fff;
+    }
   </style>
 </head>
 
@@ -388,6 +498,7 @@
   <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
+      <button id="settingsBtn" class="settings-btn" onclick="toggleSettingsPanel()" title="Settings">&#9881;</button>
       <div id="colorPickerBtn" class="color-picker-btn" onclick="document.getElementById('bgColorInput').click()"
         title="Change background color"></div>
       <input type="color" id="bgColorInput" value="#000000" style="display: none;"
@@ -395,6 +506,96 @@
     </div>
   </div>
 
+
+  <!-- Settings Section -->
+  <div class="section settings-section">
+    <div class="section-header">
+      <span>&#9881; SETTINGS</span>
+      <button id="toggleSettingsBtn" onclick="toggleSettingsPanel()">Show</button>
+    </div>
+    <div id="settingsContent" class="hidden">
+      <div class="setting-row" data-setting="dragReorder">
+        <div class="setting-info">
+          <div class="setting-label">Drag to reorder</div>
+          <div class="setting-description">Drag windows to change stack order</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('dragReorder', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="keyboardShortcuts">
+        <div class="setting-info">
+          <div class="setting-label">Keyboard shortcuts</div>
+          <div class="setting-description">Ctrl+1-9 activate, Ctrl+Up/Down reorder</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('keyboardShortcuts', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="enhancedActiveIndicator">
+        <div class="setting-info">
+          <div class="setting-label">Enhanced active indicator</div>
+          <div class="setting-description">Colored dot and stronger highlight</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('enhancedActiveIndicator', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="actionFeedback">
+        <div class="setting-info">
+          <div class="setting-label">Action feedback</div>
+          <div class="setting-description">Flash animations on add/remove</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('actionFeedback', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="renameHints">
+        <div class="setting-info">
+          <div class="setting-label">Rename hints</div>
+          <div class="setting-description">Show pencil icon on editable names</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('renameHints', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="informativeCount">
+        <div class="setting-info">
+          <div class="setting-label">Informative count</div>
+          <div class="setting-description">Show N windows instead of just a number</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('informativeCount', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="smoothTransitions">
+        <div class="setting-info">
+          <div class="setting-label">Smooth transitions</div>
+          <div class="setting-description">Animate active/inactive state changes</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('smoothTransitions', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" data-setting="compactMode">
+        <div class="setting-info">
+          <div class="setting-label">Compact mode</div>
+          <div class="setting-description">Minimal UI - hide headers and buttons</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" onchange="onSettingToggle('compactMode', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
 
   <div class="section dimensions-section">
     <div class="section-header">
@@ -470,6 +671,45 @@
     let customSizeEnabled = false;
     let renameModeEnabled = false;
     let _isEditingName = false;
+    let currentSettings = {};
+
+    function toggleSettingsPanel() {
+      const content = document.getElementById('settingsContent');
+      const btn = document.getElementById('toggleSettingsBtn');
+      const gearBtn = document.getElementById('settingsBtn');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        btn.textContent = 'Hide';
+        gearBtn.classList.add('active');
+      } else {
+        content.classList.add('hidden');
+        btn.textContent = 'Show';
+        gearBtn.classList.remove('active');
+      }
+    }
+
+    function onSettingToggle(key, value) {
+      currentSettings[key] = value;
+      applySettings(currentSettings);
+      try {
+        if (window.electronAPI.updateSetting) {
+          window.electronAPI.updateSetting(key, value);
+        }
+      } catch (e) {
+        console.error('Failed to update setting:', e);
+      }
+    }
+
+    function applySettings(settings) {
+      currentSettings = settings;
+      document.querySelectorAll('.setting-row[data-setting]').forEach(row => {
+        const key = row.dataset.setting;
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+          checkbox.checked = !!settings[key];
+        }
+      });
+    }
 
     async function onBackgroundColorChange(color) {
       document.body.style.backgroundColor = color;
@@ -1113,11 +1353,24 @@
             document.getElementById("bgColorInput").value = data.backgroundColor;
           }
 
+          if (data.settings) {
+            applySettings(data.settings);
+          }
+
           scheduleRenderManaged();
         }
       });
 
       await Promise.all([refreshManaged(), refreshAvailable()]);
+
+      try {
+        if (window.electronAPI.getSettings) {
+          const settings = await window.electronAPI.getSettings();
+          if (settings) applySettings(settings);
+        }
+      } catch (e) {
+        console.error('Failed to load settings:', e);
+      }
     }
 
     init();
