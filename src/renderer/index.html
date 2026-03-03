@@ -506,6 +506,28 @@
     .managed-item.inactive.enhanced { border-left-color: #48f; }
     .managed-item.dragging { opacity: 0.4; }
     .managed-item.drag-over { border-top: 2px solid #4f4; }
+
+    /* actionFeedback: flash animations */
+    @keyframes flashGreen { 0% { background: #0a3a0a; } 100% { background: transparent; } }
+    @keyframes flashRed { 0% { background: #3a0a0a; } 100% { background: transparent; } }
+    .managed-item.flash-add { animation: flashGreen 0.5s ease; }
+    .managed-item.flash-remove { animation: flashRed 0.3s ease; }
+
+    /* renameHints: pencil icon on editable names */
+    .rename-hint { display: none; font-size: 10px; margin-left: 4px; color: #f90; opacity: 0.6; }
+    .rename-mode-active .rename-hint { display: inline; }
+
+    /* smoothTransitions: animate active/inactive state changes */
+    .managed-item.smooth { transition: background-color 0.3s ease, border-left-color 0.3s ease, border-left-width 0.2s ease; }
+
+    /* compactMode: minimal UI */
+    body.compact .section-header { display: none; }
+    body.compact .dims-content { display: none; }
+    body.compact .dimensions-section { display: none; }
+    body.compact .settings-section .section-header { display: flex; }
+    body.compact .header { padding: 3px 8px; }
+    body.compact .window-item { padding: 2px 8px; }
+    body.compact .actions { display: none; }
   </style>
 </head>
 
@@ -763,6 +785,14 @@
           checkbox.checked = !!settings[key];
         }
       });
+      // compactMode: toggle 'compact' class on body
+      if (settings.compactMode) {
+        document.body.classList.add('compact');
+      } else {
+        document.body.classList.remove('compact');
+      }
+      // Re-render to apply smoothTransitions, renameHints, informativeCount
+      scheduleRenderManaged();
     }
 
     async function onBackgroundColorChange(color) {
@@ -973,7 +1003,11 @@
     function renderManaged() {
       const container = document.getElementById('managedList');
       const countEl = document.getElementById('managedCount');
-      countEl.textContent = managedWindows.length;
+      if (currentSettings.informativeCount) {
+        countEl.textContent = managedWindows.length === 1 ? '1 window' : managedWindows.length + ' windows';
+      } else {
+        countEl.textContent = managedWindows.length;
+      }
 
       if (managedWindows.length === 0) {
         container.innerHTML = '<div class="empty-state">No windows in stack.<br>Add windows from below.</div>';
@@ -1016,6 +1050,9 @@
           item.onclick = async () => {
             await activateWindow(win.hwnd);
           };
+
+          // Update draggable attribute based on current dragReorder setting
+          item.draggable = !!currentSettings.dragReorder;
 
           // Update title text
           const titleEl = item.querySelector('.managed-title');
@@ -1060,6 +1097,47 @@
           item.onclick = async () => {
             await activateWindow(win.hwnd);
           };
+
+          // Drag-to-reorder: only active when dragReorder setting is on
+          item.draggable = !!currentSettings.dragReorder;
+
+          item.addEventListener('dragstart', (e) => {
+            if (!currentSettings.dragReorder) { e.preventDefault(); return; }
+            if (renameModeEnabled) { e.preventDefault(); return; }
+            e.dataTransfer.setData('text/plain', String(win.hwnd));
+            e.dataTransfer.effectAllowed = 'move';
+            item.classList.add('dragging');
+          });
+
+          item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+          });
+
+          item.addEventListener('dragover', (e) => {
+            if (!currentSettings.dragReorder) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            item.classList.add('drag-over');
+          });
+
+          item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+          });
+
+          item.addEventListener('drop', async (e) => {
+            if (!currentSettings.dragReorder) return;
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            const draggedHwnd = Number(e.dataTransfer.getData('text/plain'));
+            if (!draggedHwnd || draggedHwnd === win.hwnd) return;
+            const dropIndex = managedWindows.findIndex(w => w.hwnd === win.hwnd);
+            if (dropIndex === -1) return;
+            try {
+              await window.electronAPI.reorderWindow(draggedHwnd, dropIndex);
+            } catch (err) {
+              console.error('Failed to reorder window:', err);
+            }
+          });
 
           // Remove 'entering' class after animation completes
           item.addEventListener('animationend', () => {

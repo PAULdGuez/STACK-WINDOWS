@@ -698,6 +698,26 @@ class WindowManager {
   }
 
   /**
+   * Move a managed window from its current position to newIndex.
+   * newIndex is clamped to [0, managedWindows.length - 1].
+   * @param {number} hwnd - Window handle
+   * @param {number} newIndex - Target index in managedWindows
+   * @returns {boolean} true if the window was found and moved
+   */
+  reorderWindow(hwnd, newIndex) {
+    const hwndNum = Number(hwnd);
+    const currentIdx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
+    if (currentIdx === -1) return false;
+
+    const clampedIndex = Math.max(0, Math.min(this.managedWindows.length - 1, Math.round(newIndex)));
+    if (currentIdx === clampedIndex) return true; // Already in place, still counts as success
+
+    const [entry] = this.managedWindows.splice(currentIdx, 1);
+    this.managedWindows.splice(clampedIndex, 0, entry);
+    return true;
+  }
+
+  /**
    * Restore settings from a persisted object. Unknown keys are ignored.
    * @param {Object} settings - Previously saved settings object
    */

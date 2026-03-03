@@ -470,6 +470,23 @@ function registerIPC() {
     _renameFocusLocked = !!locked;
   });
 
+  ipcMain.handle('reorder-window', async (event, hwnd, newIndex) => {
+    try {
+      hwnd = validateHwnd(hwnd);
+      if (typeof newIndex !== 'number' || !Number.isFinite(newIndex)) throw new Error('Invalid newIndex: must be a number');
+      const moved = windowManager.reorderWindow(hwnd, newIndex);
+      if (moved) {
+        doLayout();
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+      }
+      return { success: moved };
+    } catch (e) {
+      console.error('reorder-window error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   ipcMain.handle('get-settings', async () => {
     try {
       return windowManager.getSettings();

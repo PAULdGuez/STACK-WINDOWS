@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('state-update');
   },
 
+  // Reorder managed windows via drag-and-drop
+  reorderWindow: (hwnd, newIndex) => ipcRenderer.invoke('reorder-window', hwnd, newIndex),
+
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
   updateSetting: (key, value) => ipcRenderer.invoke('update-setting', key, value),
