@@ -1044,7 +1044,9 @@
 
         if (item) {
           // UPDATE existing element in place
-          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive') + (currentSettings.enhancedActiveIndicator ? ' enhanced' : '');
+          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive') +
+            (currentSettings.enhancedActiveIndicator ? ' enhanced' : '') +
+            (currentSettings.smoothTransitions ? ' smooth' : '');
 
           // Update click handler (rebind with current isActive closure)
           item.onclick = async () => {
@@ -1083,6 +1085,12 @@
               dot.className = 'status-dot ' + (isActive ? 'active' : 'inactive');
               dot.style.display = currentSettings.enhancedActiveIndicator ? 'inline-block' : 'none';
             }
+
+            // renameHints: show/hide pencil icon
+            const hint = titleEl.querySelector('.rename-hint');
+            if (hint) {
+              hint.style.display = (renameModeEnabled && currentSettings.renameHints) ? 'inline' : 'none';
+            }
           }
 
           // Remove badge if present (no longer displayed)
@@ -1091,7 +1099,9 @@
         } else {
           // CREATE new element with 'entering' class for fade-in animation
           item = document.createElement('div');
-          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive') + (currentSettings.enhancedActiveIndicator ? ' enhanced' : '');
+          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive') +
+            (currentSettings.enhancedActiveIndicator ? ' enhanced' : '') +
+            (currentSettings.smoothTransitions ? ' smooth' : '');
           item.dataset.hwnd = win.hwnd;
 
           item.onclick = async () => {
@@ -1140,9 +1150,19 @@
           });
 
           // Remove 'entering' class after animation completes
-          item.addEventListener('animationend', () => {
-            item.classList.remove('entering');
-          }, { once: true });
+          item.addEventListener('animationend', (e) => {
+            if (e.animationName === 'fadeSlideIn') {
+              item.classList.remove('entering');
+            }
+            if (e.animationName === 'flashGreen') {
+              item.classList.remove('flash-add');
+            }
+          });
+
+          // actionFeedback: green flash on add
+          if (currentSettings.actionFeedback) {
+            item.classList.add('flash-add');
+          }
 
           const title = document.createElement('div');
           title.className = 'managed-title';
@@ -1240,6 +1260,13 @@
           statusDot.style.display = currentSettings.enhancedActiveIndicator ? 'inline-block' : 'none';
           title.appendChild(statusDot);
           title.appendChild(displayName);
+
+          // renameHints: pencil icon after display name
+          const pencilHint = document.createElement('span');
+          pencilHint.className = 'rename-hint';
+          pencilHint.textContent = '✏';
+          pencilHint.style.display = (renameModeEnabled && currentSettings.renameHints) ? 'inline' : 'none';
+          title.appendChild(pencilHint);
 
           const origTitle = document.createElement('span');
           origTitle.className = 'original-title';
@@ -1397,6 +1424,17 @@
       try {
         const entry = managedWindows.find(w => w.hwnd === hwnd);
         const title = entry ? (entry.customTitle || entry.title || 'Untitled') : 'Untitled';
+
+        // actionFeedback: red flash before removal
+        if (currentSettings.actionFeedback) {
+          const container = document.getElementById('managedList');
+          const el = container ? container.querySelector('.window-item[data-hwnd="' + hwnd + '"]') : null;
+          if (el) {
+            el.classList.add('flash-remove');
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+
         await window.electronAPI.removeWindow(hwnd);
         await refreshAvailable();
         showUndoToast(hwnd, title);
