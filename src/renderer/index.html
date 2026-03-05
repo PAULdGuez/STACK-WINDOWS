@@ -382,116 +382,6 @@
     .window-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
     .window-list::-webkit-scrollbar-thumb:hover { background: #555; }
 
-    /* Settings button (gear icon) */
-    .settings-btn {
-      width: 18px;
-      height: 18px;
-      border: 1px solid #444;
-      border-radius: 50%;
-      background: none;
-      color: #888;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      line-height: 1;
-      -webkit-app-region: no-drag;
-      transition: all 0.15s ease;
-    }
-
-    .settings-btn:hover {
-      border-color: #888;
-      color: #fff;
-    }
-
-    .settings-btn:active,
-    .settings-btn.active {
-      border-color: #4f4;
-      color: #4f4;
-      background: rgba(68, 255, 68, 0.1);
-    }
-
-    /* Settings section */
-    .settings-section {
-      flex: none;
-    }
-
-    /* Setting rows */
-    .setting-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 4px 12px;
-      border-bottom: 1px solid #111;
-    }
-
-    .setting-info {
-      flex: 1;
-      margin-right: 8px;
-    }
-
-    .setting-label {
-      font-size: 11px;
-      color: #aaa;
-    }
-
-    .setting-description {
-      font-size: 9px;
-      color: #555;
-      margin-top: 1px;
-    }
-
-    /* Toggle switch (iOS-style) */
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 32px;
-      height: 16px;
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      position: absolute;
-    }
-
-    .toggle-slider {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: #333;
-      border-radius: 16px;
-      transition: background 0.2s ease;
-    }
-
-    .toggle-slider::before {
-      content: '';
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      left: 2px;
-      top: 2px;
-      background: #888;
-      border-radius: 50%;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-
-    .toggle-switch input:checked + .toggle-slider {
-      background: #4f4;
-    }
-
-    .toggle-switch input:checked + .toggle-slider::before {
-      transform: translateX(16px);
-      background: #fff;
-    }
-
     .undo-toast { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: #222; border: 1px solid #444; color: #ccc; font-size: 11px; padding: 6px 16px; border-radius: 999px; display: flex; align-items: center; gap: 8px; z-index: 9999; animation: toastIn 0.2s ease; -webkit-app-region: no-drag; }
     .undo-toast .undo-btn { background: none; border: 1px solid #4a4; color: #6c6; font-size: 10px; padding: 2px 10px; border-radius: 999px; cursor: pointer; }
     .undo-toast .undo-btn:hover { border-color: #6c6; color: #8e8; }
@@ -499,35 +389,6 @@
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
 
-    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
-    .status-dot.active { background: #4f4; box-shadow: 0 0 4px #4f4; }
-    .status-dot.inactive { background: #48f; }
-    .managed-item.active.enhanced { background: #0d2a0d; border-left-color: #4f4; border-left-width: 4px; }
-    .managed-item.inactive.enhanced { border-left-color: #48f; }
-    .managed-item.dragging { opacity: 0.4; }
-    .managed-item.drag-over { border-top: 2px solid #4f4; }
-
-    /* actionFeedback: flash animations */
-    @keyframes flashGreen { 0% { background: #0a3a0a; } 100% { background: transparent; } }
-    @keyframes flashRed { 0% { background: #3a0a0a; } 100% { background: transparent; } }
-    .managed-item.flash-add { animation: flashGreen 0.5s ease; }
-    .managed-item.flash-remove { animation: flashRed 0.3s ease; }
-
-    /* renameHints: pencil icon on editable names */
-    .rename-hint { display: none; font-size: 10px; margin-left: 4px; color: #f90; opacity: 0.6; }
-    .rename-mode-active .rename-hint { display: inline; }
-
-    /* smoothTransitions: animate active/inactive state changes */
-    .managed-item.smooth { transition: background-color 0.3s ease, border-left-color 0.3s ease, border-left-width 0.2s ease; }
-
-    /* compactMode: minimal UI */
-    body.compact .section-header { display: none; }
-    body.compact .dims-content { display: none; }
-    body.compact .dimensions-section { display: none; }
-    body.compact .settings-section .section-header { display: flex; }
-    body.compact .header { padding: 3px 8px; }
-    body.compact .window-item { padding: 2px 8px; }
-    body.compact .actions { display: none; }
   </style>
 </head>
 
@@ -535,7 +396,6 @@
   <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
-      <button id="settingsBtn" class="settings-btn" onclick="toggleSettingsPanel()" title="Settings">&#9881;</button>
       <div id="colorPickerBtn" class="color-picker-btn" onclick="document.getElementById('bgColorInput').click()"
         title="Change background color"></div>
       <input type="color" id="bgColorInput" value="#000000" style="display: none;"
@@ -543,96 +403,6 @@
     </div>
   </div>
 
-
-  <!-- Settings Section -->
-  <div class="section settings-section">
-    <div class="section-header">
-      <span>&#9881; SETTINGS</span>
-      <button id="toggleSettingsBtn" onclick="toggleSettingsPanel()">Show</button>
-    </div>
-    <div id="settingsContent" class="hidden">
-      <div class="setting-row" data-setting="dragReorder">
-        <div class="setting-info">
-          <div class="setting-label">Drag to reorder</div>
-          <div class="setting-description">Drag windows to change stack order</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('dragReorder', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="keyboardShortcuts">
-        <div class="setting-info">
-          <div class="setting-label">Keyboard shortcuts</div>
-          <div class="setting-description">Ctrl+1-9 activate, Ctrl+Up/Down reorder</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('keyboardShortcuts', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="enhancedActiveIndicator">
-        <div class="setting-info">
-          <div class="setting-label">Enhanced active indicator</div>
-          <div class="setting-description">Colored dot and stronger highlight</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('enhancedActiveIndicator', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="actionFeedback">
-        <div class="setting-info">
-          <div class="setting-label">Action feedback</div>
-          <div class="setting-description">Flash animations on add/remove</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('actionFeedback', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="renameHints">
-        <div class="setting-info">
-          <div class="setting-label">Rename hints</div>
-          <div class="setting-description">Show pencil icon on editable names</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('renameHints', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="informativeCount">
-        <div class="setting-info">
-          <div class="setting-label">Informative count</div>
-          <div class="setting-description">Show N windows instead of just a number</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('informativeCount', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="smoothTransitions">
-        <div class="setting-info">
-          <div class="setting-label">Smooth transitions</div>
-          <div class="setting-description">Animate active/inactive state changes</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('smoothTransitions', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="setting-row" data-setting="compactMode">
-        <div class="setting-info">
-          <div class="setting-label">Compact mode</div>
-          <div class="setting-description">Minimal UI - hide headers and buttons</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="onSettingToggle('compactMode', this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>
-  </div>
 
   <div class="section dimensions-section">
     <div class="section-header">
@@ -708,7 +478,6 @@
     let customSizeEnabled = false;
     let renameModeEnabled = false;
     let _isEditingName = false;
-    let currentSettings = {};
 
     let _undoTimer = null;
     let _undoToastEl = null;
@@ -747,52 +516,6 @@
         _undoToastEl = null;
       }
       addWindow(hwnd, '');
-    }
-
-    function toggleSettingsPanel() {
-      const content = document.getElementById('settingsContent');
-      const btn = document.getElementById('toggleSettingsBtn');
-      const gearBtn = document.getElementById('settingsBtn');
-      if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        btn.textContent = 'Hide';
-        gearBtn.classList.add('active');
-      } else {
-        content.classList.add('hidden');
-        btn.textContent = 'Show';
-        gearBtn.classList.remove('active');
-      }
-    }
-
-    function onSettingToggle(key, value) {
-      currentSettings[key] = value;
-      applySettings(currentSettings);
-      try {
-        if (window.electronAPI.updateSetting) {
-          window.electronAPI.updateSetting(key, value);
-        }
-      } catch (e) {
-        console.error('Failed to update setting:', e);
-      }
-    }
-
-    function applySettings(settings) {
-      currentSettings = settings;
-      document.querySelectorAll('.setting-row[data-setting]').forEach(row => {
-        const key = row.dataset.setting;
-        const checkbox = row.querySelector('input[type="checkbox"]');
-        if (checkbox) {
-          checkbox.checked = !!settings[key];
-        }
-      });
-      // compactMode: toggle 'compact' class on body
-      if (settings.compactMode) {
-        document.body.classList.add('compact');
-      } else {
-        document.body.classList.remove('compact');
-      }
-      // Re-render to apply smoothTransitions, renameHints, informativeCount
-      scheduleRenderManaged();
     }
 
     async function onBackgroundColorChange(color) {
@@ -1003,11 +726,7 @@
     function renderManaged() {
       const container = document.getElementById('managedList');
       const countEl = document.getElementById('managedCount');
-      if (currentSettings.informativeCount) {
-        countEl.textContent = managedWindows.length === 1 ? '1 window' : managedWindows.length + ' windows';
-      } else {
-        countEl.textContent = managedWindows.length;
-      }
+      countEl.textContent = managedWindows.length;
 
       if (managedWindows.length === 0) {
         container.innerHTML = '<div class="empty-state">No windows in stack.<br>Add windows from below.</div>';
@@ -1044,17 +763,12 @@
 
         if (item) {
           // UPDATE existing element in place
-          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive') +
-            (currentSettings.enhancedActiveIndicator ? ' enhanced' : '') +
-            (currentSettings.smoothTransitions ? ' smooth' : '');
+          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
 
           // Update click handler (rebind with current isActive closure)
           item.onclick = async () => {
             await activateWindow(win.hwnd);
           };
-
-          // Update draggable attribute based on current dragReorder setting
-          item.draggable = !!currentSettings.dragReorder;
 
           // Update title text
           const titleEl = item.querySelector('.managed-title');
@@ -1078,19 +792,6 @@
               origEl.textContent = '';
               origEl.style.display = 'none';
             }
-
-            // Update status dot visibility and class
-            const dot = titleEl.querySelector('.status-dot');
-            if (dot) {
-              dot.className = 'status-dot ' + (isActive ? 'active' : 'inactive');
-              dot.style.display = currentSettings.enhancedActiveIndicator ? 'inline-block' : 'none';
-            }
-
-            // renameHints: show/hide pencil icon
-            const hint = titleEl.querySelector('.rename-hint');
-            if (hint) {
-              hint.style.display = (renameModeEnabled && currentSettings.renameHints) ? 'inline' : 'none';
-            }
           }
 
           // Remove badge if present (no longer displayed)
@@ -1099,70 +800,19 @@
         } else {
           // CREATE new element with 'entering' class for fade-in animation
           item = document.createElement('div');
-          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive') +
-            (currentSettings.enhancedActiveIndicator ? ' enhanced' : '') +
-            (currentSettings.smoothTransitions ? ' smooth' : '');
+          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive');
           item.dataset.hwnd = win.hwnd;
 
           item.onclick = async () => {
             await activateWindow(win.hwnd);
           };
 
-          // Drag-to-reorder: only active when dragReorder setting is on
-          item.draggable = !!currentSettings.dragReorder;
-
-          item.addEventListener('dragstart', (e) => {
-            if (!currentSettings.dragReorder) { e.preventDefault(); return; }
-            if (renameModeEnabled) { e.preventDefault(); return; }
-            e.dataTransfer.setData('text/plain', String(win.hwnd));
-            e.dataTransfer.effectAllowed = 'move';
-            item.classList.add('dragging');
-          });
-
-          item.addEventListener('dragend', () => {
-            item.classList.remove('dragging');
-          });
-
-          item.addEventListener('dragover', (e) => {
-            if (!currentSettings.dragReorder) return;
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            item.classList.add('drag-over');
-          });
-
-          item.addEventListener('dragleave', () => {
-            item.classList.remove('drag-over');
-          });
-
-          item.addEventListener('drop', async (e) => {
-            if (!currentSettings.dragReorder) return;
-            e.preventDefault();
-            item.classList.remove('drag-over');
-            const draggedHwnd = Number(e.dataTransfer.getData('text/plain'));
-            if (!draggedHwnd || draggedHwnd === win.hwnd) return;
-            const dropIndex = managedWindows.findIndex(w => w.hwnd === win.hwnd);
-            if (dropIndex === -1) return;
-            try {
-              await window.electronAPI.reorderWindow(draggedHwnd, dropIndex);
-            } catch (err) {
-              console.error('Failed to reorder window:', err);
-            }
-          });
-
           // Remove 'entering' class after animation completes
           item.addEventListener('animationend', (e) => {
             if (e.animationName === 'fadeSlideIn') {
               item.classList.remove('entering');
             }
-            if (e.animationName === 'flashGreen') {
-              item.classList.remove('flash-add');
-            }
           });
-
-          // actionFeedback: green flash on add
-          if (currentSettings.actionFeedback) {
-            item.classList.add('flash-add');
-          }
 
           const title = document.createElement('div');
           title.className = 'managed-title';
@@ -1255,18 +905,7 @@
             }
           });
 
-          const statusDot = document.createElement('span');
-          statusDot.className = 'status-dot ' + (isActive ? 'active' : 'inactive');
-          statusDot.style.display = currentSettings.enhancedActiveIndicator ? 'inline-block' : 'none';
-          title.appendChild(statusDot);
           title.appendChild(displayName);
-
-          // renameHints: pencil icon after display name
-          const pencilHint = document.createElement('span');
-          pencilHint.className = 'rename-hint';
-          pencilHint.textContent = '✏';
-          pencilHint.style.display = (renameModeEnabled && currentSettings.renameHints) ? 'inline' : 'none';
-          title.appendChild(pencilHint);
 
           const origTitle = document.createElement('span');
           origTitle.className = 'original-title';
@@ -1425,16 +1064,6 @@
         const entry = managedWindows.find(w => w.hwnd === hwnd);
         const title = entry ? (entry.customTitle || entry.title || 'Untitled') : 'Untitled';
 
-        // actionFeedback: red flash before removal
-        if (currentSettings.actionFeedback) {
-          const container = document.getElementById('managedList');
-          const el = container ? container.querySelector('.window-item[data-hwnd="' + hwnd + '"]') : null;
-          if (el) {
-            el.classList.add('flash-remove');
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-        }
-
         await window.electronAPI.removeWindow(hwnd);
         await refreshAvailable();
         showUndoToast(hwnd, title);
@@ -1537,10 +1166,6 @@
             document.getElementById("bgColorInput").value = data.backgroundColor;
           }
 
-          if (data.settings) {
-            applySettings(data.settings);
-          }
-
           scheduleRenderManaged();
         }
       });
@@ -1559,48 +1184,6 @@
         refreshAvailable();
       });
 
-      // Keyboard shortcuts (only active when currentSettings.keyboardShortcuts is true)
-      document.addEventListener('keydown', (e) => {
-        if (!currentSettings.keyboardShortcuts) return;
-        // Don't intercept when editing text
-        if (_isEditingName || document.activeElement.contentEditable === 'true' || document.activeElement.tagName === 'INPUT') return;
-
-        // Ctrl+1 through Ctrl+9: activate window at index N-1
-        if (e.ctrlKey && !e.shiftKey && e.key >= '1' && e.key <= '9') {
-          e.preventDefault();
-          const idx = parseInt(e.key) - 1;
-          if (idx < managedWindows.length) {
-            activateWindow(managedWindows[idx].hwnd);
-          }
-        }
-
-        // Ctrl+ArrowUp: move active window up in the list
-        if (e.ctrlKey && e.key === 'ArrowUp') {
-          e.preventDefault();
-          const idx = managedWindows.findIndex(w => w.hwnd === activeHwnd);
-          if (idx > 0 && window.electronAPI.reorderWindow) {
-            window.electronAPI.reorderWindow(activeHwnd, idx - 1);
-          }
-        }
-
-        // Ctrl+ArrowDown: move active window down in the list
-        if (e.ctrlKey && e.key === 'ArrowDown') {
-          e.preventDefault();
-          const idx = managedWindows.findIndex(w => w.hwnd === activeHwnd);
-          if (idx >= 0 && idx < managedWindows.length - 1 && window.electronAPI.reorderWindow) {
-            window.electronAPI.reorderWindow(activeHwnd, idx + 1);
-          }
-        }
-      });
-
-      try {
-        if (window.electronAPI.getSettings) {
-          const settings = await window.electronAPI.getSettings();
-          if (settings) applySettings(settings);
-        }
-      } catch (e) {
-        console.error('Failed to load settings:', e);
-      }
     }
 
     init();
