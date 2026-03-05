@@ -8,7 +8,9 @@
   },
   "type": "commonjs",
   "dependencies": {
-    "electron": "35.7.5",
     "koffi": "2.15.1"
+  },
+  "devDependencies": {
+    "electron": "35.7.5"
   }
 }
