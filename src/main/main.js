@@ -505,6 +505,18 @@ function registerIPC() {
 
 }
 
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err);
+  performCleanup();
+  app.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] unhandledRejection:', reason);
+  performCleanup();
+  app.exit(1);
+});
+
 app.whenReady().then(() => {
   // 1. Initialize instance registry
   instanceRegistry = new InstanceRegistry();
