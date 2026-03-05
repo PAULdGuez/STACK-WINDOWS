@@ -23,9 +23,6 @@ class WindowManager {
     this.topOffset = 0; // pixels of vertical offset from top of work area
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
-    this._restoreAnimationTimers = new Map(); // Map<hwnd, timerId>
-    this.restoreAnimationDuration = options.restoreAnimationDuration || 150; // ms
-    this.skipAnimation = true;
   }
 
   setBackgroundColor(color) {
@@ -271,8 +268,6 @@ class WindowManager {
    * Used during app quit — no time for animation, must be synchronous and immediate.
    */
   restoreAll() {
-    // Cancel any in-flight restore animation to avoid interfering with instant snap
-    this._stopRestoreAnimation();
     for (const entry of this.managedWindows) {
       try {
         if (!api.IsWindow(entry.hwnd)) continue;
@@ -286,115 +281,13 @@ class WindowManager {
   }
 
   /**
-   * Cancel any in-flight restore animation (separate timer from main layout animation).
-   * If hwnd is provided, stops only that window's timer.
-   * If hwnd is omitted (or null/undefined), stops all restore timers.
-   * @param {number} [hwnd]
-   */
-  _stopRestoreAnimation(hwnd) {
-    if (hwnd != null) {
-      const timer = this._restoreAnimationTimers.get(hwnd);
-      if (timer) {
-        clearTimeout(timer);
-        this._restoreAnimationTimers.delete(hwnd);
-      }
-    } else {
-      // Stop all
-      for (const timer of this._restoreAnimationTimers.values()) {
-        clearTimeout(timer);
-      }
-      this._restoreAnimationTimers.clear();
-    }
-  }
-
-  /**
-   * Animate a single window sliding back to its originalRect position.
-   * Uses a per-window timer keyed by hwnd in _restoreAnimationTimers so that
-   * multiple windows can animate concurrently without cancelling each other.
-   * Duration: restoreAnimationDuration ms (slightly longer than layout animation for visual distinction).
-   * Easing: cubic ease-out (same as _animateLayout).
+   * Restore a single window to its originalRect position and invoke callback.
    * @param {{ hwnd: number, originalRect: {left,top,right,bottom} }} entry
-   * @param {Function} callback - Called when animation completes
+   * @param {Function} callback - Called when restore completes
    */
   _animateRestore(entry, callback) {
-    if (this.skipAnimation) {
-      this._restoreWindow(entry);
-      callback();
-      return;
-    }
-
-    // Cancel any in-flight restore animation for this specific window only
-    this._stopRestoreAnimation(entry.hwnd);
-
-    const r = entry.originalRect;
-    const targetX = r.left;
-    const targetY = r.top;
-    const targetCx = (r.right - r.left) || 800;
-    const targetCy = (r.bottom - r.top) || 600;
-
-    // Get current position as animation start
-    let startX = targetX;
-    let startY = targetY;
-    let startCx = targetCx;
-    let startCy = targetCy;
-    try {
-      const currentRect = {};
-      api.GetWindowRect(entry.hwnd, currentRect);
-      startX = currentRect.left || targetX;
-      startY = currentRect.top || targetY;
-      startCx = (currentRect.right - currentRect.left) || targetCx;
-      startCy = (currentRect.bottom - currentRect.top) || targetCy;
-    } catch (e) {
-      // fallback to target (no animation, will snap immediately)
-    }
-
-    const DURATION = this.restoreAnimationDuration; // ms — slightly longer than layout animation for visual distinction
-    const startTime = Date.now();
-
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / DURATION, 1);
-      // Apply ease-out-cubic easing
-      const ease = 1 - Math.pow(1 - progress, 3);
-
-      const x = Math.round(startX + (targetX - startX) * ease);
-      const y = Math.round(startY + (targetY - startY) * ease);
-      const cx = Math.round(startCx + (targetCx - startCx) * ease);
-      const cy = Math.round(startCy + (targetCy - startCy) * ease);
-
-      try {
-        if (progress >= 1) {
-          // Final frame: snap to exact target and clear TOPMOST
-          this._restoreAnimationTimers.delete(entry.hwnd);
-          api.SetWindowPos(
-            entry.hwnd,
-            HWND_NOTOPMOST,
-            targetX, targetY, targetCx, targetCy,
-            SWP_SHOWWINDOW
-          );
-          callback();
-        } else {
-          // Intermediate frame: single SetWindowPos (not DeferWindowPos — only one window)
-          api.SetWindowPos(
-            entry.hwnd,
-            HWND_NOTOPMOST,
-            x, y, cx, cy,
-            SWP_SHOWWINDOW
-          );
-          this._restoreAnimationTimers.set(entry.hwnd, setTimeout(tick, 1000 / 30));
-        }
-      } catch (e) {
-        console.error(`Restore animation frame failed for hwnd ${entry.hwnd}:`, e);
-        this._restoreAnimationTimers.delete(entry.hwnd);
-        // Fallback: instant snap to original position
-        try {
-          api.SetWindowPos(entry.hwnd, HWND_NOTOPMOST, targetX, targetY, targetCx, targetCy, SWP_SHOWWINDOW);
-        } catch (er) { }
-        callback();
-      }
-    };
-
-    this._restoreAnimationTimers.set(entry.hwnd, setTimeout(tick, 0));
+    this._restoreWindow(entry);
+    callback();
   }
 
   _applyLayout(targetLayouts) {
