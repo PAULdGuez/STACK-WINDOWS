@@ -958,30 +958,74 @@
         return;
       }
 
-      container.innerHTML = '';
-      availableWindows.forEach(win => {
-        const item = document.createElement('div');
-        item.className = 'window-item';
+      // Build map of existing DOM items keyed by hwnd
+      const existingItems = new Map();
+      container.querySelectorAll('.window-item[data-hwnd]').forEach(el => {
+        existingItems.set(Number(el.dataset.hwnd), el);
+      });
 
-        const title = document.createElement('span');
-        title.className = 'title';
-        title.textContent = win.title || 'Untitled';
+      // Build set of desired hwnds
+      const desiredHwnds = new Set(availableWindows.map(w => w.hwnd));
 
-        const actions = document.createElement('div');
-        actions.className = 'actions';
+      // Remove DOM elements whose hwnd is no longer available
+      existingItems.forEach((el, hwnd) => {
+        if (!desiredHwnds.has(hwnd)) {
+          el.remove();
+          existingItems.delete(hwnd);
+        }
+      });
 
-        const addBtn = document.createElement('button');
-        addBtn.className = 'btn btn-add';
-        addBtn.textContent = 'Add';
-        addBtn.onclick = (e) => {
-          e.stopPropagation();
-          addWindow(win.hwnd, win.title);
-        };
-        actions.appendChild(addBtn);
+      // Clear empty-state if present
+      const emptyState = container.querySelector('.empty-state');
+      if (emptyState) emptyState.remove();
 
-        item.appendChild(title);
-        item.appendChild(actions);
-        container.appendChild(item);
+      // For each available window: update existing or create new
+      availableWindows.forEach((win, index) => {
+        let item = existingItems.get(win.hwnd);
+
+        if (item) {
+          // UPDATE existing — just update title text and rebind onclick
+          const titleEl = item.querySelector('.title');
+          if (titleEl) titleEl.textContent = win.title || 'Untitled';
+          const addBtn = item.querySelector('.btn-add');
+          if (addBtn) {
+            addBtn.onclick = (e) => {
+              e.stopPropagation();
+              addWindow(win.hwnd, win.title);
+            };
+          }
+        } else {
+          // CREATE new element
+          item = document.createElement('div');
+          item.className = 'window-item';
+          item.dataset.hwnd = win.hwnd;
+
+          const title = document.createElement('span');
+          title.className = 'title';
+          title.textContent = win.title || 'Untitled';
+
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+
+          const addBtn = document.createElement('button');
+          addBtn.className = 'btn btn-add';
+          addBtn.textContent = 'Add';
+          addBtn.onclick = (e) => {
+            e.stopPropagation();
+            addWindow(win.hwnd, win.title);
+          };
+          actions.appendChild(addBtn);
+
+          item.appendChild(title);
+          item.appendChild(actions);
+          existingItems.set(win.hwnd, item);
+        }
+
+        // Reorder: ensure item is at correct position
+        const currentAtIndex = container.children[index];
+        if (currentAtIndex !== item) {
+          container.insertBefore(item, currentAtIndex || null);
+        }
       });
     }
 
