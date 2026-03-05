@@ -42,11 +42,15 @@ class WindowManager {
    * Read a window's title using GetWindowTextW with proper buffer handling.
    */
   _getWindowTitle(hwndNum) {
-    const titleLen = api.GetWindowTextLengthW(hwndNum);
-    if (titleLen <= 0) return '';
-    const buf = [' '.repeat(titleLen + 1)];
-    api.GetWindowTextW(hwndNum, buf, titleLen + 1);
-    return (buf[0] || '').trim();
+    try {
+      const titleLen = api.GetWindowTextLengthW(hwndNum);
+      if (titleLen <= 0) return '';
+      const buf = [' '.repeat(titleLen + 1)];
+      api.GetWindowTextW(hwndNum, buf, titleLen + 1);
+      return (buf[0] || '').trim();
+    } catch (e) {
+      return '';
+    }
   }
 
   /**
@@ -166,7 +170,7 @@ class WindowManager {
       // Only place we call SetForegroundWindow — user explicitly added this window
       api.SetForegroundWindow(hwndNum);
     } catch (e) {
-      // Window may have been closed, but it's already in our list
+      console.error('addWindow: failed to bring window to foreground:', e);
     }
   }
 
@@ -214,7 +218,7 @@ class WindowManager {
           }
           api.SetForegroundWindow(hwndNum);
         } catch (e) {
-          // Window may have been closed — activation still recorded
+          console.error('promoteToActive: failed to foreground (already active):', e);
         }
       }
       return false;
@@ -230,7 +234,7 @@ class WindowManager {
         api.SetForegroundWindow(hwndNum);
       }
     } catch (e) {
-      // Window may have been closed — activation still recorded
+      console.error('promoteToActive: failed to foreground (new active):', e);
     }
 
     return true;
@@ -270,8 +274,12 @@ class WindowManager {
     // Cancel any in-flight restore animation to avoid interfering with instant snap
     this._stopRestoreAnimation();
     for (const entry of this.managedWindows) {
-      if (!api.IsWindow(entry.hwnd)) continue;
-      this._restoreWindow(entry);
+      try {
+        if (!api.IsWindow(entry.hwnd)) continue;
+        this._restoreWindow(entry);
+      } catch (e) {
+        console.error('restoreAll: failed to restore hwnd ' + entry.hwnd + ':', e);
+      }
     }
     this.managedWindows = [];
     this.activeHwnd = 0;
@@ -391,36 +399,41 @@ class WindowManager {
 
   _applyLayout(targetLayouts) {
     if (targetLayouts.length === 0) return;
-    let hWinPosInfo;
+
     try {
-      hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
-    } catch (e) {
-      console.error('BeginDeferWindowPos failed:', e);
-      hWinPosInfo = null;
-    }
-    if (hWinPosInfo) {
-      let hInfo = hWinPosInfo;
-      try {
+      const hWinPosInfo = api.BeginDeferWindowPos(targetLayouts.length);
+      if (hWinPosInfo) {
+        let hInfo = hWinPosInfo;
         for (const target of targetLayouts) {
-          if (target.restore) {
-            try { api.ShowWindow(target.hwnd, SW_RESTORE); } catch (_) {}
+          try {
+            if (target.restore) {
+              api.ShowWindow(target.hwnd, SW_RESTORE);
+            }
+            hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+            if (!hInfo) break;
+          } catch (e) {
+            console.error('_applyLayout: DeferWindowPos failed for hwnd ' + target.hwnd + ':', e);
+            break;
           }
-          hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
-          if (!hInfo) break;
         }
-      } finally {
-        try { if (hInfo) api.EndDeferWindowPos(hInfo); } catch (_) {}
-      }
-    } else {
-      // Fallback: position one by one
-      for (const target of targetLayouts) {
-        try {
-          if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
-          api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
-        } catch (e) {
-          console.error('SetWindowPos fallback failed for hwnd:', target.hwnd, e);
+        if (hInfo) {
+          try { api.EndDeferWindowPos(hInfo); } catch (e) {
+            console.error('_applyLayout: EndDeferWindowPos failed:', e);
+          }
+        }
+      } else {
+        // Fallback: individual SetWindowPos
+        for (const target of targetLayouts) {
+          try {
+            if (target.restore) api.ShowWindow(target.hwnd, SW_RESTORE);
+            api.SetWindowPos(target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+          } catch (e) {
+            console.error('_applyLayout: SetWindowPos failed for hwnd ' + target.hwnd + ':', e);
+          }
         }
       }
+    } catch (e) {
+      console.error('_applyLayout: layout batch failed:', e);
     }
   }
 
@@ -474,6 +487,8 @@ class WindowManager {
       effectiveHeaderHeight = Math.max(Math.floor(maxStripArea / inactiveCount), 10); // min 10px per strip
     }
 
+    const needsRestore = (hwnd) => { try { return api.IsIconic(hwnd) || api.IsZoomed(hwnd); } catch(e) { return false; } };
+
     const targetLayouts = [];
 
     // Position background windows first (strips at top)
@@ -483,9 +498,6 @@ class WindowManager {
 
       const y = startY + stripIndex * effectiveHeaderHeight;
 
-      let needsRestore = false;
-      try { needsRestore = api.IsIconic(w.hwnd) || api.IsZoomed(w.hwnd); } catch (_) {}
-
       targetLayouts.push({
         hwnd: w.hwnd,
         x: startX,
@@ -493,7 +505,7 @@ class WindowManager {
         cx: effectiveWidth,
         cy: effectiveHeight,
         flags: SWP_NOACTIVATE | SWP_SHOWWINDOW,
-        restore: needsRestore
+        restore: needsRestore(w.hwnd)
       });
 
       stripIndex++;
@@ -504,9 +516,6 @@ class WindowManager {
       const activeY = startY + inactiveCount * effectiveHeaderHeight;
       const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
 
-      let activeNeedsRestore = false;
-      try { activeNeedsRestore = api.IsIconic(activeWindow.hwnd) || api.IsZoomed(activeWindow.hwnd); } catch (_) {}
-
       targetLayouts.push({
         hwnd: activeWindow.hwnd,
         x: startX,
@@ -514,7 +523,7 @@ class WindowManager {
         cx: effectiveWidth,
         cy: activeHeight > 100 ? activeHeight : effectiveHeight,
         flags: SWP_SHOWWINDOW | SWP_NOACTIVATE,
-        restore: activeNeedsRestore
+        restore: needsRestore(activeWindow.hwnd)
       });
     }
 
@@ -691,4 +700,4 @@ class WindowManager {
 
 }
 
-module.exports = { WindowManager, CONTROLLER_WIDTH };
+module.exports = { WindowManager, CONTROLLER_WIDTH, HEADER_HEIGHT };

@@ -2,7 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
-const { WindowManager, CONTROLLER_WIDTH } = require('./window-manager');
+const { WindowManager, CONTROLLER_WIDTH, HEADER_HEIGHT } = require('./window-manager');
 const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
 const { ResizeMonitor } = require('./resize-monitor');
@@ -149,24 +149,23 @@ function createWindow() {
 }
 
 function sendStateUpdate() {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    const dims = windowManager.getCustomDimensions();
-    mainWindow.webContents.send('state-update', {
-      managed: windowManager.getManagedWindows(),
-      activeHwnd: windowManager.getActiveHwnd(),
-      stackName: windowManager.stackName,
-      hideAvailable: windowManager.hideAvailable,
-      customWidth: dims.customWidth,
-      customHeight: dims.customHeight,
-      backgroundColor: windowManager.getBackgroundColor(),
-      stackGap: windowManager.getStackGap(),
-      topOffset: windowManager.getTopOffset()
-    });
-  }
+  if (!windowManager || !mainWindow || mainWindow.isDestroyed()) return;
+  const dims = windowManager.getCustomDimensions();
+  mainWindow.webContents.send('state-update', {
+    managed: windowManager.getManagedWindows(),
+    activeHwnd: windowManager.getActiveHwnd(),
+    stackName: windowManager.stackName,
+    hideAvailable: windowManager.hideAvailable,
+    customWidth: dims.customWidth,
+    customHeight: dims.customHeight,
+    backgroundColor: windowManager.getBackgroundColor(),
+    stackGap: windowManager.getStackGap(),
+    topOffset: windowManager.getTopOffset()
+  });
 }
 
 function doLayout() {
-  if (!mainWindow) return;
+  if (!mainWindow || !windowManager) return;
   const bounds = mainWindow.getBounds();
   const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
   const workArea = display.workArea;
@@ -228,7 +227,7 @@ function onManagedWindowResized(hwnd) {
     const inactiveCount = windowManager.managedWindows.length - 1;
     let newTopOffset;
     if (isActive && inactiveCount > 0) {
-      newTopOffset = rect.top - workArea.y - (inactiveCount * 40);
+      newTopOffset = rect.top - workArea.y - (inactiveCount * HEADER_HEIGHT);
     } else {
       newTopOffset = rect.top - workArea.y;
     }
@@ -238,9 +237,7 @@ function onManagedWindowResized(hwnd) {
 
     // 3. Compute new dimensions (width and height)
     const newWidth = rect.right - rect.left;
-    const effectiveTopOffset = windowManager.topOffset || 0;
-    const topOfStack = workArea.y + effectiveTopOffset;
-    const newHeight = rect.bottom - topOfStack;
+    const newHeight = rect.bottom - rect.top;
 
     if (newWidth >= 200) {
       windowManager.setCustomDimensions(newWidth, newHeight >= 200 ? newHeight : null);
@@ -574,20 +571,28 @@ app.whenReady().then(() => {
 
   // Cleanup timer: remove dead windows every 2 seconds
   cleanupTimer = setInterval(() => {
-    const changed = windowManager.removeDeadWindows();
-    if (changed) {
-      syncMonitors();
-      doLayoutDebounced();
-      sendStateUpdate();
-      persistence.save(windowManager.getState());
-      instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
+    try {
+      const changed = windowManager.removeDeadWindows();
+      if (changed) {
+        syncMonitors();
+        doLayoutDebounced();
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+        instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
+      }
+    } catch (e) {
+      console.error('Cleanup timer error:', e);
     }
   }, 2000);
 
   // Auto-save timer: save state every 10 seconds
   saveTimer = setInterval(() => {
-    if (windowManager.managedWindows.length > 0) {
-      persistence.save(windowManager.getState());
+    try {
+      if (windowManager && windowManager.managedWindows.length > 0) {
+        persistence.save(windowManager.getState());
+      }
+    } catch (e) {
+      console.error('Save timer error:', e);
     }
   }, 10000);
 });
