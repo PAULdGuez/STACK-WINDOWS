@@ -54,7 +54,7 @@ class Persistence {
    * Save the window group state and config asynchronously.
    * Uses a write guard to prevent concurrent writes; the latest state
    * is always eventually flushed.
-   * @param {Object} state - Object containing settings and windows
+   * @param {Object} state - Object containing config and windows
    * @returns {Promise<void>}
    */
   async save(state) {
@@ -78,8 +78,7 @@ class Persistence {
         stackGap: state.stackGap || 0,
         topOffset: state.topOffset || 0,
         bounds: state.bounds || null,
-        windows: state.windows || [],
-        settings: state.settings || {}
+        windows: state.windows || []
       };
       await fs.promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
       console.log(`Saved ${data.windows.length} windows and config to persistence`);
@@ -101,7 +100,7 @@ class Persistence {
    * Save the window group state and config synchronously.
    * Use this only in quit handlers (before-quit, window-all-closed)
    * where the process may exit immediately after the call.
-   * @param {Object} state - Object containing settings and windows
+   * @param {Object} state - Object containing config and windows
    */
   saveSync(state) {
     if (!this.filePath) return;
@@ -118,31 +117,12 @@ class Persistence {
         stackGap: state.stackGap || 0,
         topOffset: state.topOffset || 0,
         bounds: state.bounds || null,
-        windows: state.windows || [],
-        settings: state.settings || {}
+        windows: state.windows || []
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
       console.log(`Saved ${data.windows.length} windows and config to persistence (sync)`);
     } catch (e) {
       console.error('Failed to save persistence (sync):', e);
-    }
-  }
-
-  /**
-   * Load only the settings object from the persistence file.
-   * Returns the settings object or an empty object if file doesn't exist or is invalid.
-   * This is safe to call on startup — it does NOT restore windows.
-   */
-  loadSettings() {
-    if (!this.filePath) return {};
-    try {
-      if (!fs.existsSync(this.filePath)) return {};
-      const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const data = JSON.parse(raw);
-      return data.settings || {};
-    } catch (e) {
-      console.error('Failed to load settings:', e);
-      return {};
     }
   }
 

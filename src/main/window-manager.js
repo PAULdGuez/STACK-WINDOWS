@@ -26,17 +26,6 @@ class WindowManager {
     this._restoreAnimationTimers = new Map(); // Map<hwnd, timerId>
     this.restoreAnimationDuration = options.restoreAnimationDuration || 150; // ms
     this.skipAnimation = true;
-    // User-configurable feature toggles (all default to false)
-    this.settings = {
-      dragReorder: false,
-      keyboardShortcuts: false,
-      enhancedActiveIndicator: false,
-      actionFeedback: false,
-      renameHints: false,
-      informativeCount: false,
-      smoothTransitions: false,
-      compactMode: false
-    };
   }
 
   setBackgroundColor(color) {
@@ -660,7 +649,6 @@ class WindowManager {
       customHeight: this.customHeight,
       stackGap: this.stackGap,
       topOffset: this.topOffset,
-      settings: { ...this.settings },
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,
@@ -679,22 +667,6 @@ class WindowManager {
 
   setHideAvailable(hide) {
     this.hideAvailable = !!hide;
-  }
-
-  getSettings() {
-    return { ...this.settings };
-  }
-
-  /**
-   * Update a single setting. Only known keys are accepted.
-   * @param {string} key - Setting name
-   * @param {boolean} value - true/false
-   * @returns {boolean} true if the key was valid and updated
-   */
-  updateSetting(key, value) {
-    if (!(key in this.settings)) return false;
-    this.settings[key] = !!value;
-    return true;
   }
 
   /**
@@ -717,18 +689,6 @@ class WindowManager {
     return true;
   }
 
-  /**
-   * Restore settings from a persisted object. Unknown keys are ignored.
-   * @param {Object} settings - Previously saved settings object
-   */
-  loadSettings(settings) {
-    if (!settings || typeof settings !== 'object') return;
-    for (const key of Object.keys(this.settings)) {
-      if (key in settings) {
-        this.settings[key] = !!settings[key];
-      }
-    }
-  }
 }
 
 module.exports = { WindowManager, CONTROLLER_WIDTH };
