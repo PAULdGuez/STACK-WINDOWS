@@ -479,8 +479,20 @@
     let renameModeEnabled = false;
     let _isEditingName = false;
 
+    let _interactionGuard = false;
+    let _interactionGuardTimer = null;
+
     let _undoTimer = null;
     let _undoToastEl = null;
+
+    function setInteractionGuard(durationMs = 1000) {
+      _interactionGuard = true;
+      if (_interactionGuardTimer) clearTimeout(_interactionGuardTimer);
+      _interactionGuardTimer = setTimeout(() => {
+        _interactionGuard = false;
+        _interactionGuardTimer = null;
+      }, durationMs);
+    }
 
     function showUndoToast(hwnd, title) {
       // Remove any existing toast immediately
@@ -1096,6 +1108,7 @@
 
     async function addWindow(hwnd, title) {
       try {
+        setInteractionGuard();
         await window.electronAPI.addWindow(hwnd, title);
         await refreshAvailable();
       } catch (e) {
@@ -1105,6 +1118,7 @@
 
     async function removeWindow(hwnd) {
       try {
+        setInteractionGuard();
         const entry = managedWindows.find(w => w.hwnd === hwnd);
         const title = entry ? (entry.customTitle || entry.title || 'Untitled') : 'Untitled';
 
@@ -1218,13 +1232,14 @@
 
       // Auto-refresh available windows every 5 seconds
       setInterval(() => {
-        if (!isAvailableHidden) {
+        if (!isAvailableHidden && !_interactionGuard) {
           refreshAvailable();
         }
       }, 5000);
 
       // Refresh available windows immediately when the Electron window gains focus
       window.addEventListener('focus', () => {
+        if (_interactionGuard) return;
         refreshAvailable();
       });
 
