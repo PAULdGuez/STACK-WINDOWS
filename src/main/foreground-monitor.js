@@ -25,7 +25,11 @@ class ForegroundMonitor {
    */
   start(onFocusChange) {
     this._onFocusChange = onFocusChange;
-    this._lastForeground = Number(api.GetForegroundWindow());
+    try {
+      this._lastForeground = Number(api.GetForegroundWindow());
+    } catch (e) {
+      this._lastForeground = 0;
+    }
 
     this._timer = setInterval(() => {
       this._poll();

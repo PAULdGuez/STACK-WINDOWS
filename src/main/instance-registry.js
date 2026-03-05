@@ -35,12 +35,18 @@ class InstanceRegistry {
    * @returns {string} The generated instanceId
    */
   init() {
-    const userDataPath = app.getPath('userData');
-    this.filePath = path.join(userDataPath, 'instance-registry.json');
-    this.instanceId = crypto.randomUUID();
-    this._register();
-    console.log('InstanceRegistry initialized, instanceId:', this.instanceId);
-    return this.instanceId;
+    try {
+      const userDataPath = app.getPath('userData');
+      this.filePath = path.join(userDataPath, 'instance-registry.json');
+      this.instanceId = crypto.randomUUID();
+      this._register();
+      this._startHeartbeat();
+      return this.instanceId;
+    } catch (e) {
+      console.error('InstanceRegistry: init failed:', e);
+      this.instanceId = this.instanceId || crypto.randomUUID();
+      return this.instanceId;
+    }
   }
 
   /**
@@ -89,12 +95,14 @@ class InstanceRegistry {
    * @private
    */
   _writeRegistry(registry) {
+    const tmpPath = this.filePath + '.tmp';
     try {
-      const tmpPath = this.filePath + '.tmp';
       fs.writeFileSync(tmpPath, JSON.stringify(registry, null, 2), 'utf-8');
       fs.renameSync(tmpPath, this.filePath);
     } catch (e) {
       console.error('InstanceRegistry: failed to write registry:', e);
+      // Clean up temp file if rename failed
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
     }
   }
 
