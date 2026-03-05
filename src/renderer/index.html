@@ -1153,6 +1153,11 @@
 
     // Initial load
     async function init() {
+      if (!window.electronAPI) {
+        console.error('electronAPI bridge not available');
+        document.getElementById('managedList').innerHTML = '<div class="empty-state">Error: API bridge failed to load.<br>Please restart the app.</div>';
+        return;
+      }
       // Clear any stale listeners from a previous page load, THEN register fresh
       window.electronAPI.removeAllStateListeners();
 
