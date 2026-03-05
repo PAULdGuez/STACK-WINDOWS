@@ -142,8 +142,7 @@ function sendStateUpdate() {
       customHeight: dims.customHeight,
       backgroundColor: windowManager.getBackgroundColor(),
       stackGap: windowManager.getStackGap(),
-      topOffset: windowManager.getTopOffset(),
-      settings: windowManager.getSettings()
+      topOffset: windowManager.getTopOffset()
     });
   }
 }
@@ -487,29 +486,6 @@ function registerIPC() {
     }
   });
 
-  ipcMain.handle('get-settings', async () => {
-    try {
-      return windowManager.getSettings();
-    } catch (e) {
-      console.error('get-settings error:', e);
-      return {};
-    }
-  });
-
-  ipcMain.handle('update-setting', async (event, key, value) => {
-    try {
-      if (typeof key !== 'string') throw new Error('Invalid key: must be a string');
-      const updated = windowManager.updateSetting(key, value);
-      if (updated) {
-        sendStateUpdate();
-        persistence.save(windowManager.getState());
-      }
-      return { success: updated };
-    } catch (e) {
-      console.error('update-setting error:', e);
-      return { success: false, error: e.message };
-    }
-  });
 }
 
 app.whenReady().then(() => {
@@ -542,10 +518,6 @@ app.whenReady().then(() => {
 
   // 3. Initialize window manager — starts EMPTY, no loadState()
   windowManager = new WindowManager();
-
-  // 3b. Restore user settings from persistence (settings persist across restarts, windows don't)
-  const savedSettings = persistence.loadSettings();
-  windowManager.loadSettings(savedSettings);
 
   // NOTE: We intentionally do NOT call persistence.load() or windowManager.loadState().
   // Each new instance starts with an empty managed stack.
