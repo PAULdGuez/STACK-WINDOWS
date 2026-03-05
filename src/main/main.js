@@ -58,9 +58,8 @@ function performCleanup() {
     persistence.saveSync(windowManager.getState());
     windowManager.restoreAll();
   }
-
-  persistence.cleanupFile();
-  instanceRegistry.unregister();
+  if (persistence) persistence.cleanupFile();
+  if (instanceRegistry) instanceRegistry.unregister();
 }
 
 function debouncedSave() {
@@ -108,11 +107,15 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      webSecurity: true
     }
   });
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+  mainWindow.webContents.on('will-navigate', (event) => { event.preventDefault(); });
+  mainWindow.webContents.on('will-redirect', (event) => { event.preventDefault(); });
 
   mainWindow.on('resize', () => {
     doLayout();
