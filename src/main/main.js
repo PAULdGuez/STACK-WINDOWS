@@ -28,6 +28,8 @@ let _saveDebounceTimer = null;
 let _focusDebounceTimer = null;
 let _cleanedUp = false;
 let _renameFocusLocked = false;
+let _ipcActionLock = false;
+let _ipcActionLockTimer = null;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
 
 function performCleanup() {
@@ -47,6 +49,10 @@ function performCleanup() {
     clearTimeout(_focusDebounceTimer);
     _focusDebounceTimer = null;
   }
+  if (_ipcActionLockTimer) {
+    clearTimeout(_ipcActionLockTimer);
+    _ipcActionLockTimer = null;
+  }
 
   if (windowManager) {
     persistence.saveSync(windowManager.getState());
@@ -65,6 +71,15 @@ function debouncedSave() {
       persistence.save(windowManager.getState());
     }
   }, SAVE_DEBOUNCE_MS);
+}
+
+function setIpcActionLock(durationMs = 600) {
+  _ipcActionLock = true;
+  if (_ipcActionLockTimer) clearTimeout(_ipcActionLockTimer);
+  _ipcActionLockTimer = setTimeout(() => {
+    _ipcActionLock = false;
+    _ipcActionLockTimer = null;
+  }, durationMs);
 }
 
 function getWorkArea(point) {
@@ -115,7 +130,7 @@ function createWindow() {
     if (_focusDebounceTimer) clearTimeout(_focusDebounceTimer);
     _focusDebounceTimer = setTimeout(() => {
       _focusDebounceTimer = null;
-      if (_renameFocusLocked) return;  // Skip — user is editing a name
+      if (_renameFocusLocked || _ipcActionLock) return;  // Skip — user is editing a name or just triggered an IPC action
       const activeHwnd = windowManager.getActiveHwnd();
       if (activeHwnd > 0) {
         try {
@@ -270,6 +285,7 @@ function registerIPC() {
 
   ipcMain.handle('add-window', async (event, hwnd, title) => {
     try {
+      setIpcActionLock();
       hwnd = validateHwnd(hwnd);
       if (typeof title !== 'string') throw new Error('Invalid title: must be a string');
       title = title.slice(0, 500);
@@ -288,6 +304,7 @@ function registerIPC() {
 
   ipcMain.handle('remove-window', async (event, hwnd) => {
     try {
+      setIpcActionLock();
       hwnd = validateHwnd(hwnd);
       windowManager.removeWindow(hwnd);
       syncMonitors();
