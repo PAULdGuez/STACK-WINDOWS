@@ -396,10 +396,9 @@
   <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
-      <div id="colorPickerBtn" class="color-picker-btn" onclick="document.getElementById('bgColorInput').click()"
+      <div id="colorPickerBtn" class="color-picker-btn"
         title="Change background color"></div>
-      <input type="color" id="bgColorInput" value="#000000" style="display: none;"
-        onchange="onBackgroundColorChange(this.value)">
+      <input type="color" id="bgColorInput" value="#000000" style="display: none;">
     </div>
   </div>
 
@@ -538,6 +537,13 @@
       } catch (e) {
         console.error('Failed to set background color:', e);
       }
+    }
+
+    function openColorPicker() {
+      if (window.electronAPI.setColorPickerLock) {
+        window.electronAPI.setColorPickerLock(true);
+      }
+      document.getElementById('bgColorInput').click();
     }
 
     function toggleRenameMode() {
@@ -1233,6 +1239,23 @@
         }
       });
 
+      // Color picker button: lock before opening native dialog
+      document.getElementById('colorPickerBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openColorPicker();
+      });
+
+      // Unlock when the color input changes (user picked a color and confirmed)
+      document.getElementById('bgColorInput').addEventListener('change', function(e) {
+        onBackgroundColorChange(this.value);
+        // Small delay to let the dialog fully close before unlocking
+        setTimeout(() => {
+          if (window.electronAPI.setColorPickerLock) {
+            window.electronAPI.setColorPickerLock(false);
+          }
+        }, 300);
+      });
+
       await Promise.all([refreshManaged(), refreshAvailable()]);
 
       // Auto-refresh available windows every 5 seconds
@@ -1244,6 +1267,10 @@
 
       // Refresh available windows immediately when the Electron window gains focus
       window.addEventListener('focus', () => {
+        // Always unlock color picker when window regains focus (covers Cancel case)
+        if (window.electronAPI.setColorPickerLock) {
+          window.electronAPI.setColorPickerLock(false);
+        }
         if (_interactionGuard) return;
         refreshAvailable();
       });

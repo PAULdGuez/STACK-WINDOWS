@@ -28,6 +28,7 @@ let _saveDebounceTimer = null;
 let _focusDebounceTimer = null;
 let _cleanedUp = false;
 let _renameFocusLocked = false;
+let _colorPickerLocked = false;
 let _ipcActionLock = false;
 let _ipcActionLockTimer = null;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
@@ -53,6 +54,7 @@ function performCleanup() {
     clearTimeout(_ipcActionLockTimer);
     _ipcActionLockTimer = null;
   }
+  _colorPickerLocked = false;
 
   if (windowManager) {
     persistence.saveSync(windowManager.getState());
@@ -133,7 +135,7 @@ function createWindow() {
     if (_focusDebounceTimer) clearTimeout(_focusDebounceTimer);
     _focusDebounceTimer = setTimeout(() => {
       _focusDebounceTimer = null;
-      if (_renameFocusLocked || _ipcActionLock) return;  // Skip — user is editing a name or just triggered an IPC action
+      if (_renameFocusLocked || _ipcActionLock || _colorPickerLocked) return;  // Skip — user is editing a name, just triggered an IPC action, or color picker is open
       const activeHwnd = windowManager.getActiveHwnd();
       if (activeHwnd > 0) {
         try {
@@ -484,6 +486,10 @@ function registerIPC() {
 
   ipcMain.handle('set-rename-focus-lock', async (event, locked) => {
     _renameFocusLocked = !!locked;
+  });
+
+  ipcMain.handle('set-color-picker-lock', async (event, locked) => {
+    _colorPickerLocked = !!locked;
   });
 
   ipcMain.handle('reorder-window', async (event, hwnd, newIndex) => {

@@ -59,5 +59,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   reorderWindow: (hwnd, newIndex) => ipcRenderer.invoke('reorder-window', hwnd, newIndex),
 
   // Suppress SetForegroundWindow while user is editing a rename field
-  setRenameFocusLock: (locked) => ipcRenderer.invoke('set-rename-focus-lock', locked)
+  setRenameFocusLock: (locked) => ipcRenderer.invoke('set-rename-focus-lock', locked),
+
+  // Suppress SetForegroundWindow while native color picker dialog is open
+  setColorPickerLock: (locked) => ipcRenderer.invoke('set-color-picker-lock', locked)
 });
