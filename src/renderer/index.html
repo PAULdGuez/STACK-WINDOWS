@@ -14,9 +14,52 @@
     }
 
     body {
+      /* === DARK THEME (default) === */
+      --bg-primary: #000;
+      --bg-secondary: #111;
+      --bg-tertiary: #222;
+      --text-primary: #fff;
+      --text-secondary: #ccc;
+      --text-muted: #888;
+      --text-dim: #666;
+      --text-dimmer: #555;
+      --border-primary: #333;
+      --border-secondary: #222;
+      --border-tertiary: #111;
+      --border-input: #444;
+      --btn-text: #ccc;
+      --btn-text-hover: #fff;
+      --btn-border: #444;
+      --btn-border-hover: #888;
+      --btn-add-border: #4a4;
+      --btn-add-text: #6c6;
+      --btn-remove-border: #a44;
+      --btn-remove-text: #c66;
+      --managed-border-default: #333;
+      --managed-active-border: #4f4;
+      --managed-active-bg: #0a1a0a;
+      --managed-inactive-border: #48f;
+      --item-hover-bg: #111;
+      --rename-edit-bg: #222;
+      --rename-edit-border: #555;
+      --rename-hover-bg: rgba(255,255,255,0.08);
+      --scrollbar-thumb: #333;
+      --toast-bg: #222;
+      --toast-border: #444;
+      --toast-text: #ccc;
+      --input-bg: #111;
+      --rename-toggle-border: #444;
+      --rename-toggle-text: #666;
+      --rename-toggle-active-border: #f90;
+      --rename-toggle-active-text: #f90;
+      --rename-toggle-active-bg: rgba(255,153,0,0.1);
+      --hint-color: #4a4;
+      --empty-state-color: #555;
+      --divider-bg: #333;
+
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #000;
-      color: #fff;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -24,9 +67,54 @@
       user-select: none;
     }
 
+    /* === LIGHT THEME === */
+    body.light-mode {
+      --bg-primary: #f5f5f5;
+      --bg-secondary: #e8e8e8;
+      --bg-tertiary: #ddd;
+      --text-primary: #1a1a1a;
+      --text-secondary: #333;
+      --text-muted: #666;
+      --text-dim: #888;
+      --text-dimmer: #999;
+      --border-primary: #ccc;
+      --border-secondary: #ddd;
+      --border-tertiary: #e0e0e0;
+      --border-input: #aaa;
+      --btn-text: #444;
+      --btn-text-hover: #111;
+      --btn-border: #aaa;
+      --btn-border-hover: #666;
+      --btn-add-border: #2a8a2a;
+      --btn-add-text: #2a8a2a;
+      --btn-remove-border: #c44;
+      --btn-remove-text: #c44;
+      --managed-border-default: #ccc;
+      --managed-active-border: #2a8a2a;
+      --managed-active-bg: #e8f5e9;
+      --managed-inactive-border: #2979ff;
+      --item-hover-bg: #e0e0e0;
+      --rename-edit-bg: #fff;
+      --rename-edit-border: #aaa;
+      --rename-hover-bg: rgba(0,0,0,0.05);
+      --scrollbar-thumb: #bbb;
+      --toast-bg: #fff;
+      --toast-border: #ccc;
+      --toast-text: #333;
+      --input-bg: #fff;
+      --rename-toggle-border: #aaa;
+      --rename-toggle-text: #888;
+      --rename-toggle-active-border: #e68a00;
+      --rename-toggle-active-text: #e68a00;
+      --rename-toggle-active-bg: rgba(255,153,0,0.1);
+      --hint-color: #2a8a2a;
+      --empty-state-color: #999;
+      --divider-bg: #ccc;
+    }
+
     .header {
       padding: 6px 12px;
-      border-bottom: 1px solid #333;
+      border-bottom: 1px solid var(--border-primary);
       -webkit-app-region: drag;
     }
 
@@ -38,21 +126,21 @@
 
     .header .subtitle {
       font-size: 10px;
-      color: #666;
+      color: var(--text-dim);
       margin-top: 1px;
     }
 
     .status-bar {
       padding: 6px 12px;
       font-size: 10px;
-      color: #555;
-      border-bottom: 1px solid #222;
+      color: var(--text-dimmer);
+      border-bottom: 1px solid var(--border-secondary);
       text-align: center;
       -webkit-app-region: no-drag;
     }
 
     .status-bar .hint {
-      color: #4a4;
+      color: var(--hint-color);
     }
 
     .section {
@@ -67,10 +155,10 @@
       padding: 4px 12px;
       font-size: 11px;
       font-weight: 600;
-      color: #888;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 1px;
-      border-bottom: 1px solid #222;
+      border-bottom: 1px solid var(--border-secondary);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -79,8 +167,8 @@
 
     .section-header button {
       background: none;
-      border: 1px solid #444;
-      color: #aaa;
+      border: 1px solid var(--btn-border);
+      color: var(--btn-text);
       font-size: 10px;
       padding: 3px 12px;
       border-radius: 999px;
@@ -90,8 +178,8 @@
     }
 
     .section-header button:hover {
-      border-color: #888;
-      color: #fff;
+      border-color: var(--btn-border-hover);
+      color: var(--btn-text-hover);
     }
 
     .window-list {
@@ -102,7 +190,7 @@
 
     .window-item {
       padding: 4px 12px;
-      border-bottom: 1px solid #111;
+      border-bottom: 1px solid var(--border-tertiary);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -110,7 +198,7 @@
     }
 
     .window-item:hover {
-      background: #111;
+      background: var(--item-hover-bg);
     }
 
     .window-item .title {
@@ -130,8 +218,8 @@
 
     .btn {
       background: none;
-      border: 1px solid #444;
-      color: #ccc;
+      border: 1px solid var(--btn-border);
+      color: var(--btn-text);
       font-size: 10px;
       padding: 3px 12px;
       border-radius: 999px;
@@ -141,43 +229,43 @@
     }
 
     .btn:hover {
-      border-color: #888;
-      color: #fff;
+      border-color: var(--btn-border-hover);
+      color: var(--btn-text-hover);
     }
 
     .btn-add {
-      border-color: #4a4;
-      color: #6c6;
+      border-color: var(--btn-add-border);
+      color: var(--btn-add-text);
     }
 
     .btn-add:hover {
-      border-color: #6c6;
-      color: #8e8;
+      border-color: var(--btn-add-text);
+      color: var(--btn-add-text);
     }
 
     .btn-remove {
-      border-color: #a44;
-      color: #c66;
+      border-color: var(--btn-remove-border);
+      color: var(--btn-remove-text);
     }
 
     .btn-remove:hover {
-      border-color: #c66;
-      color: #e88;
+      border-color: var(--btn-remove-text);
+      color: var(--btn-remove-text);
     }
 
     .managed-item {
-      border-left: 3px solid #333;
+      border-left: 3px solid var(--managed-border-default);
       cursor: pointer;
       transition: border-left-color 0.2s ease, background-color 0.2s ease;
     }
 
     .managed-item.active {
-      border-left-color: #4f4;
-      background: #0a1a0a;
+      border-left-color: var(--managed-active-border);
+      background: var(--managed-active-bg);
     }
 
     .managed-item.inactive {
-      border-left-color: #48f;
+      border-left-color: var(--managed-inactive-border);
     }
 
     .managed-title {
@@ -199,12 +287,12 @@
     }
 
     .managed-title .display-name[contenteditable='true']:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--rename-hover-bg);
     }
 
     .managed-title .display-name[contenteditable='true']:focus {
-      background: #222;
-      border-color: #555;
+      background: var(--rename-edit-bg);
+      border-color: var(--rename-edit-border);
       outline: none;
       cursor: text;
       white-space: normal;
@@ -215,7 +303,7 @@
 
     .managed-title .original-title {
       font-size: 9px;
-      color: #555;
+      color: var(--text-dimmer);
       display: block;
       margin-top: 1px;
       white-space: nowrap;
@@ -242,13 +330,13 @@
     .empty-state {
       padding: 20px 12px;
       text-align: center;
-      color: #555;
+      color: var(--empty-state-color);
       font-size: 11px;
     }
 
     .divider {
       height: 1px;
-      background: #333;
+      background: var(--divider-bg);
     }
 
     .hidden {
@@ -265,12 +353,12 @@
     }
 
     h1[contenteditable="true"]:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--rename-hover-bg);
     }
 
     h1[contenteditable='true']:focus {
-      background: #222;
-      border-color: #555;
+      background: var(--rename-edit-bg);
+      border-color: var(--rename-edit-border);
       cursor: text;
       user-select: text;
     }
@@ -293,7 +381,7 @@
 
     .dims-label {
       font-size: 11px;
-      color: #ccc;
+      color: var(--text-secondary);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -301,7 +389,7 @@
     }
 
     .dims-label input[type="checkbox"] {
-      accent-color: #4a4;
+      accent-color: var(--hint-color);
     }
 
     .dims-inputs {
@@ -318,14 +406,14 @@
 
     .dims-input-label {
       font-size: 9px;
-      color: #666;
+      color: var(--text-dim);
       letter-spacing: 1px;
     }
 
     .dims-content input[type="number"] {
-      background: #111;
-      border: 1px solid #444;
-      color: #fff;
+      background: var(--input-bg);
+      border: 1px solid var(--border-input);
+      color: var(--text-primary);
       font-size: 12px;
       padding: 4px 10px;
       width: 100%;
@@ -335,28 +423,57 @@
     }
 
     .dims-content input[type="number"]:focus {
-      border-color: #888;
+      border-color: var(--btn-border-hover);
       outline: none;
     }
 
     .color-picker-btn {
       width: 18px;
       height: 18px;
-      border: 1px solid #444;
+      border: 1px solid var(--border-input);
       border-radius: 999px;
-      background: #000000;
+      background: var(--bg-primary);
       cursor: pointer;
       -webkit-app-region: no-drag;
     }
 
     .color-picker-btn:hover {
-      border-color: #888;
+      border-color: var(--btn-border-hover);
+    }
+
+    .light-mode-btn {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--border-input);
+      border-radius: 999px;
+      background: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-app-region: no-drag;
+      transition: all 0.15s ease;
+      padding: 0;
+    }
+
+    .light-mode-btn:hover {
+      border-color: var(--btn-border-hover);
+      color: var(--text-primary);
+    }
+
+    .light-mode-btn.active {
+      border-color: var(--rename-toggle-active-border);
+      color: var(--rename-toggle-active-text);
+      background: var(--rename-toggle-active-bg);
     }
 
     .rename-toggle {
       background: none;
-      border: 1px solid #444;
-      color: #666;
+      border: 1px solid var(--rename-toggle-border);
+      color: var(--rename-toggle-text);
       font-size: 9px;
       padding: 2px 8px;
       border-radius: 999px;
@@ -367,24 +484,24 @@
     }
 
     .rename-toggle:hover {
-      border-color: #888;
-      color: #aaa;
+      border-color: var(--btn-border-hover);
+      color: var(--btn-text);
     }
 
     .rename-toggle.active {
-      border-color: #f90;
-      color: #f90;
-      background: rgba(255, 153, 0, 0.1);
+      border-color: var(--rename-toggle-active-border);
+      color: var(--rename-toggle-active-text);
+      background: var(--rename-toggle-active-bg);
     }
 
     .window-list::-webkit-scrollbar { width: 4px; }
     .window-list::-webkit-scrollbar-track { background: transparent; }
-    .window-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-    .window-list::-webkit-scrollbar-thumb:hover { background: #555; }
+    .window-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+    .window-list::-webkit-scrollbar-thumb:hover { background: var(--rename-edit-border); }
 
-    .undo-toast { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: #222; border: 1px solid #444; color: #ccc; font-size: 11px; padding: 6px 16px; border-radius: 999px; display: flex; align-items: center; gap: 8px; z-index: 9999; animation: toastIn 0.2s ease; -webkit-app-region: no-drag; }
-    .undo-toast .undo-btn { background: none; border: 1px solid #4a4; color: #6c6; font-size: 10px; padding: 2px 10px; border-radius: 999px; cursor: pointer; }
-    .undo-toast .undo-btn:hover { border-color: #6c6; color: #8e8; }
+    .undo-toast { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--toast-bg); border: 1px solid var(--toast-border); color: var(--toast-text); font-size: 11px; padding: 6px 16px; border-radius: 999px; display: flex; align-items: center; gap: 8px; z-index: 9999; animation: toastIn 0.2s ease; -webkit-app-region: no-drag; }
+    .undo-toast .undo-btn { background: none; border: 1px solid var(--btn-add-border); color: var(--btn-add-text); font-size: 10px; padding: 2px 10px; border-radius: 999px; cursor: pointer; }
+    .undo-toast .undo-btn:hover { border-color: var(--btn-add-text); color: var(--btn-add-text); }
     .undo-toast.hiding { animation: toastOut 0.2s ease forwards; }
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
@@ -399,6 +516,7 @@
       <div id="colorPickerBtn" class="color-picker-btn"
         title="Change background color"></div>
       <input type="color" id="bgColorInput" value="#000000" style="display: none;">
+      <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode" onclick="toggleLightMode()">&#9788;</button>
     </div>
   </div>
 
@@ -484,6 +602,9 @@
     let _undoTimer = null;
     let _undoToastEl = null;
 
+    // Track the last known custom background color for restoring when light mode is off
+    let _lastBgColor = null;
+
     function setInteractionGuard(durationMs = 1000) {
       _interactionGuard = true;
       if (_interactionGuardTimer) clearTimeout(_interactionGuardTimer);
@@ -530,8 +651,12 @@
     }
 
     async function onBackgroundColorChange(color) {
-      document.body.style.backgroundColor = color;
+      _lastBgColor = color;
       document.getElementById('colorPickerBtn').style.background = color;
+      // Only apply inline bg color when light mode is OFF
+      if (!document.body.classList.contains('light-mode')) {
+        document.body.style.backgroundColor = color;
+      }
       try {
         await window.electronAPI.setBackgroundColor(color);
       } catch (e) {
@@ -544,6 +669,44 @@
         window.electronAPI.setColorPickerLock(true);
       }
       document.getElementById('bgColorInput').click();
+    }
+
+    // === LIGHT MODE FUNCTIONS ===
+
+    function applyLightMode(enabled) {
+      const btn = document.getElementById('lightModeBtn');
+      if (enabled) {
+        document.body.classList.add('light-mode');
+        // Clear inline backgroundColor so CSS variable takes over
+        document.body.style.backgroundColor = '';
+        if (btn) {
+          btn.classList.add('active');
+          btn.innerHTML = '&#9790;'; // Moon symbol
+          btn.title = 'Switch to dark mode';
+        }
+      } else {
+        document.body.classList.remove('light-mode');
+        // Restore last known custom background color
+        if (_lastBgColor) {
+          document.body.style.backgroundColor = _lastBgColor;
+        }
+        if (btn) {
+          btn.classList.remove('active');
+          btn.innerHTML = '&#9788;'; // Sun symbol
+          btn.title = 'Switch to light mode';
+        }
+      }
+    }
+
+    async function toggleLightMode() {
+      const isCurrentlyLight = document.body.classList.contains('light-mode');
+      const newState = !isCurrentlyLight;
+      applyLightMode(newState);
+      try {
+        await window.electronAPI.setLightMode(newState);
+      } catch (e) {
+        console.error('Failed to set light mode:', e);
+      }
     }
 
     function toggleRenameMode() {
@@ -1101,9 +1264,17 @@
         }
 
         if (result.backgroundColor) {
-          document.body.style.backgroundColor = result.backgroundColor;
+          _lastBgColor = result.backgroundColor;
           document.getElementById('colorPickerBtn').style.background = result.backgroundColor;
           document.getElementById('bgColorInput').value = result.backgroundColor;
+          if (!document.body.classList.contains('light-mode')) {
+            document.body.style.backgroundColor = result.backgroundColor;
+          }
+        }
+
+        // Sync light mode from initial state
+        if (result.lightMode !== undefined) {
+          applyLightMode(result.lightMode);
         }
 
         scheduleRenderManaged();
@@ -1230,9 +1401,17 @@
           }
 
           if (data.backgroundColor) {
-            document.body.style.backgroundColor = data.backgroundColor;
+            _lastBgColor = data.backgroundColor;
             document.getElementById("colorPickerBtn").style.background = data.backgroundColor;
             document.getElementById("bgColorInput").value = data.backgroundColor;
+            if (!document.body.classList.contains('light-mode')) {
+              document.body.style.backgroundColor = data.backgroundColor;
+            }
+          }
+
+          // Sync light mode from state update
+          if (data.lightMode !== undefined) {
+            applyLightMode(data.lightMode);
           }
 
           scheduleRenderManaged();
