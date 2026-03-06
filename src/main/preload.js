@@ -43,6 +43,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Top offset (vertical offset from top of work area)
   setTopOffset: (offset) => ipcRenderer.invoke('set-top-offset', offset),
 
+  // Light mode toggle
+  setLightMode: (enabled) => ipcRenderer.invoke('set-light-mode', enabled),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
     const handler = (event, data) => callback(data);

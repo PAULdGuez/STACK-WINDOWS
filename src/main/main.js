@@ -162,7 +162,8 @@ function sendStateUpdate() {
     customHeight: dims.customHeight,
     backgroundColor: windowManager.getBackgroundColor(),
     stackGap: windowManager.getStackGap(),
-    topOffset: windowManager.getTopOffset()
+    topOffset: windowManager.getTopOffset(),
+    lightMode: windowManager.getLightMode()
   });
 }
 
@@ -277,7 +278,8 @@ function registerIPC() {
         ...windowManager.getCustomDimensions(),
         backgroundColor: windowManager.getBackgroundColor(),
         stackGap: windowManager.getStackGap(),
-        topOffset: windowManager.getTopOffset()
+        topOffset: windowManager.getTopOffset(),
+        lightMode: windowManager.getLightMode()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -480,6 +482,18 @@ function registerIPC() {
       return { success: true };
     } catch (e) {
       console.error('set-top-offset error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('set-light-mode', async (event, enabled) => {
+    try {
+      windowManager.setLightMode(enabled);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-light-mode error:', e);
       return { success: false, error: e.message };
     }
   });

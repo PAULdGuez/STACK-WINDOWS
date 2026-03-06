@@ -23,6 +23,7 @@ class WindowManager {
     this.topOffset = 0; // pixels of vertical offset from top of work area
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
+    this.lightMode = false;
   }
 
   setBackgroundColor(color) {
@@ -531,6 +532,9 @@ class WindowManager {
     return this.topOffset;
   }
 
+  setLightMode(enabled) { this.lightMode = !!enabled; }
+  getLightMode() { return this.lightMode; }
+
   /**
    * Get the current custom dimensions.
    * @returns {{ customWidth: number|null, customHeight: number|null }}
@@ -551,6 +555,7 @@ class WindowManager {
       customHeight: this.customHeight,
       stackGap: this.stackGap,
       topOffset: this.topOffset,
+      lightMode: this.lightMode,
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,

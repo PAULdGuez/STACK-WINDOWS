@@ -77,6 +77,7 @@ class Persistence {
         backgroundColor: state.backgroundColor || '#000000',
         stackGap: state.stackGap || 0,
         topOffset: state.topOffset || 0,
+        lightMode: !!state.lightMode,
         windows: state.windows || []
       };
       await fs.promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
@@ -115,6 +116,7 @@ class Persistence {
         backgroundColor: state.backgroundColor || '#000000',
         stackGap: state.stackGap || 0,
         topOffset: state.topOffset || 0,
+        lightMode: !!state.lightMode,
         windows: state.windows || []
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
