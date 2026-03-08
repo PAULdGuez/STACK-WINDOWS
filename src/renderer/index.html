@@ -581,7 +581,7 @@
   <div class="section dimensions-section">
     <div class="section-header">
       <span>DIMENSIONS</span>
-      <button id="toggleDimsBtn" onclick="toggleDimensionsSection()">Show</button>
+      <button id="toggleDimsBtn" class="btn-green" onclick="toggleDimensionsSection()">Show</button>
     </div>
     <div class="dims-content hidden" id="dimsContent">
       <div class="dims-row">
@@ -621,7 +621,7 @@
     <div class="section-header">
       <span id="managedSubtitle">MANAGED STACK</span>
       <div style="display: flex; align-items: center; gap: 4px;">
-        <button id="renameToggleBtn" class="rename-toggle" onclick="toggleRenameMode()"
+        <button id="renameToggleBtn" class="rename-toggle btn-blue" onclick="toggleRenameMode()"
           title="Toggle rename mode">Rename</button>
         <span id="managedCount">0</span>
       </div>
@@ -636,8 +636,8 @@
     <div class="section-header">
       <span>Available Windows</span>
       <div style="display: flex; gap: 8px;">
-        <button onclick="refreshAvailable()">Refresh</button>
-        <button id="toggleAvailableBtn" onclick="toggleAvailableVisibility()">Hide</button>
+        <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
+        <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
       </div>
     </div>
     <div class="window-list" id="availableList"></div>
@@ -1154,8 +1154,8 @@
           actions.className = 'actions';
 
           const removeBtn = document.createElement('button');
-          removeBtn.className = 'btn btn-remove';
-          removeBtn.textContent = 'Remove';
+          removeBtn.className = 'btn btn-red';
+          removeBtn.textContent = '-';
           removeBtn.onclick = (e) => {
             e.stopPropagation();
             // If a displayName is focused, blur it without saving
@@ -1246,8 +1246,8 @@
           actions.className = 'actions';
 
           const addBtn = document.createElement('button');
-          addBtn.className = 'btn btn-add';
-          addBtn.textContent = 'Add';
+          addBtn.className = 'btn btn-green';
+          addBtn.textContent = '+';
           addBtn.onclick = (e) => {
             e.stopPropagation();
             addWindow(win.hwnd, win.title);
