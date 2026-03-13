@@ -349,7 +349,7 @@ class WindowManager {
    *
    * All positioning is done via SetWindowPos — pure Win32.
    */
-  layoutStack(screenBounds) {
+  layoutStack(screenBounds, skipHwnd = 0) {
     if (this.managedWindows.length === 0) return;
 
     const workArea = screenBounds || { x: 0, y: 0, width: 1920, height: 1040, displayRightEdge: null };
@@ -399,6 +399,7 @@ class WindowManager {
     let stripIndex = 0;
     for (const w of this.managedWindows) {
       if (w.hwnd === trueActiveHwnd) continue; // Skip the active window
+      if (w.hwnd === skipHwnd) continue;
 
       const y = startY + stripIndex * effectiveHeaderHeight;
 
@@ -417,18 +418,20 @@ class WindowManager {
 
     // Position active window on top, covering background window bodies
     if (activeWindow) {
-      const activeY = startY + inactiveCount * effectiveHeaderHeight;
-      const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
+      if (activeWindow.hwnd !== skipHwnd) {
+        const activeY = startY + inactiveCount * effectiveHeaderHeight;
+        const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
 
-      targetLayouts.push({
-        hwnd: activeWindow.hwnd,
-        x: startX,
-        y: activeY,
-        cx: effectiveWidth,
-        cy: activeHeight > 100 ? activeHeight : effectiveHeight,
-        flags: SWP_SHOWWINDOW | SWP_NOACTIVATE,
-        restore: needsRestore(activeWindow.hwnd)
-      });
+        targetLayouts.push({
+          hwnd: activeWindow.hwnd,
+          x: startX,
+          y: activeY,
+          cx: effectiveWidth,
+          cy: activeHeight > 100 ? activeHeight : effectiveHeight,
+          flags: SWP_SHOWWINDOW | SWP_NOACTIVATE,
+          restore: needsRestore(activeWindow.hwnd)
+        });
+      }
     }
 
     this._applyLayout(targetLayouts);

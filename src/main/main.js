@@ -31,6 +31,7 @@ let _renameFocusLocked = false;
 let _colorPickerLocked = false;
 let _ipcActionLock = false;
 let _ipcActionLockTimer = null;
+let _resizeHandling = false;
 const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
 
 function performCleanup() {
@@ -169,7 +170,7 @@ function sendStateUpdate() {
   });
 }
 
-function doLayout() {
+function doLayout(skipHwnd = 0) {
   if (!mainWindow || !windowManager) return;
   const bounds = mainWindow.getBounds();
   const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
@@ -181,7 +182,7 @@ function doLayout() {
     width: bounds.width,
     height: workArea.height,
     displayRightEdge: workArea.x + workArea.width
-  });
+  }, skipHwnd);
 }
 
 function doLayoutDebounced() {
@@ -211,6 +212,8 @@ function onManagedWindowFocused(hwnd) {
 
 function onManagedWindowResized(hwnd) {
   if (!windowManager || !mainWindow) return;
+  if (_resizeHandling) return;
+  _resizeHandling = true;
   try {
     const rect = { left: 0, top: 0, right: 0, bottom: 0 };
     const success = api.GetWindowRect(hwnd, rect);
@@ -230,9 +233,17 @@ function onManagedWindowResized(hwnd) {
     // 2. Compute new topOffset (vertical position)
     const isActive = hwnd === windowManager.getActiveHwnd();
     const inactiveCount = windowManager.managedWindows.length - 1;
+
+    // Compute effective header height (same formula as layoutStack)
+    const maxStripArea = Math.floor(workArea.height * 0.6);
+    let effectiveHeader = HEADER_HEIGHT;
+    if (inactiveCount * effectiveHeader > maxStripArea) {
+      effectiveHeader = Math.max(Math.floor(maxStripArea / inactiveCount), 10);
+    }
+
     let newTopOffset;
     if (isActive && inactiveCount > 0) {
-      newTopOffset = rect.top - workArea.y - (inactiveCount * HEADER_HEIGHT);
+      newTopOffset = rect.top - workArea.y - (inactiveCount * effectiveHeader);
     } else {
       newTopOffset = rect.top - workArea.y;
     }
@@ -248,11 +259,13 @@ function onManagedWindowResized(hwnd) {
       windowManager.setCustomDimensions(newWidth, newHeight >= 200 ? newHeight : null);
     }
 
-    doLayout();
+    doLayout(hwnd);
     sendStateUpdate();
     debouncedSave();
   } catch (e) {
     console.error('onManagedWindowResized error:', e);
+  } finally {
+    setTimeout(() => { _resizeHandling = false; }, 100);
   }
 }
 
