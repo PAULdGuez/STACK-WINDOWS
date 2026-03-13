@@ -56,18 +56,18 @@
       --hint-color: #4a4;
       --empty-state-color: #555;
       --divider-bg: #333;
-      --btn-green-bg: #bef202;
+      --btn-green-bg: transparent;
       --btn-green-border: #98c202;
-      --btn-green-text: #111;
-      --btn-green-hover-bg: #d0ff2a;
-      --btn-blue-bg: #5015bd;
+      --btn-green-text: #fff;
+      --btn-green-hover-bg: transparent;
+      --btn-blue-bg: transparent;
       --btn-blue-border: #3d0f91;
       --btn-blue-text: #fff;
-      --btn-blue-hover-bg: #6228d4;
-      --btn-red-bg: #f3450f;
+      --btn-blue-hover-bg: transparent;
+      --btn-red-bg: transparent;
       --btn-red-border: #c2370c;
       --btn-red-text: #fff;
-      --btn-red-hover-bg: #ff5c2a;
+      --btn-red-hover-bg: transparent;
 
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg-primary);
@@ -122,18 +122,18 @@
       --hint-color: #2a8a2a;
       --empty-state-color: #999;
       --divider-bg: #ccc;
-      --btn-green-bg: #bef202;
+      --btn-green-bg: transparent;
       --btn-green-border: #98c202;
       --btn-green-text: #111;
-      --btn-green-hover-bg: #d0ff2a;
-      --btn-blue-bg: #5015bd;
+      --btn-green-hover-bg: transparent;
+      --btn-blue-bg: transparent;
       --btn-blue-border: #3d0f91;
-      --btn-blue-text: #fff;
-      --btn-blue-hover-bg: #6228d4;
-      --btn-red-bg: #f3450f;
+      --btn-blue-text: #111;
+      --btn-blue-hover-bg: transparent;
+      --btn-red-bg: transparent;
       --btn-red-border: #c2370c;
-      --btn-red-text: #fff;
-      --btn-red-hover-bg: #ff5c2a;
+      --btn-red-text: #111;
+      --btn-red-hover-bg: transparent;
     }
 
     .header {
@@ -621,6 +621,8 @@
     <div class="section-header">
       <span id="managedSubtitle">MANAGED STACK</span>
       <div style="display: flex; align-items: center; gap: 4px;">
+        <button class="rename-toggle btn-blue" onclick="syncOrderToLayout()" title="Reorder stack list to match current window positions on screen">Pos→List</button>
+        <button class="rename-toggle btn-blue" onclick="syncLayoutToOrder()" title="Reposition windows on screen to match stack list order">List→Pos</button>
         <button id="renameToggleBtn" class="rename-toggle btn-blue" onclick="toggleRenameMode()"
           title="Toggle rename mode">Rename</button>
         <span id="managedCount">0</span>
@@ -636,6 +638,7 @@
     <div class="section-header">
       <span>Available Windows</span>
       <div style="display: flex; gap: 8px;">
+        <button id="sortAlphaBtn" class="rename-toggle btn-blue" onclick="toggleSortAlpha()" title="Sort alphabetically">A-Z</button>
         <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
         <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
       </div>
@@ -649,6 +652,7 @@
     let activeHwnd = 0;
 
     let isAvailableHidden = false;
+    let sortAvailableAlpha = false;
     let customSizeEnabled = false;
     let renameModeEnabled = false;
     let _isEditingName = false;
@@ -763,6 +767,22 @@
         await window.electronAPI.setLightMode(newState);
       } catch (e) {
         console.error('Failed to set light mode:', e);
+      }
+    }
+
+    async function syncOrderToLayout() {
+      try {
+        await window.electronAPI.syncOrderToLayout();
+      } catch (e) {
+        console.error('Failed to sync order to layout:', e);
+      }
+    }
+
+    async function syncLayoutToOrder() {
+      try {
+        await window.electronAPI.syncLayoutToOrder();
+      } catch (e) {
+        console.error('Failed to sync layout to order:', e);
       }
     }
 
@@ -942,6 +962,22 @@
         }
       } catch (e) {
         console.error('Failed to toggle visibility', e);
+      }
+    }
+
+    async function toggleSortAlpha() {
+      sortAvailableAlpha = !sortAvailableAlpha;
+      const btn = document.getElementById('sortAlphaBtn');
+      if (sortAvailableAlpha) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      renderAvailable();
+      try {
+        await window.electronAPI.toggleSortAvailableAlpha(sortAvailableAlpha);
+      } catch (e) {
+        console.error('Failed to toggle sort:', e);
       }
     }
 
@@ -1218,7 +1254,10 @@
       if (emptyState) emptyState.remove();
 
       // For each available window: update existing or create new
-      availableWindows.forEach((win, index) => {
+      const windowsToRender = sortAvailableAlpha
+        ? [...availableWindows].sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }))
+        : availableWindows;
+      windowsToRender.forEach((win, index) => {
         let item = existingItems.get(win.hwnd);
 
         if (item) {
