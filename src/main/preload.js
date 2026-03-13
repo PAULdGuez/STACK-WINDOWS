@@ -68,5 +68,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setColorPickerLock: (locked) => ipcRenderer.invoke('set-color-picker-lock', locked),
 
   // Toggle alphabetical sorting of available windows
-  toggleSortAvailableAlpha: (enabled) => ipcRenderer.invoke('toggle-sort-available-alpha', enabled)
+  toggleSortAvailableAlpha: (enabled) => ipcRenderer.invoke('toggle-sort-available-alpha', enabled),
+
+  // Sync managed window order to match current layout z-order
+  syncOrderToLayout: () => ipcRenderer.invoke('sync-order-to-layout'),
+
+  // Sync layout positions to match current managed window order
+  syncLayoutToOrder: () => ipcRenderer.invoke('sync-layout-to-order')
 });
