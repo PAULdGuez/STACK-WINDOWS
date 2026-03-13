@@ -25,6 +25,7 @@ class WindowManager {
     this.customWidth = null;  // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
     this.lightMode = false;
+    this.dynamicReorder = false;
   }
 
   setBackgroundColor(color) {
@@ -224,6 +225,14 @@ class WindowManager {
     }
 
     this.activeHwnd = hwndNum;
+
+    if (this.dynamicReorder) {
+      const currentIdx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
+      if (currentIdx !== -1 && currentIdx !== this.managedWindows.length - 1) {
+        const [entry] = this.managedWindows.splice(currentIdx, 1);
+        this.managedWindows.push(entry);
+      }
+    }
 
     try {
       if (api.IsIconic(hwndNum)) {
@@ -536,6 +545,9 @@ class WindowManager {
   setLightMode(enabled) { this.lightMode = !!enabled; }
   getLightMode() { return this.lightMode; }
 
+  setDynamicReorder(enabled) { this.dynamicReorder = !!enabled; }
+  getDynamicReorder() { return this.dynamicReorder; }
+
   /**
    * Get the current custom dimensions.
    * @returns {{ customWidth: number|null, customHeight: number|null }}
@@ -558,6 +570,7 @@ class WindowManager {
       stackGap: this.stackGap,
       topOffset: this.topOffset,
       lightMode: this.lightMode,
+      dynamicReorder: this.dynamicReorder,
       windows: this.managedWindows.map(w => ({
         hwnd: w.hwnd,
         title: w.title,
@@ -601,51 +614,7 @@ class WindowManager {
     return true;
   }
 
-  /**
-   * Reorder managedWindows in-place to match the current vertical (Y) positions
-   * of each window on screen.  Windows that are higher on screen (smaller top
-   * coordinate) come first in the array.
-   *
-   * activeHwnd is preserved — only the array order changes.
-   *
-   * @returns {boolean} true if the order changed, false if it was already sorted
-   */
-  syncOrderToLayout() {
-    if (this.managedWindows.length < 2) return false;
-
-    // Snapshot the original order so we can detect a change
-    const originalOrder = this.managedWindows.map(w => w.hwnd);
-
-    // Read current Y position for every managed window
-    const tops = new Map();
-    for (const w of this.managedWindows) {
-      const rect = { left: 0, top: 0, right: 0, bottom: 0 };
-      try {
-        api.GetWindowRect(w.hwnd, rect);
-      } catch (e) {
-        // If we can't read the rect, treat top as 0 (keep relative position)
-      }
-      tops.set(w.hwnd, rect.top || 0);
-    }
-
-    // Sort ascending by top coordinate (higher on screen = smaller top = earlier in array)
-    this.managedWindows.sort((a, b) => tops.get(a.hwnd) - tops.get(b.hwnd));
-
-    // Detect whether the order actually changed
-    const changed = this.managedWindows.some((w, i) => w.hwnd !== originalOrder[i]);
-    return changed;
-  }
-
-  /**
-   * Inverse of syncOrderToLayout: the current array order IS the desired layout.
-   * The actual repositioning is performed by the caller via doLayout() / layoutStack().
-   *
-   * @returns {boolean} always true
-   */
-  syncLayoutToOrder() {
-    return true;
-  }
-
 }
+
 
 module.exports = { WindowManager, CONTROLLER_WIDTH, HEADER_HEIGHT };
