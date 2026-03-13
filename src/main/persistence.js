@@ -79,6 +79,7 @@ class Persistence {
         stackGap: state.stackGap || 0,
         topOffset: state.topOffset || 0,
         lightMode: !!state.lightMode,
+        dynamicReorder: !!state.dynamicReorder,
         windows: state.windows || []
       };
       await fs.promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
@@ -119,6 +120,7 @@ class Persistence {
         stackGap: state.stackGap || 0,
         topOffset: state.topOffset || 0,
         lightMode: !!state.lightMode,
+        dynamicReorder: !!state.dynamicReorder,
         windows: state.windows || []
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');

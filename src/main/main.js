@@ -164,7 +164,8 @@ function sendStateUpdate() {
     stackGap: windowManager.getStackGap(),
     topOffset: windowManager.getTopOffset(),
     lightMode: windowManager.getLightMode(),
-    sortAvailableAlpha: windowManager.getSortAvailableAlpha()
+    sortAvailableAlpha: windowManager.getSortAvailableAlpha(),
+    dynamicReorder: windowManager.getDynamicReorder()
   });
 }
 
@@ -281,7 +282,8 @@ function registerIPC() {
         stackGap: windowManager.getStackGap(),
         topOffset: windowManager.getTopOffset(),
         lightMode: windowManager.getLightMode(),
-        sortAvailableAlpha: windowManager.getSortAvailableAlpha()
+        sortAvailableAlpha: windowManager.getSortAvailableAlpha(),
+        dynamicReorder: windowManager.getDynamicReorder()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -537,31 +539,14 @@ function registerIPC() {
     }
   });
 
-  ipcMain.handle('sync-order-to-layout', async () => {
+  ipcMain.handle('toggle-dynamic-reorder', async (event, enabled) => {
     try {
-      setIpcActionLock();
-      const changed = windowManager.syncOrderToLayout();
-      if (changed) {
-        doLayout();
-        sendStateUpdate();
-        persistence.save(windowManager.getState());
-      }
-      return { success: true };
-    } catch (e) {
-      console.error('sync-order-to-layout error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('sync-layout-to-order', async () => {
-    try {
-      setIpcActionLock();
-      doLayout();
+      windowManager.setDynamicReorder(!!enabled);
       sendStateUpdate();
       persistence.save(windowManager.getState());
       return { success: true };
     } catch (e) {
-      console.error('sync-layout-to-order error:', e);
+      console.error('toggle-dynamic-reorder error:', e);
       return { success: false, error: e.message };
     }
   });

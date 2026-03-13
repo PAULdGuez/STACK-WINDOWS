@@ -70,9 +70,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Toggle alphabetical sorting of available windows
   toggleSortAvailableAlpha: (enabled) => ipcRenderer.invoke('toggle-sort-available-alpha', enabled),
 
-  // Sync managed window order to match current layout z-order
-  syncOrderToLayout: () => ipcRenderer.invoke('sync-order-to-layout'),
-
-  // Sync layout positions to match current managed window order
-  syncLayoutToOrder: () => ipcRenderer.invoke('sync-layout-to-order')
+  // Toggle dynamic reorder (auto-sync list order on focus change)
+  toggleDynamicReorder: (enabled) => ipcRenderer.invoke('toggle-dynamic-reorder', enabled),
 });
