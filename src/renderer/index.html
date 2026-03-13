@@ -551,6 +551,12 @@
       background: var(--rename-toggle-active-bg);
     }
 
+    #sortAlphaBtn.active {
+      border-color: var(--rename-toggle-active-border);
+      color: var(--rename-toggle-active-text);
+      background: var(--rename-toggle-active-bg);
+    }
+
     .window-list::-webkit-scrollbar { width: 4px; }
     .window-list::-webkit-scrollbar-track { background: transparent; }
     .window-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
@@ -1334,6 +1340,15 @@
           toggleAvailableVisibility(result.hideAvailable);
         }
 
+        if (result.sortAvailableAlpha !== undefined) {
+          sortAvailableAlpha = !!result.sortAvailableAlpha;
+          const sortBtn = document.getElementById('sortAlphaBtn');
+          if (sortBtn) {
+            if (sortAvailableAlpha) sortBtn.classList.add('active');
+            else sortBtn.classList.remove('active');
+          }
+        }
+
         if (result.customWidth !== undefined || result.customHeight !== undefined) {
           const toggle = document.getElementById('customSizeToggle');
           const inputs = document.getElementById('dimsInputs');
@@ -1454,6 +1469,16 @@
           // Ensure visibility state is correct on load
           if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
             toggleAvailableVisibility(data.hideAvailable);
+          }
+
+          if (data.sortAvailableAlpha !== undefined) {
+            sortAvailableAlpha = !!data.sortAvailableAlpha;
+            const sortBtn = document.getElementById('sortAlphaBtn');
+            if (sortBtn) {
+              if (sortAvailableAlpha) sortBtn.classList.add('active');
+              else sortBtn.classList.remove('active');
+            }
+            renderAvailable();
           }
 
           // Sync custom dimensions from state
