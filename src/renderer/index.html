@@ -575,6 +575,49 @@
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
 
+    /* Do Not Disturb mode — hide all interactive controls */
+    body.dnd-mode .section-header button:not(#dndBtn),
+    body.dnd-mode .section-header .rename-toggle:not(#dndBtn),
+    body.dnd-mode .color-picker-btn,
+    body.dnd-mode .light-mode-btn,
+    body.dnd-mode .dims-content,
+    body.dnd-mode #toggleDimsBtn,
+    body.dnd-mode .btn-add,
+    body.dnd-mode .btn-remove,
+    body.dnd-mode .window-item .btn,
+    body.dnd-mode .window-item button,
+    body.dnd-mode #managedCount {
+      display: none !important;
+    }
+    body.dnd-mode #stackTitle {
+      pointer-events: none;
+    }
+    #dndBtn {
+      background: none;
+      border: 1px solid var(--btn-blue-border, #3d5afe);
+      color: var(--btn-blue-text, #90caf9);
+      font-size: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+      -webkit-app-region: no-drag;
+      transition: all 0.15s ease;
+    }
+    #dndBtn:hover {
+      border-color: var(--btn-blue-text, #90caf9);
+    }
+    #dndBtn.active {
+      border-color: var(--rename-toggle-active-border);
+      color: var(--rename-toggle-active-text);
+      background: var(--rename-toggle-active-bg);
+    }
+
   </style>
 </head>
 
@@ -582,6 +625,7 @@
   <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
+      <button id="dndBtn" title="Do Not Disturb — hide all controls" onclick="toggleDndMode()">&#8856;</button>
       <div id="colorPickerBtn" class="color-picker-btn"
         title="Change background color"></div>
       <input type="color" id="bgColorInput" value="#000000" style="display: none;">
@@ -667,6 +711,7 @@
     let dynamicReorderEnabled = false;
     let customSizeEnabled = false;
     let renameModeEnabled = false;
+    let dndMode = false;
     let _isEditingName = false;
 
     let _interactionGuard = false;
@@ -812,6 +857,22 @@
       }
       // Re-render to apply/remove contentEditable
       scheduleRenderManaged();
+    }
+
+    function toggleDndMode() {
+      dndMode = !dndMode;
+      const btn = document.getElementById('dndBtn');
+      if (dndMode) {
+        document.body.classList.add('dnd-mode');
+        btn.classList.add('active');
+        // If rename mode is active, deactivate it
+        if (renameModeEnabled) {
+          toggleRenameMode();
+        }
+      } else {
+        document.body.classList.remove('dnd-mode');
+        btn.classList.remove('active');
+      }
     }
 
     function toggleDimensionsSection() {
