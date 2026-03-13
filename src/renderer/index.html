@@ -37,9 +37,12 @@
       --btn-remove-text: #c66;
       --managed-border-default: #333;
       --managed-active-border: #4f4;
-      --managed-active-bg: #0a1a0a;
+      --managed-active-bg: rgba(0, 255, 0, 0.15);
       --managed-inactive-border: #48f;
+      --managed-inactive-bg: rgba(0, 100, 255, 0.12);
       --item-hover-bg: #111;
+      --managed-hover-bg: #ffffff;
+      --managed-hover-text: #000000;
       --rename-edit-bg: #222;
       --rename-edit-border: #555;
       --rename-hover-bg: rgba(255,255,255,0.08);
@@ -103,9 +106,12 @@
       --btn-remove-text: #c44;
       --managed-border-default: #ccc;
       --managed-active-border: #2a8a2a;
-      --managed-active-bg: #e8f5e9;
+      --managed-active-bg: rgba(42, 138, 42, 0.2);
       --managed-inactive-border: #2979ff;
+      --managed-inactive-bg: rgba(41, 121, 255, 0.15);
       --item-hover-bg: #e0e0e0;
+      --managed-hover-bg: #1a1a1a;
+      --managed-hover-text: #ffffff;
       --rename-edit-bg: #fff;
       --rename-edit-border: #aaa;
       --rename-hover-bg: rgba(0,0,0,0.05);
@@ -323,6 +329,21 @@
 
     .managed-item.inactive {
       border-left-color: var(--managed-inactive-border);
+      background: var(--managed-inactive-bg);
+    }
+    .managed-item:hover {
+      background: var(--managed-hover-bg) !important;
+      color: var(--managed-hover-text) !important;
+    }
+    .managed-item:hover .managed-title,
+    .managed-item:hover .managed-title .display-name,
+    .managed-item:hover .managed-title .original-title {
+      color: var(--managed-hover-text) !important;
+    }
+    .managed-item:hover .btn,
+    .managed-item:hover .btn-remove {
+      color: var(--managed-hover-text) !important;
+      border-color: var(--managed-hover-text) !important;
     }
 
     .managed-title {
