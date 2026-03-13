@@ -65,5 +65,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setRenameFocusLock: (locked) => ipcRenderer.invoke('set-rename-focus-lock', locked),
 
   // Suppress SetForegroundWindow while native color picker dialog is open
-  setColorPickerLock: (locked) => ipcRenderer.invoke('set-color-picker-lock', locked)
+  setColorPickerLock: (locked) => ipcRenderer.invoke('set-color-picker-lock', locked),
+
+  // Toggle alphabetical sorting of available windows
+  toggleSortAvailableAlpha: (enabled) => ipcRenderer.invoke('toggle-sort-available-alpha', enabled)
 });

@@ -163,7 +163,8 @@ function sendStateUpdate() {
     backgroundColor: windowManager.getBackgroundColor(),
     stackGap: windowManager.getStackGap(),
     topOffset: windowManager.getTopOffset(),
-    lightMode: windowManager.getLightMode()
+    lightMode: windowManager.getLightMode(),
+    sortAvailableAlpha: windowManager.getSortAvailableAlpha()
   });
 }
 
@@ -279,7 +280,8 @@ function registerIPC() {
         backgroundColor: windowManager.getBackgroundColor(),
         stackGap: windowManager.getStackGap(),
         topOffset: windowManager.getTopOffset(),
-        lightMode: windowManager.getLightMode()
+        lightMode: windowManager.getLightMode(),
+        sortAvailableAlpha: windowManager.getSortAvailableAlpha()
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -498,6 +500,18 @@ function registerIPC() {
     }
   });
 
+  ipcMain.handle('toggle-sort-available-alpha', async (event, enabled) => {
+    try {
+      windowManager.setSortAvailableAlpha(!!enabled);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('toggle-sort-available-alpha error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   ipcMain.handle('set-rename-focus-lock', async (event, locked) => {
     _renameFocusLocked = !!locked;
   });
@@ -519,6 +533,35 @@ function registerIPC() {
       return { success: moved };
     } catch (e) {
       console.error('reorder-window error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('sync-order-to-layout', async () => {
+    try {
+      setIpcActionLock();
+      const changed = windowManager.syncOrderToLayout();
+      if (changed) {
+        doLayout();
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('sync-order-to-layout error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('sync-layout-to-order', async () => {
+    try {
+      setIpcActionLock();
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('sync-layout-to-order error:', e);
       return { success: false, error: e.message };
     }
   });
