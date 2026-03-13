@@ -557,6 +557,12 @@
       background: var(--rename-toggle-active-bg);
     }
 
+    #dynamicReorderBtn.active {
+      border-color: var(--rename-toggle-active-border);
+      color: var(--rename-toggle-active-text);
+      background: var(--rename-toggle-active-bg);
+    }
+
     .window-list::-webkit-scrollbar { width: 4px; }
     .window-list::-webkit-scrollbar-track { background: transparent; }
     .window-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
@@ -627,8 +633,7 @@
     <div class="section-header">
       <span id="managedSubtitle">MANAGED STACK</span>
       <div style="display: flex; align-items: center; gap: 4px;">
-        <button class="rename-toggle btn-blue" onclick="syncOrderToLayout()" title="Reorder stack list to match current window positions on screen">Pos→List</button>
-        <button class="rename-toggle btn-blue" onclick="syncLayoutToOrder()" title="Reposition windows on screen to match stack list order">List→Pos</button>
+        <button id="dynamicReorderBtn" class="rename-toggle btn-blue" onclick="toggleDynamicReorder()" title="When active, the list order follows window focus: active window moves to bottom">Dynamic</button>
         <button id="renameToggleBtn" class="rename-toggle btn-blue" onclick="toggleRenameMode()"
           title="Toggle rename mode">Rename</button>
         <span id="managedCount">0</span>
@@ -659,6 +664,7 @@
 
     let isAvailableHidden = false;
     let sortAvailableAlpha = false;
+    let dynamicReorderEnabled = false;
     let customSizeEnabled = false;
     let renameModeEnabled = false;
     let _isEditingName = false;
@@ -776,19 +782,18 @@
       }
     }
 
-    async function syncOrderToLayout() {
-      try {
-        await window.electronAPI.syncOrderToLayout();
-      } catch (e) {
-        console.error('Failed to sync order to layout:', e);
+    async function toggleDynamicReorder() {
+      dynamicReorderEnabled = !dynamicReorderEnabled;
+      const btn = document.getElementById('dynamicReorderBtn');
+      if (dynamicReorderEnabled) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
       }
-    }
-
-    async function syncLayoutToOrder() {
       try {
-        await window.electronAPI.syncLayoutToOrder();
+        await window.electronAPI.toggleDynamicReorder(dynamicReorderEnabled);
       } catch (e) {
-        console.error('Failed to sync layout to order:', e);
+        console.error('Failed to toggle dynamic reorder:', e);
       }
     }
 
@@ -1349,6 +1354,15 @@
           }
         }
 
+        if (result.dynamicReorder !== undefined) {
+          dynamicReorderEnabled = !!result.dynamicReorder;
+          const dynBtn = document.getElementById('dynamicReorderBtn');
+          if (dynBtn) {
+            if (dynamicReorderEnabled) dynBtn.classList.add('active');
+            else dynBtn.classList.remove('active');
+          }
+        }
+
         if (result.customWidth !== undefined || result.customHeight !== undefined) {
           const toggle = document.getElementById('customSizeToggle');
           const inputs = document.getElementById('dimsInputs');
@@ -1479,6 +1493,15 @@
               else sortBtn.classList.remove('active');
             }
             renderAvailable();
+          }
+
+          if (data.dynamicReorder !== undefined) {
+            dynamicReorderEnabled = !!data.dynamicReorder;
+            const dynBtn = document.getElementById('dynamicReorderBtn');
+            if (dynBtn) {
+              if (dynamicReorderEnabled) dynBtn.classList.add('active');
+              else dynBtn.classList.remove('active');
+            }
           }
 
           // Sync custom dimensions from state
