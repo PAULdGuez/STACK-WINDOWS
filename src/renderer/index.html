@@ -37,9 +37,11 @@
       --btn-remove-text: #c66;
       --managed-border-default: #333;
       --managed-active-border: #faff00;
-      --managed-active-bg: rgba(250, 255, 0, 0.12);
+      --managed-active-bg: #faff00;
+      --managed-active-text: #000000;
       --managed-inactive-border: #506ee5;
-      --managed-inactive-bg: rgba(80, 110, 229, 0.12);
+      --managed-inactive-bg: #506ee5;
+      --managed-inactive-text: #ffffff;
       --item-hover-bg: #111;
       --managed-hover-bg: #ffffff;
       --managed-hover-text: #000000;
@@ -106,9 +108,11 @@
       --btn-remove-text: #c44;
       --managed-border-default: #ccc;
       --managed-active-border: #c8cc00;
-      --managed-active-bg: rgba(200, 204, 0, 0.18);
+      --managed-active-bg: #faff00;
+      --managed-active-text: #000000;
       --managed-inactive-border: #506ee5;
-      --managed-inactive-bg: rgba(80, 110, 229, 0.15);
+      --managed-inactive-bg: #506ee5;
+      --managed-inactive-text: #ffffff;
       --item-hover-bg: #e0e0e0;
       --managed-hover-bg: #1a1a1a;
       --managed-hover-text: #ffffff;
@@ -325,11 +329,33 @@
     .managed-item.active {
       border-left-color: var(--managed-active-border);
       background: var(--managed-active-bg);
+      color: var(--managed-active-text);
     }
 
     .managed-item.inactive {
       border-left-color: var(--managed-inactive-border);
       background: var(--managed-inactive-bg);
+      color: var(--managed-inactive-text);
+    }
+    .managed-item.active .managed-title,
+    .managed-item.active .managed-title .display-name,
+    .managed-item.active .managed-title .original-title {
+      color: var(--managed-active-text);
+    }
+    .managed-item.active .btn,
+    .managed-item.active .btn-remove {
+      color: var(--managed-active-text);
+      border-color: var(--managed-active-text);
+    }
+    .managed-item.inactive .managed-title,
+    .managed-item.inactive .managed-title .display-name,
+    .managed-item.inactive .managed-title .original-title {
+      color: var(--managed-inactive-text);
+    }
+    .managed-item.inactive .btn,
+    .managed-item.inactive .btn-remove {
+      color: var(--managed-inactive-text);
+      border-color: var(--managed-inactive-text);
     }
     .managed-item:hover {
       background: var(--managed-hover-bg) !important;
