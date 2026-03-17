@@ -29,7 +29,7 @@ class InstanceRegistry {
     this._DEBOUNCE_MS = 2000;
     this._lockOptions = {
       stale: 10000,
-      retries: { retries: 3, minTimeout: 100, maxTimeout: 1000 }
+      retries: { retries: 3, minTimeout: 100, maxTimeout: 1000 },
     };
   }
 
@@ -63,7 +63,7 @@ class InstanceRegistry {
     if (!fs.existsSync(this.filePath)) {
       try {
         fs.writeFileSync(this.filePath, JSON.stringify({ instances: {} }, null, 2), 'utf-8');
-      } catch (e) {
+      } catch {
         // Ignore — if we can't create it, locking will fail gracefully
       }
     }
@@ -81,7 +81,7 @@ class InstanceRegistry {
     registry.instances[this.instanceId] = {
       pid: process.pid,
       startedAt: new Date().toISOString(),
-      managedHwnds: []
+      managedHwnds: [],
     };
 
     this._writeRegistry(registry);
@@ -159,7 +159,9 @@ class InstanceRegistry {
     } catch (e) {
       console.error('InstanceRegistry: failed to write registry:', e);
       // Clean up temp file if rename failed
-      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      try {
+        fs.unlinkSync(tmpPath);
+      } catch {}
     } finally {
       if (release) {
         try {
@@ -209,7 +211,7 @@ class InstanceRegistry {
     try {
       process.kill(pid, 0);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
