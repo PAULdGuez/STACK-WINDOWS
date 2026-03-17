@@ -6,7 +6,7 @@ module.exports = defineConfig({
     environment: 'node',
     root: 'tests',
     include: ['**/*.test.js', '**/*.test.mjs'],
-    exclude: ['**/e2e/**', '**/integration/**'],
+    exclude: ['**/e2e/**'],
     setupFiles: ['./setup.mjs'],
   },
 });
