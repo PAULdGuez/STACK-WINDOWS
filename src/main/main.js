@@ -85,9 +85,7 @@ function setIpcActionLock(durationMs = 600) {
 }
 
 function getWorkArea(point) {
-  const display = point
-    ? screen.getDisplayNearestPoint(point)
-    : screen.getPrimaryDisplay();
+  const display = point ? screen.getDisplayNearestPoint(point) : screen.getPrimaryDisplay();
   return display.workArea;
 }
 
@@ -123,14 +121,18 @@ function createWindow() {
       sandbox: true,
       webSecurity: true,
       webviewTag: false,
-      allowRunningInsecureContent: false
-    }
+      allowRunningInsecureContent: false,
+    },
   });
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
-  mainWindow.webContents.on('will-navigate', (event) => { event.preventDefault(); });
-  mainWindow.webContents.on('will-redirect', (event) => { event.preventDefault(); });
+  mainWindow.webContents.on('will-navigate', (event) => {
+    event.preventDefault();
+  });
+  mainWindow.webContents.on('will-redirect', (event) => {
+    event.preventDefault();
+  });
 
   mainWindow.on('resize', () => {
     doLayout();
@@ -148,14 +150,14 @@ function createWindow() {
     if (_focusDebounceTimer) clearTimeout(_focusDebounceTimer);
     _focusDebounceTimer = setTimeout(() => {
       _focusDebounceTimer = null;
-      if (_renameFocusLocked || _ipcActionLock || _colorPickerLocked) return;  // Skip — user is editing a name, just triggered an IPC action, or color picker is open
+      if (_renameFocusLocked || _ipcActionLock || _colorPickerLocked) return; // Skip — user is editing a name, just triggered an IPC action, or color picker is open
       const activeHwnd = windowManager.getActiveHwnd();
       if (activeHwnd > 0) {
         try {
           if (api.IsWindow(activeHwnd) !== 0) {
             api.SetForegroundWindow(activeHwnd);
           }
-        } catch (e) {
+        } catch {
           // Silently ignore — window may have been closed
         }
       }
@@ -178,7 +180,7 @@ function sendStateUpdate() {
     topOffset: windowManager.getTopOffset(),
     lightMode: windowManager.getLightMode(),
     sortAvailableAlpha: windowManager.getSortAvailableAlpha(),
-    dynamicReorder: windowManager.getDynamicReorder()
+    dynamicReorder: windowManager.getDynamicReorder(),
   });
 }
 
@@ -188,18 +190,23 @@ function doLayout(skipHwnd = 0) {
   const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
   const workArea = display.workArea;
 
-  windowManager.layoutStack({
-    x: bounds.x,
-    y: workArea.y,
-    width: bounds.width,
-    height: workArea.height,
-    displayRightEdge: workArea.x + workArea.width
-  }, skipHwnd);
+  windowManager.layoutStack(
+    {
+      x: bounds.x,
+      y: workArea.y,
+      width: bounds.width,
+      height: workArea.height,
+      displayRightEdge: workArea.x + workArea.width,
+    },
+    skipHwnd
+  );
 }
 
 function doLayoutDebounced() {
   if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
-  _layoutDebounceTimer = setTimeout(() => { doLayout(); }, 16);
+  _layoutDebounceTimer = setTimeout(() => {
+    doLayout();
+  }, 16);
 }
 
 function syncMonitors() {
@@ -255,7 +262,7 @@ function onManagedWindowResized(hwnd) {
 
     let newTopOffset;
     if (isActive && inactiveCount > 0) {
-      newTopOffset = rect.top - workArea.y - (inactiveCount * effectiveHeader);
+      newTopOffset = rect.top - workArea.y - inactiveCount * effectiveHeader;
     } else {
       newTopOffset = rect.top - workArea.y;
     }
@@ -277,7 +284,9 @@ function onManagedWindowResized(hwnd) {
   } catch (e) {
     console.error('onManagedWindowResized error:', e);
   } finally {
-    setTimeout(() => { _resizeHandling = false; }, 100);
+    setTimeout(() => {
+      _resizeHandling = false;
+    }, 100);
   }
 }
 
@@ -308,7 +317,7 @@ function registerIPC() {
         topOffset: windowManager.getTopOffset(),
         lightMode: windowManager.getLightMode(),
         sortAvailableAlpha: windowManager.getSortAvailableAlpha(),
-        dynamicReorder: windowManager.getDynamicReorder()
+        dynamicReorder: windowManager.getDynamicReorder(),
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -372,7 +381,8 @@ function registerIPC() {
   ipcMain.handle('rename-window', async (event, hwnd, customTitle) => {
     try {
       hwnd = validateHwnd(hwnd);
-      if (customTitle !== null && typeof customTitle !== 'string') throw new Error('Invalid customTitle: must be string or null');
+      if (customTitle !== null && typeof customTitle !== 'string')
+        throw new Error('Invalid customTitle: must be string or null');
       if (typeof customTitle === 'string') customTitle = customTitle.slice(0, 200);
       const found = windowManager.renameWindow(hwnd, customTitle);
       if (found) {
@@ -439,8 +449,10 @@ function registerIPC() {
 
   ipcMain.handle('set-custom-dimensions', async (event, width, height) => {
     try {
-      if (width !== null && (typeof width !== 'number' || !Number.isFinite(width) || width < 200)) throw new Error('Invalid width: must be null or a number >= 200');
-      if (height !== null && (typeof height !== 'number' || !Number.isFinite(height) || height < 200)) throw new Error('Invalid height: must be null or a number >= 200');
+      if (width !== null && (typeof width !== 'number' || !Number.isFinite(width) || width < 200))
+        throw new Error('Invalid width: must be null or a number >= 200');
+      if (height !== null && (typeof height !== 'number' || !Number.isFinite(height) || height < 200))
+        throw new Error('Invalid height: must be null or a number >= 200');
       windowManager.setCustomDimensions(width, height);
       doLayout();
       sendStateUpdate();
@@ -550,7 +562,8 @@ function registerIPC() {
   ipcMain.handle('reorder-window', async (event, hwnd, newIndex) => {
     try {
       hwnd = validateHwnd(hwnd);
-      if (typeof newIndex !== 'number' || !Number.isFinite(newIndex)) throw new Error('Invalid newIndex: must be a number');
+      if (typeof newIndex !== 'number' || !Number.isFinite(newIndex))
+        throw new Error('Invalid newIndex: must be a number');
       const moved = windowManager.reorderWindow(hwnd, newIndex);
       if (moved) {
         doLayout();
@@ -575,7 +588,6 @@ function registerIPC() {
       return { success: false, error: e.message };
     }
   });
-
 }
 
 process.on('uncaughtException', (err) => {
@@ -636,7 +648,11 @@ app.whenReady().then(() => {
   foregroundMonitor = new ForegroundMonitor();
   foregroundMonitor.start(onManagedWindowFocused);
   resizeMonitor = new ResizeMonitor();
-  try { resizeMonitor.start(onManagedWindowResized); } catch (e) { console.error("[ResizeMonitor] Failed to start:", e); }
+  try {
+    resizeMonitor.start(onManagedWindowResized);
+  } catch (e) {
+    console.error('[ResizeMonitor] Failed to start:', e);
+  }
   syncMonitors();
 
   // Register IPC handlers

@@ -35,17 +35,20 @@ class ForegroundMonitor {
   start(onFocusChange) {
     this._onFocusChange = onFocusChange;
 
-    this._callback = koffi.register((hWinEventHook, event, hwnd, idObject, idChild, idEventThread, dwmsEventTime) => {
-      try {
-        const hwndNum = Number(hwnd);
-        if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
-        if (!this._managedHwnds.has(hwndNum)) return;
-        console.log('[ForegroundMonitor] Managed window focused — hwnd:', hwndNum);
-        this._onFocusChange(hwndNum);
-      } catch (e) {
-        console.error('[ForegroundMonitor] Callback error:', e);
-      }
-    }, koffi.pointer(WinEventProc));
+    this._callback = koffi.register(
+      (hWinEventHook, event, hwnd, idObject, _idChild, _idEventThread, _dwmsEventTime) => {
+        try {
+          const hwndNum = Number(hwnd);
+          if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
+          if (!this._managedHwnds.has(hwndNum)) return;
+          console.log('[ForegroundMonitor] Managed window focused — hwnd:', hwndNum);
+          this._onFocusChange(hwndNum);
+        } catch (e) {
+          console.error('[ForegroundMonitor] Callback error:', e);
+        }
+      },
+      koffi.pointer(WinEventProc)
+    );
 
     this._hook = api.SetWinEventHook(
       EVENT_SYSTEM_FOREGROUND, // eventMin

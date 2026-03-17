@@ -31,17 +31,20 @@ class ResizeMonitor {
   start(onResizeEnd) {
     this._onResizeEnd = onResizeEnd;
 
-    this._callback = koffi.register((hWinEventHook, event, hwnd, idObject, idChild, idEventThread, dwmsEventTime) => {
-      try {
-        const hwndNum = Number(hwnd);
-        if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
-        if (!this._managedHwnds.has(hwndNum)) return;
-        console.log('[ResizeMonitor] Managed window resize/move ended — hwnd:', hwndNum);
-        this._onResizeEnd(hwndNum);
-      } catch (e) {
-        console.error('[ResizeMonitor] Callback error:', e);
-      }
-    }, koffi.pointer(WinEventProc));
+    this._callback = koffi.register(
+      (hWinEventHook, event, hwnd, idObject, _idChild, _idEventThread, _dwmsEventTime) => {
+        try {
+          const hwndNum = Number(hwnd);
+          if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
+          if (!this._managedHwnds.has(hwndNum)) return;
+          console.log('[ResizeMonitor] Managed window resize/move ended — hwnd:', hwndNum);
+          this._onResizeEnd(hwndNum);
+        } catch (e) {
+          console.error('[ResizeMonitor] Callback error:', e);
+        }
+      },
+      koffi.pointer(WinEventProc)
+    );
 
     this._hook = api.SetWinEventHook(
       EVENT_SYSTEM_MOVESIZEEND, // eventMin

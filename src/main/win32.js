@@ -6,7 +6,9 @@ const koffi = require('koffi');
 const user32 = koffi.load('user32.dll');
 
 // Register type aliases with koffi so they work in inline signatures
+// eslint-disable-next-line no-unused-vars -- koffi type aliases registered for side-effects; used in inline signatures
 const HWND = koffi.alias('HWND', 'size_t');
+// eslint-disable-next-line no-unused-vars -- koffi type aliases registered for side-effects; used in inline signatures
 const BOOL = koffi.alias('BOOL', 'int');
 
 // RECT struct
@@ -57,21 +59,27 @@ const api = {
 };
 
 // Constants
+// eslint-disable-next-line no-unused-vars -- exported for external consumers
 const SWP_NOSIZE = 0x0001;
+// eslint-disable-next-line no-unused-vars -- exported for external consumers
 const SWP_NOMOVE = 0x0002;
+// eslint-disable-next-line no-unused-vars -- exported for external consumers
 const SWP_NOZORDER = 0x0004;
 const SWP_NOACTIVATE = 0x0010;
 const SWP_SHOWWINDOW = 0x0040;
 
 const HWND_TOP = 0;
+// eslint-disable-next-line no-unused-vars -- exported for external consumers
 const HWND_TOPMOST = -1;
 const HWND_NOTOPMOST = -2;
 
 const SW_RESTORE = 9;
+// eslint-disable-next-line no-unused-vars -- exported for external consumers
 const SW_SHOW = 5;
 
 const GWL_EXSTYLE = -20;
 const WS_EX_TOOLWINDOW = 0x00000080;
+// eslint-disable-next-line no-unused-vars -- exported for external consumers
 const WS_EX_APPWINDOW = 0x00040000;
 
 const EVENT_SYSTEM_FOREGROUND = 0x0003;

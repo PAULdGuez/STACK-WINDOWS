@@ -17,7 +17,7 @@ const CONTROLLER_WIDTH = 300;
 const HEADER_HEIGHT = 40;
 
 class WindowManager {
-  constructor(options = {}) {
+  constructor(_options = {}) {
     // Array of managed windows: [{ hwnd, title, processId, originalRect }]
     // Windows maintain their order here.
     this.managedWindows = [];
@@ -55,7 +55,7 @@ class WindowManager {
       const buf = [' '.repeat(titleLen + 1)];
       api.GetWindowTextW(hwndNum, buf, titleLen + 1);
       return (buf[0] || '').trim();
-    } catch (e) {
+    } catch {
       return '';
     }
   }
@@ -69,7 +69,7 @@ class WindowManager {
     const windows = [];
     const managedHwnds = new Set(this.managedWindows.map((w) => w.hwnd));
 
-    const callback = koffi.register((hwnd, lParam) => {
+    const callback = koffi.register((hwnd, _lParam) => {
       try {
         const hwndNum = Number(hwnd);
 
@@ -102,7 +102,7 @@ class WindowManager {
             bottom: rect.bottom || 0,
           },
         });
-      } catch (e) {
+      } catch {
         // Skip windows that cause errors
       }
       return 1;
@@ -132,7 +132,7 @@ class WindowManager {
 
     try {
       if (!api.IsWindow(hwndNum)) return;
-    } catch (e) {
+    } catch {
       return;
     }
 
@@ -142,14 +142,14 @@ class WindowManager {
       if (!success) {
         console.warn('GetWindowRect failed for hwnd:', hwndNum);
       }
-    } catch (e) {
+    } catch {
       // use defaults (rect stays zeroed)
     }
 
     const pidBuf = [0];
     try {
       api.GetWindowThreadProcessId(hwndNum, pidBuf);
-    } catch (e) {
+    } catch {
       // pid stays 0
     }
 
@@ -378,6 +378,7 @@ class WindowManager {
 
     // Use displayRightEdge passed from main.js (based on the display where the app lives).
     // Fallback to a safe default if not provided (backward compat).
+    // eslint-disable-next-line eqeqeq -- intentional: != null catches both null and undefined (backward compat)
     const displayRightEdge = workArea.displayRightEdge != null ? workArea.displayRightEdge : startX + 1920; // fallback: assume 1920px wide display starting at startX
     const availableWidth = displayRightEdge - startX;
     if (availableWidth < 200) {
@@ -408,7 +409,7 @@ class WindowManager {
     const needsRestore = (hwnd) => {
       try {
         return api.IsIconic(hwnd) || api.IsZoomed(hwnd);
-      } catch (e) {
+      } catch {
         return false;
       }
     };
