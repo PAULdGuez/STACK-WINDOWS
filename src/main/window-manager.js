@@ -33,6 +33,16 @@ class WindowManager {
     this.customHeight = null; // null = use all available space (default behavior)
     this.lightMode = false;
     this.dynamicReorder = false;
+
+    // Cache the EnumWindows callback to avoid creating/destroying on every call
+    this._enumResults = [];
+    this._enumCallback = koffi.register(
+      (hwnd, _lParam) => {
+        this._enumResults.push(Number(hwnd));
+        return 1; // continue enumeration
+      },
+      koffi.pointer(EnumWindowsProc)
+    );
   }
 
   setBackgroundColor(color) {
@@ -66,28 +76,36 @@ class WindowManager {
    * @param {Set<number>} [excludeHwnds=new Set()] - Optional set of HWNDs to exclude (e.g. windows managed by other instances)
    */
   getAvailableWindows(excludeHwnds = new Set()) {
-    const windows = [];
     const managedHwnds = new Set(this.managedWindows.map((w) => w.hwnd));
 
-    const callback = koffi.register((hwnd, _lParam) => {
-      try {
-        const hwndNum = Number(hwnd);
+    this._enumResults = []; // Clear results before enumeration
+    try {
+      api.EnumWindows(this._enumCallback, 0);
+    } catch (e) {
+      console.error('EnumWindows failed:', e);
+      return [];
+    }
 
-        if (!api.IsWindowVisible(hwndNum)) return 1;
-        if (api.IsIconic(hwndNum)) return 1;
+    const allHwnds = this._enumResults;
+    const windows = [];
+
+    for (const hwndNum of allHwnds) {
+      try {
+        if (!api.IsWindowVisible(hwndNum)) continue;
+        if (api.IsIconic(hwndNum)) continue;
 
         const exStyle = Number(api.GetWindowLongPtrW(hwndNum, GWL_EXSTYLE));
-        if (exStyle & WS_EX_TOOLWINDOW) return 1;
+        if (exStyle & WS_EX_TOOLWINDOW) continue;
 
         const pidBuf = [0];
         api.GetWindowThreadProcessId(hwndNum, pidBuf);
-        if (pidBuf[0] === this.ownPid) return 1;
+        if (pidBuf[0] === this.ownPid) continue;
 
-        if (managedHwnds.has(hwndNum)) return 1;
-        if (excludeHwnds.has(hwndNum)) return 1;
+        if (managedHwnds.has(hwndNum)) continue;
+        if (excludeHwnds.has(hwndNum)) continue;
 
         const title = this._getWindowTitle(hwndNum);
-        if (!title) return 1;
+        if (!title) continue;
 
         const rect = {};
         api.GetWindowRect(hwndNum, rect);
@@ -105,18 +123,23 @@ class WindowManager {
       } catch {
         // Skip windows that cause errors
       }
-      return 1;
-    }, koffi.pointer(EnumWindowsProc));
+    }
 
-    try {
+    return windows;
+  }
+
+  /**
+   * Release the cached EnumWindows callback.
+   * Must be called before the WindowManager is discarded (e.g. on app quit).
+   */
+  cleanup() {
+    if (this._enumCallback) {
       try {
-        api.EnumWindows(koffi.address(callback), 0);
+        koffi.unregister(this._enumCallback);
       } catch (e) {
-        console.error('EnumWindows failed:', e);
+        console.error('Failed to unregister enum callback:', e);
       }
-      return windows;
-    } finally {
-      koffi.unregister(callback);
+      this._enumCallback = null;
     }
   }
 

@@ -59,6 +59,7 @@ function performCleanup() {
 
   if (windowManager) {
     persistence.saveSync(windowManager.getState());
+    windowManager.cleanup();
     windowManager.restoreAll();
   }
   if (persistence) persistence.cleanupFile();
