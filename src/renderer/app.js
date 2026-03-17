@@ -692,82 +692,124 @@ async function refreshAvailable() {
   }
 }
 
+/**
+ * Sync all state fields from a data object to the UI.
+ * Used by both refreshManaged() (polled IPC response) and onStateUpdate (pushed updates).
+ * Handles partial data — all fields are optional and guarded with !== undefined checks.
+ */
+function syncStateToUI(data) {
+  if (!data) return;
+
+  // Update managed windows list
+  if (data.managed) {
+    managedWindows = data.managed;
+  } else if (data.windows) {
+    managedWindows = data.windows;
+  }
+  if (data.activeHwnd !== undefined) {
+    activeHwnd = data.activeHwnd || 0;
+  }
+
+  // Update stack name (respect focus guard)
+  if (data.stackName) {
+    const upperName = data.stackName.toUpperCase();
+    if (stackTitle && stackTitle.textContent !== upperName && !_isEditingName && document.activeElement !== stackTitle) {
+      stackTitle.textContent = upperName;
+    }
+    if (managedSubtitle && managedSubtitle.textContent !== upperName) {
+      managedSubtitle.textContent = upperName;
+    }
+  }
+
+  // Update hideAvailable
+  if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
+    toggleAvailableVisibility(data.hideAvailable);
+  }
+
+  // Update sortAvailableAlpha
+  if (data.sortAvailableAlpha !== undefined) {
+    sortAvailableAlpha = !!data.sortAvailableAlpha;
+    const sortBtn = document.getElementById('sortAlphaBtn');
+    if (sortBtn) {
+      sortBtn.classList.toggle('active', sortAvailableAlpha);
+    }
+    renderAvailable();
+  }
+
+  // Update dynamicReorder
+  if (data.dynamicReorder !== undefined) {
+    dynamicReorderEnabled = !!data.dynamicReorder;
+    const dynBtn = document.getElementById('dynamicReorderBtn');
+    if (dynBtn) {
+      dynBtn.classList.toggle('active', dynamicReorderEnabled);
+    }
+  }
+
+  // Update custom dimensions (respect focus guard)
+  if (data.customWidth !== undefined || data.customHeight !== undefined) {
+    const toggle = document.getElementById('customSizeToggle');
+    const inputs = document.getElementById('dimsInputs');
+    const buttons = document.getElementById('dimsButtons');
+    const widthInput = document.getElementById('customWidthInput');
+    const heightInput = document.getElementById('customHeightInput');
+
+    if (data.customWidth != null || data.customHeight != null) {
+      customSizeEnabled = true;
+      toggle.checked = true;
+      inputs.classList.remove('hidden');
+      buttons.classList.remove('hidden');
+      if (data.customWidth != null && document.activeElement !== widthInput) widthInput.value = data.customWidth;
+      if (data.customHeight != null && document.activeElement !== heightInput) heightInput.value = data.customHeight;
+    } else {
+      // both null — disable
+      toggle.checked = false;
+      inputs.classList.add('hidden');
+      buttons.classList.add('hidden');
+      widthInput.value = '';
+      heightInput.value = '';
+      customSizeEnabled = false;
+    }
+  }
+
+  // Update stackGap (respect focus guard)
+  if (data.stackGap !== undefined) {
+    const gapInput = document.getElementById('stackGapInput');
+    if (gapInput && document.activeElement !== gapInput) {
+      gapInput.value = data.stackGap || '';
+    }
+  }
+
+  // Update topOffset (respect focus guard)
+  if (data.topOffset !== undefined) {
+    const topInput = document.getElementById('topOffsetInput');
+    if (topInput && document.activeElement !== topInput) {
+      topInput.value = data.topOffset || '';
+    }
+  }
+
+  // Update backgroundColor
+  if (data.backgroundColor) {
+    _lastBgColor = data.backgroundColor;
+    document.getElementById('colorPickerBtn').style.background = data.backgroundColor;
+    document.getElementById('bgColorInput').value = data.backgroundColor;
+    if (!document.body.classList.contains('light-mode')) {
+      document.body.style.backgroundColor = data.backgroundColor;
+    }
+  }
+
+  // Update lightMode
+  if (data.lightMode !== undefined) {
+    applyLightMode(data.lightMode);
+  }
+
+  // Schedule render
+  scheduleRenderManaged();
+}
+
 async function refreshManaged() {
   try {
-    const result = await window.electronAPI.getManagedWindows();
-    managedWindows = result.windows || [];
-    activeHwnd = result.activeHwnd || 0;
-
-    if (result.stackName) {
-      const upperName = result.stackName.toUpperCase();
-      if (stackTitle && !_isEditingName && document.activeElement !== stackTitle) {
-        stackTitle.textContent = upperName;
-      }
-      if (managedSubtitle) managedSubtitle.textContent = upperName;
-    }
-
-    if (result.hideAvailable !== undefined && result.hideAvailable !== isAvailableHidden) {
-      toggleAvailableVisibility(result.hideAvailable);
-    }
-
-    if (result.sortAvailableAlpha !== undefined) {
-      sortAvailableAlpha = !!result.sortAvailableAlpha;
-      const sortBtn = document.getElementById('sortAlphaBtn');
-      if (sortBtn) {
-        if (sortAvailableAlpha) sortBtn.classList.add('active');
-        else sortBtn.classList.remove('active');
-      }
-    }
-
-    if (result.dynamicReorder !== undefined) {
-      dynamicReorderEnabled = !!result.dynamicReorder;
-      const dynBtn = document.getElementById('dynamicReorderBtn');
-      if (dynBtn) {
-        if (dynamicReorderEnabled) dynBtn.classList.add('active');
-        else dynBtn.classList.remove('active');
-      }
-    }
-
-    if (result.customWidth !== undefined || result.customHeight !== undefined) {
-      const toggle = document.getElementById('customSizeToggle');
-      const inputs = document.getElementById('dimsInputs');
-      const buttons = document.getElementById('dimsButtons');
-      const widthInput = document.getElementById('customWidthInput');
-      const heightInput = document.getElementById('customHeightInput');
-
-      if (result.customWidth !== null && result.customHeight !== null) {
-        customSizeEnabled = true;
-        toggle.checked = true;
-        inputs.classList.remove('hidden');
-        buttons.classList.remove('hidden');
-        widthInput.value = result.customWidth;
-        heightInput.value = result.customHeight;
-      }
-    }
-
-    if (result.stackGap !== undefined) {
-      document.getElementById('stackGapInput').value = result.stackGap || '';
-    }
-
-    if (result.topOffset !== undefined && result.topOffset > 0) {
-      document.getElementById('topOffsetInput').value = result.topOffset;
-    }
-
-    if (result.backgroundColor) {
-      _lastBgColor = result.backgroundColor;
-      document.getElementById('colorPickerBtn').style.background = result.backgroundColor;
-      document.getElementById('bgColorInput').value = result.backgroundColor;
-      if (!document.body.classList.contains('light-mode')) {
-        document.body.style.backgroundColor = result.backgroundColor;
-      }
-    }
-
-    // Sync light mode from initial state
-    if (result.lightMode !== undefined) {
-      applyLightMode(result.lightMode);
-    }
-
-    scheduleRenderManaged();
+    const data = await window.electronAPI.getManagedWindows();
+    syncStateToUI(data);
   } catch (e) {
     console.error('Failed to refresh managed:', e);
   }
@@ -831,107 +873,7 @@ async function init() {
 
   // Listen for real-time state updates from the foreground monitor
   window.electronAPI.onStateUpdate((data) => {
-    if (data.managed) {
-      managedWindows = data.managed;
-      activeHwnd = data.activeHwnd || 0;
-
-      // Update Title if changed externally
-      if (data.stackName) {
-        const upperName = data.stackName.toUpperCase();
-        if (
-          stackTitle &&
-          stackTitle.textContent !== upperName &&
-          !_isEditingName &&
-          document.activeElement !== stackTitle
-        ) {
-          stackTitle.textContent = upperName;
-        }
-        if (managedSubtitle && managedSubtitle.textContent !== upperName) {
-          managedSubtitle.textContent = upperName;
-        }
-      }
-
-      // Ensure visibility state is correct on load
-      if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
-        toggleAvailableVisibility(data.hideAvailable);
-      }
-
-      if (data.sortAvailableAlpha !== undefined) {
-        sortAvailableAlpha = !!data.sortAvailableAlpha;
-        const sortBtn = document.getElementById('sortAlphaBtn');
-        if (sortBtn) {
-          if (sortAvailableAlpha) sortBtn.classList.add('active');
-          else sortBtn.classList.remove('active');
-        }
-        renderAvailable();
-      }
-
-      if (data.dynamicReorder !== undefined) {
-        dynamicReorderEnabled = !!data.dynamicReorder;
-        const dynBtn = document.getElementById('dynamicReorderBtn');
-        if (dynBtn) {
-          if (dynamicReorderEnabled) dynBtn.classList.add('active');
-          else dynBtn.classList.remove('active');
-        }
-      }
-
-      // Sync custom dimensions from state
-      if (data.customWidth !== undefined || data.customHeight !== undefined) {
-        const toggle = document.getElementById('customSizeToggle');
-        const inputs = document.getElementById('dimsInputs');
-        const buttons = document.getElementById('dimsButtons');
-        const widthInput = document.getElementById('customWidthInput');
-        const heightInput = document.getElementById('customHeightInput');
-
-        if (data.customWidth != null || data.customHeight != null) {
-          toggle.checked = true;
-          inputs.classList.remove('hidden');
-          buttons.classList.remove('hidden');
-          if (data.customWidth != null && document.activeElement !== widthInput) widthInput.value = data.customWidth;
-          if (data.customHeight != null && document.activeElement !== heightInput)
-            heightInput.value = data.customHeight;
-          customSizeEnabled = true;
-        } else {
-          // both null — disable
-          toggle.checked = false;
-          inputs.classList.add('hidden');
-          buttons.classList.add('hidden');
-          widthInput.value = '';
-          heightInput.value = '';
-          customSizeEnabled = false;
-        }
-      }
-
-      // Sync stack gap from state
-      if (data.stackGap !== undefined) {
-        const gapInput = document.getElementById('stackGapInput');
-        if (gapInput && document.activeElement !== gapInput) {
-          gapInput.value = data.stackGap || '';
-        }
-      }
-
-      // Sync topOffset
-      const topInput = document.getElementById('topOffsetInput');
-      if (topInput && document.activeElement !== topInput) {
-        topInput.value = data.topOffset || '';
-      }
-
-      if (data.backgroundColor) {
-        _lastBgColor = data.backgroundColor;
-        document.getElementById('colorPickerBtn').style.background = data.backgroundColor;
-        document.getElementById('bgColorInput').value = data.backgroundColor;
-        if (!document.body.classList.contains('light-mode')) {
-          document.body.style.backgroundColor = data.backgroundColor;
-        }
-      }
-
-      // Sync light mode from state update
-      if (data.lightMode !== undefined) {
-        applyLightMode(data.lightMode);
-      }
-
-      scheduleRenderManaged();
-    }
+    syncStateToUI(data);
   });
 
   // Color picker button: lock before opening native dialog
