@@ -61,7 +61,7 @@ class InstanceRegistry {
     registry.instances[this.instanceId] = {
       pid: process.pid,
       startedAt: new Date().toISOString(),
-      managedHwnds: []
+      managedHwnds: [],
     };
 
     this._writeRegistry(registry);
@@ -102,7 +102,9 @@ class InstanceRegistry {
     } catch (e) {
       console.error('InstanceRegistry: failed to write registry:', e);
       // Clean up temp file if rename failed
-      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      try {
+        fs.unlinkSync(tmpPath);
+      } catch (_) {}
     }
   }
 

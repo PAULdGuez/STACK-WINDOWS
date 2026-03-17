@@ -80,7 +80,7 @@ class Persistence {
         topOffset: state.topOffset || 0,
         lightMode: !!state.lightMode,
         dynamicReorder: !!state.dynamicReorder,
-        windows: state.windows || []
+        windows: state.windows || [],
       };
       await fs.promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
       console.log(`Saved ${data.windows.length} windows and config to persistence`);
@@ -91,7 +91,7 @@ class Persistence {
       if (this._pendingState !== null) {
         const pending = this._pendingState;
         this._pendingState = null;
-        this.save(pending).catch(e => {
+        this.save(pending).catch((e) => {
           console.error('Failed to flush pending persistence state:', e);
         });
       }
@@ -121,7 +121,7 @@ class Persistence {
         topOffset: state.topOffset || 0,
         lightMode: !!state.lightMode,
         dynamicReorder: !!state.dynamicReorder,
-        windows: state.windows || []
+        windows: state.windows || [],
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
       console.log(`Saved ${data.windows.length} windows and config to persistence (sync)`);

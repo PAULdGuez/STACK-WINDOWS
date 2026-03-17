@@ -1,1610 +1,1557 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
-  <title>Stack Windows</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      /* === DARK THEME (default) === */
-      --bg-primary: #000;
-      --bg-secondary: #111;
-      --bg-tertiary: #222;
-      --text-primary: #fff;
-      --text-secondary: #ccc;
-      --text-muted: #888;
-      --text-dim: #666;
-      --text-dimmer: #555;
-      --border-primary: #333;
-      --border-secondary: #222;
-      --border-tertiary: #111;
-      --border-input: #444;
-      --btn-text: #ccc;
-      --btn-text-hover: #fff;
-      --btn-border: #444;
-      --btn-border-hover: #888;
-      --btn-add-border: #4a4;
-      --btn-add-text: #6c6;
-      --btn-remove-border: #a44;
-      --btn-remove-text: #c66;
-      --managed-border-default: #333;
-      --managed-active-border: #faff00;
-      --managed-active-bg: #faff00;
-      --managed-active-text: #000000;
-      --managed-inactive-border: #506ee5;
-      --managed-inactive-bg: #506ee5;
-      --managed-inactive-text: #ffffff;
-      --item-hover-bg: #111;
-      --managed-hover-bg: #ffffff;
-      --managed-hover-text: #000000;
-      --rename-edit-bg: #222;
-      --rename-edit-border: #555;
-      --rename-hover-bg: rgba(255,255,255,0.08);
-      --scrollbar-thumb: #333;
-      --toast-bg: #222;
-      --toast-border: #444;
-      --toast-text: #ccc;
-      --input-bg: #111;
-      --rename-toggle-border: #444;
-      --rename-toggle-text: #666;
-      --rename-toggle-active-border: #f90;
-      --rename-toggle-active-text: #f90;
-      --rename-toggle-active-bg: rgba(255,153,0,0.1);
-      --hint-color: #4a4;
-      --empty-state-color: #555;
-      --divider-bg: #333;
-      --btn-green-bg: transparent;
-      --btn-green-border: #98c202;
-      --btn-green-text: #fff;
-      --btn-green-hover-bg: transparent;
-      --btn-blue-bg: transparent;
-      --btn-blue-border: #3d0f91;
-      --btn-blue-text: #fff;
-      --btn-blue-hover-bg: transparent;
-      --btn-red-bg: transparent;
-      --btn-red-border: #c2370c;
-      --btn-red-text: #fff;
-      --btn-red-hover-bg: transparent;
-
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      user-select: none;
-    }
-
-    /* === LIGHT THEME === */
-    body.light-mode {
-      --bg-primary: #f5f5f5;
-      --bg-secondary: #e8e8e8;
-      --bg-tertiary: #ddd;
-      --text-primary: #1a1a1a;
-      --text-secondary: #333;
-      --text-muted: #666;
-      --text-dim: #888;
-      --text-dimmer: #999;
-      --border-primary: #ccc;
-      --border-secondary: #ddd;
-      --border-tertiary: #e0e0e0;
-      --border-input: #aaa;
-      --btn-text: #444;
-      --btn-text-hover: #111;
-      --btn-border: #aaa;
-      --btn-border-hover: #666;
-      --btn-add-border: #2a8a2a;
-      --btn-add-text: #2a8a2a;
-      --btn-remove-border: #c44;
-      --btn-remove-text: #c44;
-      --managed-border-default: #ccc;
-      --managed-active-border: #c8cc00;
-      --managed-active-bg: #faff00;
-      --managed-active-text: #000000;
-      --managed-inactive-border: #506ee5;
-      --managed-inactive-bg: #506ee5;
-      --managed-inactive-text: #ffffff;
-      --item-hover-bg: #e0e0e0;
-      --managed-hover-bg: #1a1a1a;
-      --managed-hover-text: #ffffff;
-      --rename-edit-bg: #fff;
-      --rename-edit-border: #aaa;
-      --rename-hover-bg: rgba(0,0,0,0.05);
-      --scrollbar-thumb: #bbb;
-      --toast-bg: #fff;
-      --toast-border: #ccc;
-      --toast-text: #333;
-      --input-bg: #fff;
-      --rename-toggle-border: #aaa;
-      --rename-toggle-text: #888;
-      --rename-toggle-active-border: #e68a00;
-      --rename-toggle-active-text: #e68a00;
-      --rename-toggle-active-bg: rgba(255,153,0,0.1);
-      --hint-color: #2a8a2a;
-      --empty-state-color: #999;
-      --divider-bg: #ccc;
-      --btn-green-bg: transparent;
-      --btn-green-border: #98c202;
-      --btn-green-text: #111;
-      --btn-green-hover-bg: transparent;
-      --btn-blue-bg: transparent;
-      --btn-blue-border: #3d0f91;
-      --btn-blue-text: #111;
-      --btn-blue-hover-bg: transparent;
-      --btn-red-bg: transparent;
-      --btn-red-border: #c2370c;
-      --btn-red-text: #111;
-      --btn-red-hover-bg: transparent;
-    }
-
-    .header {
-      padding: 6px 12px;
-      border-bottom: 1px solid var(--border-primary);
-      -webkit-app-region: drag;
-    }
-
-    .header h1 {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .header .subtitle {
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-top: 1px;
-    }
-
-    .status-bar {
-      padding: 6px 12px;
-      font-size: 10px;
-      color: var(--text-dimmer);
-      border-bottom: 1px solid var(--border-secondary);
-      text-align: center;
-      -webkit-app-region: no-drag;
-    }
-
-    .status-bar .hint {
-      color: var(--hint-color);
-    }
-
-    .section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-height: 0;
-    }
-
-    .section-header {
-      padding: 4px 12px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      border-bottom: 1px solid var(--border-secondary);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      -webkit-app-region: no-drag;
-    }
-
-    .section-header button {
-      background: none;
-      border: 1px solid var(--btn-border);
-      color: var(--btn-text);
-      font-size: 10px;
-      padding: 3px 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      -webkit-app-region: no-drag;
-    }
-
-    .section-header button:hover {
-      border-color: var(--btn-border-hover);
-      color: var(--btn-text-hover);
-    }
-
-    .window-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 2px 0;
-    }
-
-    .window-item {
-      padding: 4px 12px;
-      border-bottom: 1px solid var(--border-tertiary);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      -webkit-app-region: no-drag;
-    }
-
-    .window-item:hover {
-      background: var(--item-hover-bg);
-    }
-
-    .window-item .title {
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-      margin-right: 8px;
-    }
-
-    .window-item .actions {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .btn {
-      background: none;
-      border: 1px solid var(--btn-border);
-      color: var(--btn-text);
-      font-size: 10px;
-      padding: 3px 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      -webkit-app-region: no-drag;
-    }
-
-    .btn:hover {
-      border-color: var(--btn-border-hover);
-      color: var(--btn-text-hover);
-    }
-
-    .btn-add {
-      border-color: var(--btn-add-border);
-      color: var(--btn-add-text);
-    }
-
-    .btn-add:hover {
-      border-color: var(--btn-add-text);
-      color: var(--btn-add-text);
-    }
-
-    .btn-remove {
-      border-color: var(--btn-remove-border);
-      color: var(--btn-remove-text);
-    }
-
-    .btn-remove:hover {
-      border-color: var(--btn-remove-text);
-      color: var(--btn-remove-text);
-    }
-
-    .btn-green {
-      background: var(--btn-green-bg);
-      border: 1px solid var(--btn-green-border);
-      color: var(--btn-green-text);
-    }
-    .btn-green:hover {
-      background: var(--btn-green-hover-bg);
-      border-color: var(--btn-green-border);
-      color: var(--btn-green-text);
-    }
-
-    .btn-blue {
-      background: var(--btn-blue-bg);
-      border: 1px solid var(--btn-blue-border);
-      color: var(--btn-blue-text);
-    }
-    .btn-blue:hover {
-      background: var(--btn-blue-hover-bg);
-      border-color: var(--btn-blue-border);
-      color: var(--btn-blue-text);
-    }
-
-    .btn-red {
-      background: var(--btn-red-bg);
-      border: 1px solid var(--btn-red-border);
-      color: var(--btn-red-text);
-    }
-    .btn-red:hover {
-      background: var(--btn-red-hover-bg);
-      border-color: var(--btn-red-border);
-      color: var(--btn-red-text);
-    }
-
-    .managed-item {
-      border-left: 3px solid var(--managed-border-default);
-      cursor: pointer;
-      transition: border-left-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .managed-item.active {
-      border-left-color: var(--managed-active-border);
-      background: var(--managed-active-bg);
-      color: var(--managed-active-text);
-    }
-
-    .managed-item.inactive {
-      border-left-color: var(--managed-inactive-border);
-      background: var(--managed-inactive-bg);
-      color: var(--managed-inactive-text);
-    }
-    .managed-item.active .managed-title,
-    .managed-item.active .managed-title .display-name,
-    .managed-item.active .managed-title .original-title {
-      color: var(--managed-active-text);
-    }
-    .managed-item.active .btn,
-    .managed-item.active .btn-remove {
-      color: var(--managed-active-text);
-      border-color: var(--managed-active-text);
-    }
-    .managed-item.inactive .managed-title,
-    .managed-item.inactive .managed-title .display-name,
-    .managed-item.inactive .managed-title .original-title {
-      color: var(--managed-inactive-text);
-    }
-    .managed-item.inactive .btn,
-    .managed-item.inactive .btn-remove {
-      color: var(--managed-inactive-text);
-      border-color: var(--managed-inactive-text);
-    }
-    .managed-item:hover {
-      background: var(--managed-hover-bg) !important;
-      color: var(--managed-hover-text) !important;
-    }
-    .managed-item:hover .managed-title,
-    .managed-item:hover .managed-title .display-name,
-    .managed-item:hover .managed-title .original-title {
-      color: var(--managed-hover-text) !important;
-    }
-    .managed-item:hover .btn,
-    .managed-item:hover .btn-remove {
-      color: var(--managed-hover-text) !important;
-      border-color: var(--managed-hover-text) !important;
-    }
-
-    .managed-title {
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-      margin-right: 8px;
-      cursor: pointer;
-    }
-
-    .managed-title .display-name {
-      cursor: pointer;
-      padding: 1px 3px;
-      border: 1px solid transparent;
-      border-radius: 3px;
-      transition: background 0.15s, border-color 0.15s;
-    }
-
-    .managed-title .display-name[contenteditable='true']:hover {
-      background: var(--rename-hover-bg);
-    }
-
-    .managed-title .display-name[contenteditable='true']:focus {
-      background: var(--rename-edit-bg);
-      border-color: var(--rename-edit-border);
-      outline: none;
-      cursor: text;
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-      user-select: text;
-    }
-
-    .managed-title .original-title {
-      font-size: 9px;
-      color: var(--text-dimmer);
-      display: block;
-      margin-top: 1px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    @keyframes fadeSlideIn {
-      from {
-        opacity: 0;
-        transform: translateX(-8px);
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    />
+    <title>Stack Windows</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      to {
-        opacity: 1;
-        transform: translateX(0);
+      body {
+        /* === DARK THEME (default) === */
+        --bg-primary: #000;
+        --bg-secondary: #111;
+        --bg-tertiary: #222;
+        --text-primary: #fff;
+        --text-secondary: #ccc;
+        --text-muted: #888;
+        --text-dim: #666;
+        --text-dimmer: #555;
+        --border-primary: #333;
+        --border-secondary: #222;
+        --border-tertiary: #111;
+        --border-input: #444;
+        --btn-text: #ccc;
+        --btn-text-hover: #fff;
+        --btn-border: #444;
+        --btn-border-hover: #888;
+        --btn-add-border: #4a4;
+        --btn-add-text: #6c6;
+        --btn-remove-border: #a44;
+        --btn-remove-text: #c66;
+        --managed-border-default: #333;
+        --managed-active-border: #faff00;
+        --managed-active-bg: #faff00;
+        --managed-active-text: #000000;
+        --managed-inactive-border: #506ee5;
+        --managed-inactive-bg: #506ee5;
+        --managed-inactive-text: #ffffff;
+        --item-hover-bg: #111;
+        --managed-hover-bg: #ffffff;
+        --managed-hover-text: #000000;
+        --rename-edit-bg: #222;
+        --rename-edit-border: #555;
+        --rename-hover-bg: rgba(255, 255, 255, 0.08);
+        --scrollbar-thumb: #333;
+        --toast-bg: #222;
+        --toast-border: #444;
+        --toast-text: #ccc;
+        --input-bg: #111;
+        --rename-toggle-border: #444;
+        --rename-toggle-text: #666;
+        --rename-toggle-active-border: #f90;
+        --rename-toggle-active-text: #f90;
+        --rename-toggle-active-bg: rgba(255, 153, 0, 0.1);
+        --hint-color: #4a4;
+        --empty-state-color: #555;
+        --divider-bg: #333;
+        --btn-green-bg: transparent;
+        --btn-green-border: #98c202;
+        --btn-green-text: #fff;
+        --btn-green-hover-bg: transparent;
+        --btn-blue-bg: transparent;
+        --btn-blue-border: #3d0f91;
+        --btn-blue-text: #fff;
+        --btn-blue-hover-bg: transparent;
+        --btn-red-bg: transparent;
+        --btn-red-border: #c2370c;
+        --btn-red-text: #fff;
+        --btn-red-hover-bg: transparent;
+
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
       }
-    }
 
-    .window-item.entering {
-      animation: fadeSlideIn 0.2s ease forwards;
-    }
+      /* === LIGHT THEME === */
+      body.light-mode {
+        --bg-primary: #f5f5f5;
+        --bg-secondary: #e8e8e8;
+        --bg-tertiary: #ddd;
+        --text-primary: #1a1a1a;
+        --text-secondary: #333;
+        --text-muted: #666;
+        --text-dim: #888;
+        --text-dimmer: #999;
+        --border-primary: #ccc;
+        --border-secondary: #ddd;
+        --border-tertiary: #e0e0e0;
+        --border-input: #aaa;
+        --btn-text: #444;
+        --btn-text-hover: #111;
+        --btn-border: #aaa;
+        --btn-border-hover: #666;
+        --btn-add-border: #2a8a2a;
+        --btn-add-text: #2a8a2a;
+        --btn-remove-border: #c44;
+        --btn-remove-text: #c44;
+        --managed-border-default: #ccc;
+        --managed-active-border: #c8cc00;
+        --managed-active-bg: #faff00;
+        --managed-active-text: #000000;
+        --managed-inactive-border: #506ee5;
+        --managed-inactive-bg: #506ee5;
+        --managed-inactive-text: #ffffff;
+        --item-hover-bg: #e0e0e0;
+        --managed-hover-bg: #1a1a1a;
+        --managed-hover-text: #ffffff;
+        --rename-edit-bg: #fff;
+        --rename-edit-border: #aaa;
+        --rename-hover-bg: rgba(0, 0, 0, 0.05);
+        --scrollbar-thumb: #bbb;
+        --toast-bg: #fff;
+        --toast-border: #ccc;
+        --toast-text: #333;
+        --input-bg: #fff;
+        --rename-toggle-border: #aaa;
+        --rename-toggle-text: #888;
+        --rename-toggle-active-border: #e68a00;
+        --rename-toggle-active-text: #e68a00;
+        --rename-toggle-active-bg: rgba(255, 153, 0, 0.1);
+        --hint-color: #2a8a2a;
+        --empty-state-color: #999;
+        --divider-bg: #ccc;
+        --btn-green-bg: transparent;
+        --btn-green-border: #98c202;
+        --btn-green-text: #111;
+        --btn-green-hover-bg: transparent;
+        --btn-blue-bg: transparent;
+        --btn-blue-border: #3d0f91;
+        --btn-blue-text: #111;
+        --btn-blue-hover-bg: transparent;
+        --btn-red-bg: transparent;
+        --btn-red-border: #c2370c;
+        --btn-red-text: #111;
+        --btn-red-hover-bg: transparent;
+      }
 
-    .empty-state {
-      padding: 20px 12px;
-      text-align: center;
-      color: var(--empty-state-color);
-      font-size: 11px;
-    }
+      .header {
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--border-primary);
+        -webkit-app-region: drag;
+      }
 
-    .divider {
-      height: 1px;
-      background: var(--divider-bg);
-    }
+      .header h1 {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
 
-    .hidden {
-      display: none !important;
-    }
+      .header .subtitle {
+        font-size: 10px;
+        color: var(--text-dim);
+        margin-top: 1px;
+      }
 
-    h1[contenteditable="true"] {
-      outline: none;
-      padding: 2px 4px;
-      border: 1px solid transparent;
-      border-radius: 4px;
-      margin-left: -4px;
-      transition: all 0.2s;
-    }
+      .status-bar {
+        padding: 6px 12px;
+        font-size: 10px;
+        color: var(--text-dimmer);
+        border-bottom: 1px solid var(--border-secondary);
+        text-align: center;
+        -webkit-app-region: no-drag;
+      }
 
-    h1[contenteditable="true"]:hover {
-      background: var(--rename-hover-bg);
-    }
+      .status-bar .hint {
+        color: var(--hint-color);
+      }
 
-    h1[contenteditable='true']:focus {
-      background: var(--rename-edit-bg);
-      border-color: var(--rename-edit-border);
-      cursor: text;
-      user-select: text;
-    }
+      .section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+      }
 
-    h1[contenteditable='true'] {
-      -webkit-app-region: no-drag;
-    }
+      .section-header {
+        padding: 4px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--border-secondary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        -webkit-app-region: no-drag;
+      }
 
-    .dimensions-section {
-      flex: none;
-    }
+      .section-header button {
+        background: none;
+        border: 1px solid var(--btn-border);
+        color: var(--btn-text);
+        font-size: 10px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        -webkit-app-region: no-drag;
+      }
 
-    .dims-content {
-      padding: 8px 12px;
-    }
+      .section-header button:hover {
+        border-color: var(--btn-border-hover);
+        color: var(--btn-text-hover);
+      }
 
-    .dims-row {
-      margin-bottom: 8px;
-    }
+      .window-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2px 0;
+      }
 
-    .dims-label {
-      font-size: 11px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+      .window-item {
+        padding: 4px 12px;
+        border-bottom: 1px solid var(--border-tertiary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        -webkit-app-region: no-drag;
+      }
 
-    .dims-label input[type="checkbox"] {
-      accent-color: var(--hint-color);
-    }
+      .window-item:hover {
+        background: var(--item-hover-bg);
+      }
 
-    .dims-inputs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
+      .window-item .title {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 8px;
+      }
 
-    .dims-field {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+      .window-item .actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
 
-    .dims-input-label {
-      font-size: 9px;
-      color: var(--text-dim);
-      letter-spacing: 1px;
-    }
+      .btn {
+        background: none;
+        border: 1px solid var(--btn-border);
+        color: var(--btn-text);
+        font-size: 10px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        -webkit-app-region: no-drag;
+      }
 
-    .dims-content input[type="number"] {
-      background: var(--input-bg);
-      border: 1px solid var(--border-input);
-      color: var(--text-primary);
-      font-size: 12px;
-      padding: 4px 10px;
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: 999px;
-      -webkit-app-region: no-drag;
-    }
+      .btn:hover {
+        border-color: var(--btn-border-hover);
+        color: var(--btn-text-hover);
+      }
 
-    .dims-content input[type="number"]:focus {
-      border-color: var(--btn-border-hover);
-      outline: none;
-    }
+      .btn-add {
+        border-color: var(--btn-add-border);
+        color: var(--btn-add-text);
+      }
 
-    .color-picker-btn {
-      width: 18px;
-      height: 18px;
-      border: 1px solid var(--border-input);
-      border-radius: 999px;
-      background: var(--bg-primary);
-      cursor: pointer;
-      -webkit-app-region: no-drag;
-    }
+      .btn-add:hover {
+        border-color: var(--btn-add-text);
+        color: var(--btn-add-text);
+      }
 
-    .color-picker-btn:hover {
-      border-color: var(--btn-border-hover);
-    }
+      .btn-remove {
+        border-color: var(--btn-remove-border);
+        color: var(--btn-remove-text);
+      }
 
-    .light-mode-btn {
-      width: 24px;
-      height: 24px;
-      border: 1px solid var(--border-input);
-      border-radius: 999px;
-      background: none;
-      color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      -webkit-app-region: no-drag;
-      transition: all 0.15s ease;
-      padding: 0;
-    }
+      .btn-remove:hover {
+        border-color: var(--btn-remove-text);
+        color: var(--btn-remove-text);
+      }
 
-    .light-mode-btn:hover {
-      border-color: var(--btn-border-hover);
-      color: var(--text-primary);
-    }
+      .btn-green {
+        background: var(--btn-green-bg);
+        border: 1px solid var(--btn-green-border);
+        color: var(--btn-green-text);
+      }
+      .btn-green:hover {
+        background: var(--btn-green-hover-bg);
+        border-color: var(--btn-green-border);
+        color: var(--btn-green-text);
+      }
 
-    .light-mode-btn.active {
-      border-color: var(--rename-toggle-active-border);
-      color: var(--rename-toggle-active-text);
-      background: var(--rename-toggle-active-bg);
-    }
+      .btn-blue {
+        background: var(--btn-blue-bg);
+        border: 1px solid var(--btn-blue-border);
+        color: var(--btn-blue-text);
+      }
+      .btn-blue:hover {
+        background: var(--btn-blue-hover-bg);
+        border-color: var(--btn-blue-border);
+        color: var(--btn-blue-text);
+      }
 
-    .rename-toggle {
-      background: none;
-      border: 1px solid var(--rename-toggle-border);
-      color: var(--rename-toggle-text);
-      font-size: 9px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      -webkit-app-region: no-drag;
-      margin-right: 6px;
-    }
+      .btn-red {
+        background: var(--btn-red-bg);
+        border: 1px solid var(--btn-red-border);
+        color: var(--btn-red-text);
+      }
+      .btn-red:hover {
+        background: var(--btn-red-hover-bg);
+        border-color: var(--btn-red-border);
+        color: var(--btn-red-text);
+      }
 
-    .rename-toggle:hover {
-      border-color: var(--btn-border-hover);
-      color: var(--btn-text);
-    }
+      .managed-item {
+        border-left: 3px solid var(--managed-border-default);
+        cursor: pointer;
+        transition:
+          border-left-color 0.2s ease,
+          background-color 0.2s ease;
+      }
 
-    .rename-toggle.active {
-      border-color: var(--rename-toggle-active-border);
-      color: var(--rename-toggle-active-text);
-      background: var(--rename-toggle-active-bg);
-    }
+      .managed-item.active {
+        border-left-color: var(--managed-active-border);
+        background: var(--managed-active-bg);
+        color: var(--managed-active-text);
+      }
 
-    #sortAlphaBtn.active {
-      border-color: var(--rename-toggle-active-border);
-      color: var(--rename-toggle-active-text);
-      background: var(--rename-toggle-active-bg);
-    }
+      .managed-item.inactive {
+        border-left-color: var(--managed-inactive-border);
+        background: var(--managed-inactive-bg);
+        color: var(--managed-inactive-text);
+      }
+      .managed-item.active .managed-title,
+      .managed-item.active .managed-title .display-name,
+      .managed-item.active .managed-title .original-title {
+        color: var(--managed-active-text);
+      }
+      .managed-item.active .btn,
+      .managed-item.active .btn-remove {
+        color: var(--managed-active-text);
+        border-color: var(--managed-active-text);
+      }
+      .managed-item.inactive .managed-title,
+      .managed-item.inactive .managed-title .display-name,
+      .managed-item.inactive .managed-title .original-title {
+        color: var(--managed-inactive-text);
+      }
+      .managed-item.inactive .btn,
+      .managed-item.inactive .btn-remove {
+        color: var(--managed-inactive-text);
+        border-color: var(--managed-inactive-text);
+      }
+      .managed-item:hover {
+        background: var(--managed-hover-bg) !important;
+        color: var(--managed-hover-text) !important;
+      }
+      .managed-item:hover .managed-title,
+      .managed-item:hover .managed-title .display-name,
+      .managed-item:hover .managed-title .original-title {
+        color: var(--managed-hover-text) !important;
+      }
+      .managed-item:hover .btn,
+      .managed-item:hover .btn-remove {
+        color: var(--managed-hover-text) !important;
+        border-color: var(--managed-hover-text) !important;
+      }
 
-    #dynamicReorderBtn.active {
-      border-color: var(--rename-toggle-active-border);
-      color: var(--rename-toggle-active-text);
-      background: var(--rename-toggle-active-bg);
-    }
+      .managed-title {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 8px;
+        cursor: pointer;
+      }
 
-    .window-list::-webkit-scrollbar { width: 4px; }
-    .window-list::-webkit-scrollbar-track { background: transparent; }
-    .window-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
-    .window-list::-webkit-scrollbar-thumb:hover { background: var(--rename-edit-border); }
+      .managed-title .display-name {
+        cursor: pointer;
+        padding: 1px 3px;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
 
-    .undo-toast { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--toast-bg); border: 1px solid var(--toast-border); color: var(--toast-text); font-size: 11px; padding: 6px 16px; border-radius: 999px; display: flex; align-items: center; gap: 8px; z-index: 9999; animation: toastIn 0.2s ease; -webkit-app-region: no-drag; }
-    .undo-toast .undo-btn { background: none; border: 1px solid var(--btn-add-border); color: var(--btn-add-text); font-size: 10px; padding: 2px 10px; border-radius: 999px; cursor: pointer; }
-    .undo-toast .undo-btn:hover { border-color: var(--btn-add-text); color: var(--btn-add-text); }
-    .undo-toast.hiding { animation: toastOut 0.2s ease forwards; }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+      .managed-title .display-name[contenteditable='true']:hover {
+        background: var(--rename-hover-bg);
+      }
 
-    /* Do Not Disturb mode — hide all interactive controls */
-    body.dnd-mode .section-header button:not(#dndBtn),
-    body.dnd-mode .section-header .rename-toggle:not(#dndBtn),
-    body.dnd-mode .color-picker-btn,
-    body.dnd-mode .light-mode-btn,
-    body.dnd-mode .dims-content,
-    body.dnd-mode #toggleDimsBtn,
-    body.dnd-mode .btn-add,
-    body.dnd-mode .btn-remove,
-    body.dnd-mode .window-item .btn,
-    body.dnd-mode .window-item button,
-    body.dnd-mode #managedCount {
-      display: none !important;
-    }
-    body.dnd-mode #stackTitle {
-      pointer-events: none;
-    }
-    #dndBtn {
-      background: none;
-      border: 1px solid var(--btn-blue-border, #3d5afe);
-      color: var(--btn-blue-text, #90caf9);
-      font-size: 14px;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      line-height: 1;
-      -webkit-app-region: no-drag;
-      transition: all 0.15s ease;
-    }
-    #dndBtn:hover {
-      border-color: var(--btn-blue-text, #90caf9);
-    }
-    #dndBtn.active {
-      border-color: var(--rename-toggle-active-border);
-      color: var(--rename-toggle-active-text);
-      background: var(--rename-toggle-active-bg);
-    }
+      .managed-title .display-name[contenteditable='true']:focus {
+        background: var(--rename-edit-bg);
+        border-color: var(--rename-edit-border);
+        outline: none;
+        cursor: text;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        user-select: text;
+      }
 
-  </style>
-</head>
+      .managed-title .original-title {
+        font-size: 9px;
+        color: var(--text-dimmer);
+        display: block;
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-<body>
-  <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
-    <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
-    <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
-      <button id="dndBtn" title="Do Not Disturb — hide all controls" onclick="toggleDndMode()">&#8856;</button>
-      <div id="colorPickerBtn" class="color-picker-btn"
-        title="Change background color"></div>
-      <input type="color" id="bgColorInput" value="#000000" style="display: none;">
-      <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode" onclick="toggleLightMode()">&#9788;</button>
-    </div>
-  </div>
+      @keyframes fadeSlideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-8px);
+        }
 
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
 
-  <div class="section dimensions-section">
-    <div class="section-header">
-      <span>DIMENSIONS</span>
-      <button id="toggleDimsBtn" class="btn-green" onclick="toggleDimensionsSection()">Show</button>
-    </div>
-    <div class="dims-content hidden" id="dimsContent">
-      <div class="dims-row">
-        <label class="dims-label">
-          <input type="checkbox" id="customSizeToggle" onchange="onCustomSizeToggle()">
-          <span>Custom size</span>
-        </label>
+      .window-item.entering {
+        animation: fadeSlideIn 0.2s ease forwards;
+      }
+
+      .empty-state {
+        padding: 20px 12px;
+        text-align: center;
+        color: var(--empty-state-color);
+        font-size: 11px;
+      }
+
+      .divider {
+        height: 1px;
+        background: var(--divider-bg);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      h1[contenteditable='true'] {
+        outline: none;
+        padding: 2px 4px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        margin-left: -4px;
+        transition: all 0.2s;
+      }
+
+      h1[contenteditable='true']:hover {
+        background: var(--rename-hover-bg);
+      }
+
+      h1[contenteditable='true']:focus {
+        background: var(--rename-edit-bg);
+        border-color: var(--rename-edit-border);
+        cursor: text;
+        user-select: text;
+      }
+
+      h1[contenteditable='true'] {
+        -webkit-app-region: no-drag;
+      }
+
+      .dimensions-section {
+        flex: none;
+      }
+
+      .dims-content {
+        padding: 8px 12px;
+      }
+
+      .dims-row {
+        margin-bottom: 8px;
+      }
+
+      .dims-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .dims-label input[type='checkbox'] {
+        accent-color: var(--hint-color);
+      }
+
+      .dims-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .dims-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .dims-input-label {
+        font-size: 9px;
+        color: var(--text-dim);
+        letter-spacing: 1px;
+      }
+
+      .dims-content input[type='number'] {
+        background: var(--input-bg);
+        border: 1px solid var(--border-input);
+        color: var(--text-primary);
+        font-size: 12px;
+        padding: 4px 10px;
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 999px;
+        -webkit-app-region: no-drag;
+      }
+
+      .dims-content input[type='number']:focus {
+        border-color: var(--btn-border-hover);
+        outline: none;
+      }
+
+      .color-picker-btn {
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--border-input);
+        border-radius: 999px;
+        background: var(--bg-primary);
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+      }
+
+      .color-picker-btn:hover {
+        border-color: var(--btn-border-hover);
+      }
+
+      .light-mode-btn {
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--border-input);
+        border-radius: 999px;
+        background: none;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-app-region: no-drag;
+        transition: all 0.15s ease;
+        padding: 0;
+      }
+
+      .light-mode-btn:hover {
+        border-color: var(--btn-border-hover);
+        color: var(--text-primary);
+      }
+
+      .light-mode-btn.active {
+        border-color: var(--rename-toggle-active-border);
+        color: var(--rename-toggle-active-text);
+        background: var(--rename-toggle-active-bg);
+      }
+
+      .rename-toggle {
+        background: none;
+        border: 1px solid var(--rename-toggle-border);
+        color: var(--rename-toggle-text);
+        font-size: 9px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        -webkit-app-region: no-drag;
+        margin-right: 6px;
+      }
+
+      .rename-toggle:hover {
+        border-color: var(--btn-border-hover);
+        color: var(--btn-text);
+      }
+
+      .rename-toggle.active {
+        border-color: var(--rename-toggle-active-border);
+        color: var(--rename-toggle-active-text);
+        background: var(--rename-toggle-active-bg);
+      }
+
+      #sortAlphaBtn.active {
+        border-color: var(--rename-toggle-active-border);
+        color: var(--rename-toggle-active-text);
+        background: var(--rename-toggle-active-bg);
+      }
+
+      #dynamicReorderBtn.active {
+        border-color: var(--rename-toggle-active-border);
+        color: var(--rename-toggle-active-text);
+        background: var(--rename-toggle-active-bg);
+      }
+
+      .window-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .window-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .window-list::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 2px;
+      }
+      .window-list::-webkit-scrollbar-thumb:hover {
+        background: var(--rename-edit-border);
+      }
+
+      .undo-toast {
+        position: fixed;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--toast-bg);
+        border: 1px solid var(--toast-border);
+        color: var(--toast-text);
+        font-size: 11px;
+        padding: 6px 16px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 9999;
+        animation: toastIn 0.2s ease;
+        -webkit-app-region: no-drag;
+      }
+      .undo-toast .undo-btn {
+        background: none;
+        border: 1px solid var(--btn-add-border);
+        color: var(--btn-add-text);
+        font-size: 10px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .undo-toast .undo-btn:hover {
+        border-color: var(--btn-add-text);
+        color: var(--btn-add-text);
+      }
+      .undo-toast.hiding {
+        animation: toastOut 0.2s ease forwards;
+      }
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+      @keyframes toastOut {
+        from {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(-50%) translateY(8px);
+        }
+      }
+
+      /* Do Not Disturb mode — hide all interactive controls */
+      body.dnd-mode .section-header button:not(#dndBtn),
+      body.dnd-mode .section-header .rename-toggle:not(#dndBtn),
+      body.dnd-mode .color-picker-btn,
+      body.dnd-mode .light-mode-btn,
+      body.dnd-mode .dims-content,
+      body.dnd-mode #toggleDimsBtn,
+      body.dnd-mode .btn-add,
+      body.dnd-mode .btn-remove,
+      body.dnd-mode .window-item .btn,
+      body.dnd-mode .window-item button,
+      body.dnd-mode #managedCount {
+        display: none !important;
+      }
+      body.dnd-mode #stackTitle {
+        pointer-events: none;
+      }
+      #dndBtn {
+        background: none;
+        border: 1px solid var(--btn-blue-border, #3d5afe);
+        color: var(--btn-blue-text, #90caf9);
+        font-size: 14px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        line-height: 1;
+        -webkit-app-region: no-drag;
+        transition: all 0.15s ease;
+      }
+      #dndBtn:hover {
+        border-color: var(--btn-blue-text, #90caf9);
+      }
+      #dndBtn.active {
+        border-color: var(--rename-toggle-active-border);
+        color: var(--rename-toggle-active-text);
+        background: var(--rename-toggle-active-bg);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header" style="display: flex; align-items: center; justify-content: space-between">
+      <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
+      <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag">
+        <button id="dndBtn" title="Do Not Disturb — hide all controls" onclick="toggleDndMode()">&#8856;</button>
+        <div id="colorPickerBtn" class="color-picker-btn" title="Change background color"></div>
+        <input type="color" id="bgColorInput" value="#000000" style="display: none" />
+        <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode" onclick="toggleLightMode()">
+          &#9788;
+        </button>
       </div>
-      <div class="dims-row dims-inputs hidden" id="dimsInputs">
-        <div class="dims-field">
-          <label class="dims-input-label">WIDTH</label>
-          <input type="number" id="customWidthInput" min="200" step="10" placeholder="auto">
+    </div>
+
+    <div class="section dimensions-section">
+      <div class="section-header">
+        <span>DIMENSIONS</span>
+        <button id="toggleDimsBtn" class="btn-green" onclick="toggleDimensionsSection()">Show</button>
+      </div>
+      <div class="dims-content hidden" id="dimsContent">
+        <div class="dims-row">
+          <label class="dims-label">
+            <input type="checkbox" id="customSizeToggle" onchange="onCustomSizeToggle()" />
+            <span>Custom size</span>
+          </label>
         </div>
-        <div class="dims-field">
-          <label class="dims-input-label">HEIGHT</label>
-          <input type="number" id="customHeightInput" min="200" step="10" placeholder="auto">
+        <div class="dims-row dims-inputs hidden" id="dimsInputs">
+          <div class="dims-field">
+            <label class="dims-input-label">WIDTH</label>
+            <input type="number" id="customWidthInput" min="200" step="10" placeholder="auto" />
+          </div>
+          <div class="dims-field">
+            <label class="dims-input-label">HEIGHT</label>
+            <input type="number" id="customHeightInput" min="200" step="10" placeholder="auto" />
+          </div>
+          <div class="dims-field">
+            <label class="dims-input-label">GAP</label>
+            <input type="number" id="stackGapInput" min="0" max="500" step="10" placeholder="0" />
+          </div>
+          <div class="dims-field">
+            <label class="dims-input-label">TOP</label>
+            <input type="number" id="topOffsetInput" min="0" max="500" step="10" placeholder="0" />
+          </div>
         </div>
-        <div class="dims-field">
-          <label class="dims-input-label">GAP</label>
-          <input type="number" id="stackGapInput" min="0" max="500" step="10" placeholder="0">
+        <div class="dims-row dims-inputs hidden" id="dimsButtons">
+          <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
+          <button class="btn btn-remove" onclick="resetCustomDimensions()">Reset</button>
         </div>
-        <div class="dims-field">
-          <label class="dims-input-label">TOP</label>
-          <input type="number" id="topOffsetInput" min="0" max="500" step="10" placeholder="0">
-        </div>
-      </div>
-      <div class="dims-row dims-inputs hidden" id="dimsButtons">
-        <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
-        <button class="btn btn-remove" onclick="resetCustomDimensions()">Reset</button>
       </div>
     </div>
-  </div>
-  <div class="divider"></div>
+    <div class="divider"></div>
 
-  <!-- Managed Windows Section (read-only status) -->
-  <div class="section" style="flex: 1;">
-    <div class="section-header">
-      <span id="managedSubtitle">MANAGED STACK</span>
-      <div style="display: flex; align-items: center; gap: 4px;">
-        <button id="dynamicReorderBtn" class="rename-toggle btn-blue" onclick="toggleDynamicReorder()" title="When active, the list order follows window focus: active window moves to bottom">Dynamic</button>
-        <button id="renameToggleBtn" class="rename-toggle btn-blue" onclick="toggleRenameMode()"
-          title="Toggle rename mode">Rename</button>
-        <span id="managedCount">0</span>
+    <!-- Managed Windows Section (read-only status) -->
+    <div class="section" style="flex: 1">
+      <div class="section-header">
+        <span id="managedSubtitle">MANAGED STACK</span>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button
+            id="dynamicReorderBtn"
+            class="rename-toggle btn-blue"
+            onclick="toggleDynamicReorder()"
+            title="When active, the list order follows window focus: active window moves to bottom"
+          >
+            Dynamic
+          </button>
+          <button
+            id="renameToggleBtn"
+            class="rename-toggle btn-blue"
+            onclick="toggleRenameMode()"
+            title="Toggle rename mode"
+          >
+            Rename
+          </button>
+          <span id="managedCount">0</span>
+        </div>
       </div>
+      <div class="window-list" id="managedList"></div>
     </div>
-    <div class="window-list" id="managedList"></div>
-  </div>
 
-  <div class="divider"></div>
+    <div class="divider"></div>
 
-  <!-- Available Windows Section (add/remove actions) -->
-  <div class="section" style="flex: 1;">
-    <div class="section-header">
-      <span>Available Windows</span>
-      <div style="display: flex; gap: 8px;">
-        <button id="sortAlphaBtn" class="rename-toggle btn-blue" onclick="toggleSortAlpha()" title="Sort alphabetically">A-Z</button>
-        <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
-        <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
+    <!-- Available Windows Section (add/remove actions) -->
+    <div class="section" style="flex: 1">
+      <div class="section-header">
+        <span>Available Windows</span>
+        <div style="display: flex; gap: 8px">
+          <button
+            id="sortAlphaBtn"
+            class="rename-toggle btn-blue"
+            onclick="toggleSortAlpha()"
+            title="Sort alphabetically"
+          >
+            A-Z
+          </button>
+          <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
+          <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
+        </div>
       </div>
+      <div class="window-list" id="availableList"></div>
     </div>
-    <div class="window-list" id="availableList"></div>
-  </div>
 
-  <script>
-    let availableWindows = [];
-    let managedWindows = [];
-    let activeHwnd = 0;
+    <script>
+      let availableWindows = [];
+      let managedWindows = [];
+      let activeHwnd = 0;
 
-    let isAvailableHidden = false;
-    let sortAvailableAlpha = false;
-    let dynamicReorderEnabled = false;
-    let customSizeEnabled = false;
-    let renameModeEnabled = false;
-    let dndMode = false;
-    let _isEditingName = false;
+      let isAvailableHidden = false;
+      let sortAvailableAlpha = false;
+      let dynamicReorderEnabled = false;
+      let customSizeEnabled = false;
+      let renameModeEnabled = false;
+      let dndMode = false;
+      let _isEditingName = false;
 
-    let _interactionGuard = false;
-    let _interactionGuardTimer = null;
+      let _interactionGuard = false;
+      let _interactionGuardTimer = null;
 
-    let _undoTimer = null;
-    let _undoToastEl = null;
+      let _undoTimer = null;
+      let _undoToastEl = null;
 
-    // Track the last known custom background color for restoring when light mode is off
-    let _lastBgColor = null;
+      // Track the last known custom background color for restoring when light mode is off
+      let _lastBgColor = null;
 
-    function setInteractionGuard(durationMs = 1000) {
-      _interactionGuard = true;
-      if (_interactionGuardTimer) clearTimeout(_interactionGuardTimer);
-      _interactionGuardTimer = setTimeout(() => {
-        _interactionGuard = false;
-        _interactionGuardTimer = null;
-      }, durationMs);
-    }
+      function setInteractionGuard(durationMs = 1000) {
+        _interactionGuard = true;
+        if (_interactionGuardTimer) clearTimeout(_interactionGuardTimer);
+        _interactionGuardTimer = setTimeout(() => {
+          _interactionGuard = false;
+          _interactionGuardTimer = null;
+        }, durationMs);
+      }
 
-    function showUndoToast(hwnd, title) {
-      // Remove any existing toast immediately
-      if (_undoToastEl) {
+      function showUndoToast(hwnd, title) {
+        // Remove any existing toast immediately
+        if (_undoToastEl) {
+          clearTimeout(_undoTimer);
+          _undoToastEl.remove();
+          _undoToastEl = null;
+          _undoTimer = null;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'undo-toast';
+        toast.innerHTML =
+          'Removed <strong>' +
+          title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+          '</strong> <button class="undo-btn" onclick="undoRemove(' +
+          hwnd +
+          ')">Undo</button>';
+        document.body.appendChild(toast);
+        _undoToastEl = toast;
+
+        _undoTimer = setTimeout(() => {
+          if (_undoToastEl === toast) {
+            toast.classList.add('hiding');
+            setTimeout(() => {
+              if (toast.parentNode) toast.remove();
+              if (_undoToastEl === toast) _undoToastEl = null;
+            }, 200);
+          }
+        }, 3000);
+      }
+
+      function undoRemove(hwnd) {
         clearTimeout(_undoTimer);
-        _undoToastEl.remove();
-        _undoToastEl = null;
         _undoTimer = null;
-      }
-
-      const toast = document.createElement('div');
-      toast.className = 'undo-toast';
-      toast.innerHTML = 'Removed <strong>' + title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong> <button class="undo-btn" onclick="undoRemove(' + hwnd + ')">Undo</button>';
-      document.body.appendChild(toast);
-      _undoToastEl = toast;
-
-      _undoTimer = setTimeout(() => {
-        if (_undoToastEl === toast) {
-          toast.classList.add('hiding');
-          setTimeout(() => {
-            if (toast.parentNode) toast.remove();
-            if (_undoToastEl === toast) _undoToastEl = null;
-          }, 200);
+        if (_undoToastEl) {
+          _undoToastEl.remove();
+          _undoToastEl = null;
         }
-      }, 3000);
-    }
-
-    function undoRemove(hwnd) {
-      clearTimeout(_undoTimer);
-      _undoTimer = null;
-      if (_undoToastEl) {
-        _undoToastEl.remove();
-        _undoToastEl = null;
+        addWindow(hwnd, '');
       }
-      addWindow(hwnd, '');
-    }
 
-    async function onBackgroundColorChange(color) {
-      _lastBgColor = color;
-      document.getElementById('colorPickerBtn').style.background = color;
-      // Only apply inline bg color when light mode is OFF
-      if (!document.body.classList.contains('light-mode')) {
-        document.body.style.backgroundColor = color;
+      async function onBackgroundColorChange(color) {
+        _lastBgColor = color;
+        document.getElementById('colorPickerBtn').style.background = color;
+        // Only apply inline bg color when light mode is OFF
+        if (!document.body.classList.contains('light-mode')) {
+          document.body.style.backgroundColor = color;
+        }
+        try {
+          await window.electronAPI.setBackgroundColor(color);
+        } catch (e) {
+          console.error('Failed to set background color:', e);
+        }
       }
-      try {
-        await window.electronAPI.setBackgroundColor(color);
-      } catch (e) {
-        console.error('Failed to set background color:', e);
+
+      function openColorPicker() {
+        if (window.electronAPI.setColorPickerLock) {
+          window.electronAPI.setColorPickerLock(true);
+        }
+        document.getElementById('bgColorInput').click();
       }
-    }
 
-    function openColorPicker() {
-      if (window.electronAPI.setColorPickerLock) {
-        window.electronAPI.setColorPickerLock(true);
+      // === LIGHT MODE FUNCTIONS ===
+
+      function applyLightMode(enabled) {
+        const btn = document.getElementById('lightModeBtn');
+        if (enabled) {
+          document.body.classList.add('light-mode');
+          // Clear inline backgroundColor so CSS variable takes over
+          document.body.style.backgroundColor = '';
+          if (btn) {
+            btn.classList.add('active');
+            btn.innerHTML = '&#9790;'; // Moon symbol
+            btn.title = 'Switch to dark mode';
+          }
+        } else {
+          document.body.classList.remove('light-mode');
+          // Restore last known custom background color
+          if (_lastBgColor) {
+            document.body.style.backgroundColor = _lastBgColor;
+          }
+          if (btn) {
+            btn.classList.remove('active');
+            btn.innerHTML = '&#9788;'; // Sun symbol
+            btn.title = 'Switch to light mode';
+          }
+        }
       }
-      document.getElementById('bgColorInput').click();
-    }
 
-    // === LIGHT MODE FUNCTIONS ===
+      async function toggleLightMode() {
+        const isCurrentlyLight = document.body.classList.contains('light-mode');
+        const newState = !isCurrentlyLight;
+        applyLightMode(newState);
+        try {
+          await window.electronAPI.setLightMode(newState);
+        } catch (e) {
+          console.error('Failed to set light mode:', e);
+        }
+      }
 
-    function applyLightMode(enabled) {
-      const btn = document.getElementById('lightModeBtn');
-      if (enabled) {
-        document.body.classList.add('light-mode');
-        // Clear inline backgroundColor so CSS variable takes over
-        document.body.style.backgroundColor = '';
-        if (btn) {
+      async function toggleDynamicReorder() {
+        dynamicReorderEnabled = !dynamicReorderEnabled;
+        const btn = document.getElementById('dynamicReorderBtn');
+        if (dynamicReorderEnabled) {
           btn.classList.add('active');
-          btn.innerHTML = '&#9790;'; // Moon symbol
-          btn.title = 'Switch to dark mode';
-        }
-      } else {
-        document.body.classList.remove('light-mode');
-        // Restore last known custom background color
-        if (_lastBgColor) {
-          document.body.style.backgroundColor = _lastBgColor;
-        }
-        if (btn) {
+        } else {
           btn.classList.remove('active');
-          btn.innerHTML = '&#9788;'; // Sun symbol
-          btn.title = 'Switch to light mode';
+        }
+        try {
+          await window.electronAPI.toggleDynamicReorder(dynamicReorderEnabled);
+        } catch (e) {
+          console.error('Failed to toggle dynamic reorder:', e);
         }
       }
-    }
 
-    async function toggleLightMode() {
-      const isCurrentlyLight = document.body.classList.contains('light-mode');
-      const newState = !isCurrentlyLight;
-      applyLightMode(newState);
-      try {
-        await window.electronAPI.setLightMode(newState);
-      } catch (e) {
-        console.error('Failed to set light mode:', e);
-      }
-    }
-
-    async function toggleDynamicReorder() {
-      dynamicReorderEnabled = !dynamicReorderEnabled;
-      const btn = document.getElementById('dynamicReorderBtn');
-      if (dynamicReorderEnabled) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-      try {
-        await window.electronAPI.toggleDynamicReorder(dynamicReorderEnabled);
-      } catch (e) {
-        console.error('Failed to toggle dynamic reorder:', e);
-      }
-    }
-
-    function toggleRenameMode() {
-      renameModeEnabled = !renameModeEnabled;
-      const btn = document.getElementById('renameToggleBtn');
-      if (renameModeEnabled) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-        // Safety: release focus lock when exiting rename mode
-        _isEditingName = false;
-        if (window.electronAPI.setRenameFocusLock) {
-          window.electronAPI.setRenameFocusLock(false);
-        }
-      }
-      // Re-render to apply/remove contentEditable
-      scheduleRenderManaged();
-    }
-
-    function toggleDndMode() {
-      dndMode = !dndMode;
-      const btn = document.getElementById('dndBtn');
-      if (dndMode) {
-        document.body.classList.add('dnd-mode');
-        btn.classList.add('active');
-        // If rename mode is active, deactivate it
+      function toggleRenameMode() {
+        renameModeEnabled = !renameModeEnabled;
+        const btn = document.getElementById('renameToggleBtn');
         if (renameModeEnabled) {
-          toggleRenameMode();
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+          // Safety: release focus lock when exiting rename mode
+          _isEditingName = false;
+          if (window.electronAPI.setRenameFocusLock) {
+            window.electronAPI.setRenameFocusLock(false);
+          }
         }
-      } else {
-        document.body.classList.remove('dnd-mode');
-        btn.classList.remove('active');
+        // Re-render to apply/remove contentEditable
+        scheduleRenderManaged();
       }
-    }
 
-    function toggleDimensionsSection() {
-      const content = document.getElementById('dimsContent');
-      const btn = document.getElementById('toggleDimsBtn');
-      if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        btn.textContent = 'Hide';
-      } else {
-        content.classList.add('hidden');
-        btn.textContent = 'Show';
-      }
-    }
-
-    function onCustomSizeToggle() {
-      const toggle = document.getElementById('customSizeToggle');
-      const inputs = document.getElementById('dimsInputs');
-      const buttons = document.getElementById('dimsButtons');
-      customSizeEnabled = toggle.checked;
-      if (customSizeEnabled) {
-        inputs.classList.remove('hidden');
-        buttons.classList.remove('hidden');
-      } else {
-        inputs.classList.add('hidden');
-        buttons.classList.add('hidden');
-        // Reset when unchecking
-        resetCustomDimensions();
-      }
-    }
-
-    async function applyCustomDimensions() {
-      const w = parseInt(document.getElementById('customWidthInput').value);
-      const h = parseInt(document.getElementById('customHeightInput').value);
-      const gap = parseInt(document.getElementById('stackGapInput').value);
-      const top = parseInt(document.getElementById('topOffsetInput').value);
-      try {
-        // Apply width/height only if both are valid
-        if (w >= 200 && h >= 200) {
-          await window.electronAPI.setCustomDimensions(w, h);
+      function toggleDndMode() {
+        dndMode = !dndMode;
+        const btn = document.getElementById('dndBtn');
+        if (dndMode) {
+          document.body.classList.add('dnd-mode');
+          btn.classList.add('active');
+          // If rename mode is active, deactivate it
+          if (renameModeEnabled) {
+            toggleRenameMode();
+          }
+        } else {
+          document.body.classList.remove('dnd-mode');
+          btn.classList.remove('active');
         }
-        // Apply gap independently
-        if (!isNaN(gap) && gap >= 0) {
-          await window.electronAPI.setStackGap(gap);
-        }
-        // Apply top independently
-        if (!isNaN(top) && top >= 0) {
-          await window.electronAPI.setTopOffset(top);
-        }
-      } catch (e) {
-        console.error('Failed to apply dimensions:', e);
       }
-    }
 
-    async function resetCustomDimensions() {
-      try {
-        await window.electronAPI.setCustomDimensions(null, null);
-        await window.electronAPI.setStackGap(0);
-        await window.electronAPI.setTopOffset(0);
-        document.getElementById('customWidthInput').value = '';
-        document.getElementById('customHeightInput').value = '';
-        document.getElementById('stackGapInput').value = '';
-        document.getElementById('topOffsetInput').value = '';
-        document.getElementById('customSizeToggle').checked = false;
-        document.getElementById('dimsInputs').classList.add('hidden');
-        document.getElementById('dimsButtons').classList.add('hidden');
-        customSizeEnabled = false;
-      } catch (e) {
-        console.error('Failed to reset dimensions:', e);
+      function toggleDimensionsSection() {
+        const content = document.getElementById('dimsContent');
+        const btn = document.getElementById('toggleDimsBtn');
+        if (content.classList.contains('hidden')) {
+          content.classList.remove('hidden');
+          btn.textContent = 'Hide';
+        } else {
+          content.classList.add('hidden');
+          btn.textContent = 'Show';
+        }
       }
-    }
 
-    // Title editing logic
-    const stackTitle = document.getElementById('stackTitle');
-    const managedSubtitle = document.getElementById('managedSubtitle');
+      function onCustomSizeToggle() {
+        const toggle = document.getElementById('customSizeToggle');
+        const inputs = document.getElementById('dimsInputs');
+        const buttons = document.getElementById('dimsButtons');
+        customSizeEnabled = toggle.checked;
+        if (customSizeEnabled) {
+          inputs.classList.remove('hidden');
+          buttons.classList.remove('hidden');
+        } else {
+          inputs.classList.add('hidden');
+          buttons.classList.add('hidden');
+          // Reset when unchecking
+          resetCustomDimensions();
+        }
+      }
 
-    stackTitle.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (!document.hasFocus()) {
-          // Window lost OS focus (e.g. SetForegroundWindow stole it) — re-focus
-          stackTitle.focus();
+      async function applyCustomDimensions() {
+        const w = parseInt(document.getElementById('customWidthInput').value);
+        const h = parseInt(document.getElementById('customHeightInput').value);
+        const gap = parseInt(document.getElementById('stackGapInput').value);
+        const top = parseInt(document.getElementById('topOffsetInput').value);
+        try {
+          // Apply width/height only if both are valid
+          if (w >= 200 && h >= 200) {
+            await window.electronAPI.setCustomDimensions(w, h);
+          }
+          // Apply gap independently
+          if (!isNaN(gap) && gap >= 0) {
+            await window.electronAPI.setStackGap(gap);
+          }
+          // Apply top independently
+          if (!isNaN(top) && top >= 0) {
+            await window.electronAPI.setTopOffset(top);
+          }
+        } catch (e) {
+          console.error('Failed to apply dimensions:', e);
+        }
+      }
+
+      async function resetCustomDimensions() {
+        try {
+          await window.electronAPI.setCustomDimensions(null, null);
+          await window.electronAPI.setStackGap(0);
+          await window.electronAPI.setTopOffset(0);
+          document.getElementById('customWidthInput').value = '';
+          document.getElementById('customHeightInput').value = '';
+          document.getElementById('stackGapInput').value = '';
+          document.getElementById('topOffsetInput').value = '';
+          document.getElementById('customSizeToggle').checked = false;
+          document.getElementById('dimsInputs').classList.add('hidden');
+          document.getElementById('dimsButtons').classList.add('hidden');
+          customSizeEnabled = false;
+        } catch (e) {
+          console.error('Failed to reset dimensions:', e);
+        }
+      }
+
+      // Title editing logic
+      const stackTitle = document.getElementById('stackTitle');
+      const managedSubtitle = document.getElementById('managedSubtitle');
+
+      stackTitle.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (!document.hasFocus()) {
+            // Window lost OS focus (e.g. SetForegroundWindow stole it) — re-focus
+            stackTitle.focus();
+            return;
+          }
+          _isEditingName = false;
+          if (window.electronAPI.setRenameFocusLock) {
+            window.electronAPI.setRenameFocusLock(false);
+          }
+          saveStackTitle();
+        }, 50);
+      });
+
+      stackTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          stackTitle.blur();
+        }
+      });
+
+      stackTitle.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain').substring(0, 100);
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(document.createTextNode(text));
+          // Move cursor to end of inserted text
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      });
+
+      stackTitle.addEventListener('focus', () => {
+        _isEditingName = true;
+        if (window.electronAPI.setRenameFocusLock) {
+          window.electronAPI.setRenameFocusLock(true);
+        }
+      });
+
+      async function saveStackTitle() {
+        const newName = stackTitle.textContent.trim() || 'Managed Stack';
+        stackTitle.textContent = newName.toUpperCase();
+        if (managedSubtitle) managedSubtitle.textContent = newName.toUpperCase();
+        try {
+          if (window.electronAPI.updateStackName) {
+            await window.electronAPI.updateStackName(newName);
+          }
+        } catch (e) {
+          console.error('Failed to save stack name', e);
+        }
+      }
+
+      // Toggle Visibility Logic
+      async function toggleAvailableVisibility(forceState = null) {
+        const listEl = document.getElementById('availableList');
+        const btn = document.getElementById('toggleAvailableBtn');
+
+        if (forceState !== null) {
+          isAvailableHidden = forceState;
+        } else {
+          isAvailableHidden = !isAvailableHidden;
+        }
+
+        const sectionContainer = listEl.closest('.section');
+
+        if (isAvailableHidden) {
+          listEl.classList.add('hidden');
+          btn.textContent = 'Show';
+          if (sectionContainer) sectionContainer.style.flex = 'none';
+        } else {
+          listEl.classList.remove('hidden');
+          btn.textContent = 'Hide';
+          if (sectionContainer) sectionContainer.style.flex = '1';
+        }
+
+        try {
+          if (window.electronAPI.toggleAvailableVisibility && forceState === null) {
+            await window.electronAPI.toggleAvailableVisibility(isAvailableHidden);
+          }
+        } catch (e) {
+          console.error('Failed to toggle visibility', e);
+        }
+      }
+
+      async function toggleSortAlpha() {
+        sortAvailableAlpha = !sortAvailableAlpha;
+        const btn = document.getElementById('sortAlphaBtn');
+        if (sortAvailableAlpha) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+        renderAvailable();
+        try {
+          await window.electronAPI.toggleSortAvailableAlpha(sortAvailableAlpha);
+        } catch (e) {
+          console.error('Failed to toggle sort:', e);
+        }
+      }
+
+      let _renderManagedPending = false;
+
+      function scheduleRenderManaged() {
+        if (_renderManagedPending) return;
+        _renderManagedPending = true;
+        requestAnimationFrame(() => {
+          _renderManagedPending = false;
+          renderManaged();
+        });
+      }
+
+      /**
+       * Render the managed stack — READ-ONLY status display.
+       * No Activate buttons. The active window is determined by Win32 focus.
+       * Uses DOM-diffing to reuse existing elements and enable CSS transitions.
+       */
+      function renderManaged() {
+        const container = document.getElementById('managedList');
+        const countEl = document.getElementById('managedCount');
+        countEl.textContent = managedWindows.length;
+
+        if (managedWindows.length === 0) {
+          container.innerHTML = '<div class="empty-state">No windows in stack.<br>Add windows from below.</div>';
           return;
         }
-        _isEditingName = false;
-        if (window.electronAPI.setRenameFocusLock) {
-          window.electronAPI.setRenameFocusLock(false);
-        }
-        saveStackTitle();
-      }, 50);
-    });
 
-    stackTitle.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        stackTitle.blur();
-      }
-    });
+        // Build a map of existing DOM items keyed by hwnd
+        const existingItems = new Map();
+        container.querySelectorAll('.window-item[data-hwnd]').forEach((el) => {
+          existingItems.set(Number(el.dataset.hwnd), el);
+        });
 
-    stackTitle.addEventListener('paste', (e) => {
-      e.preventDefault();
-      const text = (e.clipboardData || window.clipboardData).getData('text/plain').substring(0, 100);
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(document.createTextNode(text));
-        // Move cursor to end of inserted text
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    });
+        // Build the set of desired hwnds
+        const desiredHwnds = new Set(managedWindows.map((w) => w.hwnd));
 
-    stackTitle.addEventListener('focus', () => {
-      _isEditingName = true;
-      if (window.electronAPI.setRenameFocusLock) {
-        window.electronAPI.setRenameFocusLock(true);
-      }
-    });
-
-    async function saveStackTitle() {
-      const newName = stackTitle.textContent.trim() || 'Managed Stack';
-      stackTitle.textContent = newName.toUpperCase();
-      if (managedSubtitle) managedSubtitle.textContent = newName.toUpperCase();
-      try {
-        if (window.electronAPI.updateStackName) {
-          await window.electronAPI.updateStackName(newName);
-        }
-      } catch (e) {
-        console.error('Failed to save stack name', e);
-      }
-    }
-
-    // Toggle Visibility Logic
-    async function toggleAvailableVisibility(forceState = null) {
-      const listEl = document.getElementById('availableList');
-      const btn = document.getElementById('toggleAvailableBtn');
-
-      if (forceState !== null) {
-        isAvailableHidden = forceState;
-      } else {
-        isAvailableHidden = !isAvailableHidden;
-      }
-
-      const sectionContainer = listEl.closest('.section');
-
-      if (isAvailableHidden) {
-        listEl.classList.add('hidden');
-        btn.textContent = 'Show';
-        if (sectionContainer) sectionContainer.style.flex = 'none';
-      } else {
-        listEl.classList.remove('hidden');
-        btn.textContent = 'Hide';
-        if (sectionContainer) sectionContainer.style.flex = '1';
-      }
-
-      try {
-        if (window.electronAPI.toggleAvailableVisibility && forceState === null) {
-          await window.electronAPI.toggleAvailableVisibility(isAvailableHidden);
-        }
-      } catch (e) {
-        console.error('Failed to toggle visibility', e);
-      }
-    }
-
-    async function toggleSortAlpha() {
-      sortAvailableAlpha = !sortAvailableAlpha;
-      const btn = document.getElementById('sortAlphaBtn');
-      if (sortAvailableAlpha) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-      renderAvailable();
-      try {
-        await window.electronAPI.toggleSortAvailableAlpha(sortAvailableAlpha);
-      } catch (e) {
-        console.error('Failed to toggle sort:', e);
-      }
-    }
-
-    let _renderManagedPending = false;
-
-    function scheduleRenderManaged() {
-      if (_renderManagedPending) return;
-      _renderManagedPending = true;
-      requestAnimationFrame(() => {
-        _renderManagedPending = false;
-        renderManaged();
-      });
-    }
-
-    /**
-     * Render the managed stack — READ-ONLY status display.
-     * No Activate buttons. The active window is determined by Win32 focus.
-     * Uses DOM-diffing to reuse existing elements and enable CSS transitions.
-     */
-    function renderManaged() {
-      const container = document.getElementById('managedList');
-      const countEl = document.getElementById('managedCount');
-      countEl.textContent = managedWindows.length;
-
-      if (managedWindows.length === 0) {
-        container.innerHTML = '<div class="empty-state">No windows in stack.<br>Add windows from below.</div>';
-        return;
-      }
-
-      // Build a map of existing DOM items keyed by hwnd
-      const existingItems = new Map();
-      container.querySelectorAll('.window-item[data-hwnd]').forEach(el => {
-        existingItems.set(Number(el.dataset.hwnd), el);
-      });
-
-      // Build the set of desired hwnds
-      const desiredHwnds = new Set(managedWindows.map(w => w.hwnd));
-
-      // Remove DOM elements whose hwnd is no longer in managedWindows
-      existingItems.forEach((el, hwnd) => {
-        if (!desiredHwnds.has(hwnd)) {
-          el.remove();
-          existingItems.delete(hwnd);
-        }
-      });
-
-      // If the container only had an empty-state element, clear it now
-      const emptyState = container.querySelector('.empty-state');
-      if (emptyState) {
-        emptyState.remove();
-      }
-
-      // For each window in managedWindows: update or create, then reorder
-      managedWindows.forEach((win, index) => {
-        const isActive = (win.hwnd === activeHwnd);
-        let item = existingItems.get(win.hwnd);
-
-        if (item) {
-          // UPDATE existing element in place
-          item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
-
-          // Update click handler (rebind with current isActive closure)
-          item.onclick = async () => {
-            await activateWindow(win.hwnd);
-          };
-
-          // Update title text
-          const titleEl = item.querySelector('.managed-title');
-          if (titleEl) {
-            const displayEl = titleEl.querySelector('.display-name');
-            const origEl = titleEl.querySelector('.original-title');
-            const displayText = win.customTitle || win.title || 'Untitled';
-            // Only update if not currently being edited
-            if (displayEl && !_isEditingName && document.activeElement !== displayEl) {
-              displayEl.textContent = displayText;
-            }
-            if (displayEl) {
-              if (!_isEditingName && document.activeElement !== displayEl) {
-                displayEl.contentEditable = renameModeEnabled ? 'true' : 'false';
-              }
-              // Keep data attributes in sync so Escape handler reads current values
-              displayEl.dataset.currentCustomTitle = win.customTitle || '';
-              displayEl.dataset.currentTitle = win.title || 'Untitled';
-            }
-            if (origEl) {
-              origEl.textContent = '';
-              origEl.style.display = 'none';
-            }
+        // Remove DOM elements whose hwnd is no longer in managedWindows
+        existingItems.forEach((el, hwnd) => {
+          if (!desiredHwnds.has(hwnd)) {
+            el.remove();
+            existingItems.delete(hwnd);
           }
+        });
 
-          // Remove badge if present (no longer displayed)
-          const badge = titleEl ? titleEl.querySelector('.active-badge, .strip-badge') : null;
-          if (badge) badge.remove();
-        } else {
-          // CREATE new element with 'entering' class for fade-in animation
-          item = document.createElement('div');
-          item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive');
-          item.dataset.hwnd = win.hwnd;
+        // If the container only had an empty-state element, clear it now
+        const emptyState = container.querySelector('.empty-state');
+        if (emptyState) {
+          emptyState.remove();
+        }
 
-          item.onclick = async () => {
-            await activateWindow(win.hwnd);
-          };
+        // For each window in managedWindows: update or create, then reorder
+        managedWindows.forEach((win, index) => {
+          const isActive = win.hwnd === activeHwnd;
+          let item = existingItems.get(win.hwnd);
 
-          // Remove 'entering' class after animation completes
-          item.addEventListener('animationend', (e) => {
-            if (e.animationName === 'fadeSlideIn') {
-              item.classList.remove('entering');
-            }
-          });
+          if (item) {
+            // UPDATE existing element in place
+            item.className = 'window-item managed-item ' + (isActive ? 'active' : 'inactive');
 
-          const title = document.createElement('div');
-          title.className = 'managed-title';
+            // Update click handler (rebind with current isActive closure)
+            item.onclick = async () => {
+              await activateWindow(win.hwnd);
+            };
 
-          const displayName = document.createElement('span');
-          displayName.className = 'display-name';
-          displayName.contentEditable = renameModeEnabled ? 'true' : 'false';
-          displayName.spellcheck = false;
-          displayName.textContent = win.customTitle || win.title || 'Untitled';
-          // Store current title values as data attributes to avoid stale closure bugs
-          displayName.dataset.currentCustomTitle = win.customTitle || '';
-          displayName.dataset.currentTitle = win.title || 'Untitled';
-
-          // Focus sets the editing lock
-          displayName.addEventListener('focus', () => {
-            _isEditingName = true;
-            if (window.electronAPI.setRenameFocusLock) {
-              window.electronAPI.setRenameFocusLock(true);
-            }
-          });
-
-          // Double-click selects all text for easy replacement
-          displayName.addEventListener('dblclick', (e) => {
-            if (!renameModeEnabled) return;
-            e.stopPropagation();
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(displayName);
-            selection.removeAllRanges();
-            selection.addRange(range);
-          });
-
-          // Blur saves the rename
-          displayName.addEventListener('blur', () => {
-            if (!renameModeEnabled) return;
-            // If the whole window lost focus (e.g. SetForegroundWindow stole it),
-            // don't save — the user didn't intentionally leave the field.
-            // Use a microtask to let the browser settle the new activeElement.
-            setTimeout(() => {
-              if (!document.hasFocus()) {
-                // Window lost focus — re-focus the field so user can continue editing
-                displayName.focus();
-                return;
+            // Update title text
+            const titleEl = item.querySelector('.managed-title');
+            if (titleEl) {
+              const displayEl = titleEl.querySelector('.display-name');
+              const origEl = titleEl.querySelector('.original-title');
+              const displayText = win.customTitle || win.title || 'Untitled';
+              // Only update if not currently being edited
+              if (displayEl && !_isEditingName && document.activeElement !== displayEl) {
+                displayEl.textContent = displayText;
               }
-              const newName = displayName.textContent.trim();
-              renameWindowTitle(win.hwnd, newName || null);
-              _isEditingName = false;
+              if (displayEl) {
+                if (!_isEditingName && document.activeElement !== displayEl) {
+                  displayEl.contentEditable = renameModeEnabled ? 'true' : 'false';
+                }
+                // Keep data attributes in sync so Escape handler reads current values
+                displayEl.dataset.currentCustomTitle = win.customTitle || '';
+                displayEl.dataset.currentTitle = win.title || 'Untitled';
+              }
+              if (origEl) {
+                origEl.textContent = '';
+                origEl.style.display = 'none';
+              }
+            }
+
+            // Remove badge if present (no longer displayed)
+            const badge = titleEl ? titleEl.querySelector('.active-badge, .strip-badge') : null;
+            if (badge) badge.remove();
+          } else {
+            // CREATE new element with 'entering' class for fade-in animation
+            item = document.createElement('div');
+            item.className = 'window-item managed-item entering ' + (isActive ? 'active' : 'inactive');
+            item.dataset.hwnd = win.hwnd;
+
+            item.onclick = async () => {
+              await activateWindow(win.hwnd);
+            };
+
+            // Remove 'entering' class after animation completes
+            item.addEventListener('animationend', (e) => {
+              if (e.animationName === 'fadeSlideIn') {
+                item.classList.remove('entering');
+              }
+            });
+
+            const title = document.createElement('div');
+            title.className = 'managed-title';
+
+            const displayName = document.createElement('span');
+            displayName.className = 'display-name';
+            displayName.contentEditable = renameModeEnabled ? 'true' : 'false';
+            displayName.spellcheck = false;
+            displayName.textContent = win.customTitle || win.title || 'Untitled';
+            // Store current title values as data attributes to avoid stale closure bugs
+            displayName.dataset.currentCustomTitle = win.customTitle || '';
+            displayName.dataset.currentTitle = win.title || 'Untitled';
+
+            // Focus sets the editing lock
+            displayName.addEventListener('focus', () => {
+              _isEditingName = true;
               if (window.electronAPI.setRenameFocusLock) {
-                window.electronAPI.setRenameFocusLock(false);
+                window.electronAPI.setRenameFocusLock(true);
               }
-            }, 50);
-          });
+            });
 
-          // Enter confirms (blur triggers save)
-          displayName.addEventListener('keydown', (e) => {
-            if (!renameModeEnabled) return;
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              displayName.blur();
-            }
-            if (e.key === 'Escape') {
-              e.preventDefault();
-              // Read from data attributes instead of stale closure to get current title
-              const ct = displayName.dataset.currentCustomTitle;
-              const t = displayName.dataset.currentTitle;
-              displayName.textContent = ct || t || 'Untitled';
-              displayName.blur();
-            }
-          });
-
-          displayName.addEventListener('paste', (e) => {
-            e.preventDefault();
-            const text = (e.clipboardData || window.clipboardData).getData('text/plain').substring(0, 200);
-            const selection = window.getSelection();
-            if (selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0);
-              range.deleteContents();
-              range.insertNode(document.createTextNode(text));
-              // Move cursor to end of inserted text
-              range.collapse(false);
+            // Double-click selects all text for easy replacement
+            displayName.addEventListener('dblclick', (e) => {
+              if (!renameModeEnabled) return;
+              e.stopPropagation();
+              const selection = window.getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(displayName);
               selection.removeAllRanges();
               selection.addRange(range);
-            }
-          });
+            });
 
-          // Only prevent click propagation (window activation) when rename mode is on
-          displayName.addEventListener('click', (e) => {
-            if (renameModeEnabled) {
+            // Blur saves the rename
+            displayName.addEventListener('blur', () => {
+              if (!renameModeEnabled) return;
+              // If the whole window lost focus (e.g. SetForegroundWindow stole it),
+              // don't save — the user didn't intentionally leave the field.
+              // Use a microtask to let the browser settle the new activeElement.
+              setTimeout(() => {
+                if (!document.hasFocus()) {
+                  // Window lost focus — re-focus the field so user can continue editing
+                  displayName.focus();
+                  return;
+                }
+                const newName = displayName.textContent.trim();
+                renameWindowTitle(win.hwnd, newName || null);
+                _isEditingName = false;
+                if (window.electronAPI.setRenameFocusLock) {
+                  window.electronAPI.setRenameFocusLock(false);
+                }
+              }, 50);
+            });
+
+            // Enter confirms (blur triggers save)
+            displayName.addEventListener('keydown', (e) => {
+              if (!renameModeEnabled) return;
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                displayName.blur();
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                // Read from data attributes instead of stale closure to get current title
+                const ct = displayName.dataset.currentCustomTitle;
+                const t = displayName.dataset.currentTitle;
+                displayName.textContent = ct || t || 'Untitled';
+                displayName.blur();
+              }
+            });
+
+            displayName.addEventListener('paste', (e) => {
+              e.preventDefault();
+              const text = (e.clipboardData || window.clipboardData).getData('text/plain').substring(0, 200);
+              const selection = window.getSelection();
+              if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(document.createTextNode(text));
+                // Move cursor to end of inserted text
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
+            });
+
+            // Only prevent click propagation (window activation) when rename mode is on
+            displayName.addEventListener('click', (e) => {
+              if (renameModeEnabled) {
+                e.stopPropagation();
+              }
+            });
+
+            title.appendChild(displayName);
+
+            const origTitle = document.createElement('span');
+            origTitle.className = 'original-title';
+            origTitle.style.display = 'none';
+            title.appendChild(origTitle);
+
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn btn-red';
+            removeBtn.textContent = '-';
+            removeBtn.onclick = (e) => {
               e.stopPropagation();
-            }
-          });
+              // If a displayName is focused, blur it without saving
+              const focused = item.querySelector('.display-name:focus');
+              if (focused) {
+                // Temporarily disable rename mode to prevent blur from saving
+                const wasEnabled = renameModeEnabled;
+                renameModeEnabled = false;
+                focused.blur();
+                renameModeEnabled = wasEnabled;
+              }
+              removeWindow(win.hwnd);
+            };
+            actions.appendChild(removeBtn);
 
-          title.appendChild(displayName);
+            item.appendChild(title);
+            item.appendChild(actions);
 
-          const origTitle = document.createElement('span');
-          origTitle.className = 'original-title';
-          origTitle.style.display = 'none';
-          title.appendChild(origTitle);
+            existingItems.set(win.hwnd, item);
+          }
 
-          const actions = document.createElement('div');
-          actions.className = 'actions';
-
-          const removeBtn = document.createElement('button');
-          removeBtn.className = 'btn btn-red';
-          removeBtn.textContent = '-';
-          removeBtn.onclick = (e) => {
-            e.stopPropagation();
-            // If a displayName is focused, blur it without saving
-            const focused = item.querySelector('.display-name:focus');
-            if (focused) {
-              // Temporarily disable rename mode to prevent blur from saving
-              const wasEnabled = renameModeEnabled;
-              renameModeEnabled = false;
-              focused.blur();
-              renameModeEnabled = wasEnabled;
-            }
-            removeWindow(win.hwnd);
-          };
-          actions.appendChild(removeBtn);
-
-          item.appendChild(title);
-          item.appendChild(actions);
-
-          existingItems.set(win.hwnd, item);
-        }
-
-        // Reorder: ensure item is at the correct position
-        const currentAtIndex = container.children[index];
-        if (currentAtIndex !== item) {
-          container.insertBefore(item, currentAtIndex || null);
-        }
-      });
-    }
-
-    /**
-     * Render available windows — Add buttons only.
-     */
-    function renderAvailable() {
-      const container = document.getElementById('availableList');
-
-      if (availableWindows.length === 0) {
-        container.innerHTML = '<div class="empty-state">No available windows.<br>Click Refresh to scan.</div>';
-        return;
+          // Reorder: ensure item is at the correct position
+          const currentAtIndex = container.children[index];
+          if (currentAtIndex !== item) {
+            container.insertBefore(item, currentAtIndex || null);
+          }
+        });
       }
 
-      // Build map of existing DOM items keyed by hwnd
-      const existingItems = new Map();
-      container.querySelectorAll('.window-item[data-hwnd]').forEach(el => {
-        existingItems.set(Number(el.dataset.hwnd), el);
-      });
+      /**
+       * Render available windows — Add buttons only.
+       */
+      function renderAvailable() {
+        const container = document.getElementById('availableList');
 
-      // Build set of desired hwnds
-      const desiredHwnds = new Set(availableWindows.map(w => w.hwnd));
-
-      // Remove DOM elements whose hwnd is no longer available
-      existingItems.forEach((el, hwnd) => {
-        if (!desiredHwnds.has(hwnd)) {
-          el.remove();
-          existingItems.delete(hwnd);
+        if (availableWindows.length === 0) {
+          container.innerHTML = '<div class="empty-state">No available windows.<br>Click Refresh to scan.</div>';
+          return;
         }
-      });
 
-      // Clear empty-state if present
-      const emptyState = container.querySelector('.empty-state');
-      if (emptyState) emptyState.remove();
+        // Build map of existing DOM items keyed by hwnd
+        const existingItems = new Map();
+        container.querySelectorAll('.window-item[data-hwnd]').forEach((el) => {
+          existingItems.set(Number(el.dataset.hwnd), el);
+        });
 
-      // For each available window: update existing or create new
-      const windowsToRender = sortAvailableAlpha
-        ? [...availableWindows].sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }))
-        : availableWindows;
-      windowsToRender.forEach((win, index) => {
-        let item = existingItems.get(win.hwnd);
+        // Build set of desired hwnds
+        const desiredHwnds = new Set(availableWindows.map((w) => w.hwnd));
 
-        if (item) {
-          // UPDATE existing — just update title text and rebind onclick
-          const titleEl = item.querySelector('.title');
-          if (titleEl) titleEl.textContent = win.title || 'Untitled';
-          const addBtn = item.querySelector('.btn-add');
-          if (addBtn) {
+        // Remove DOM elements whose hwnd is no longer available
+        existingItems.forEach((el, hwnd) => {
+          if (!desiredHwnds.has(hwnd)) {
+            el.remove();
+            existingItems.delete(hwnd);
+          }
+        });
+
+        // Clear empty-state if present
+        const emptyState = container.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+
+        // For each available window: update existing or create new
+        const windowsToRender = sortAvailableAlpha
+          ? [...availableWindows].sort((a, b) =>
+              (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' })
+            )
+          : availableWindows;
+        windowsToRender.forEach((win, index) => {
+          let item = existingItems.get(win.hwnd);
+
+          if (item) {
+            // UPDATE existing — just update title text and rebind onclick
+            const titleEl = item.querySelector('.title');
+            if (titleEl) titleEl.textContent = win.title || 'Untitled';
+            const addBtn = item.querySelector('.btn-add');
+            if (addBtn) {
+              addBtn.onclick = (e) => {
+                e.stopPropagation();
+                addWindow(win.hwnd, win.title);
+              };
+            }
+          } else {
+            // CREATE new element
+            item = document.createElement('div');
+            item.className = 'window-item';
+            item.dataset.hwnd = win.hwnd;
+
+            const title = document.createElement('span');
+            title.className = 'title';
+            title.textContent = win.title || 'Untitled';
+
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn btn-green';
+            addBtn.textContent = '+';
             addBtn.onclick = (e) => {
               e.stopPropagation();
               addWindow(win.hwnd, win.title);
             };
+            actions.appendChild(addBtn);
+
+            item.appendChild(title);
+            item.appendChild(actions);
+            existingItems.set(win.hwnd, item);
           }
-        } else {
-          // CREATE new element
-          item = document.createElement('div');
-          item.className = 'window-item';
-          item.dataset.hwnd = win.hwnd;
 
-          const title = document.createElement('span');
-          title.className = 'title';
-          title.textContent = win.title || 'Untitled';
-
-          const actions = document.createElement('div');
-          actions.className = 'actions';
-
-          const addBtn = document.createElement('button');
-          addBtn.className = 'btn btn-green';
-          addBtn.textContent = '+';
-          addBtn.onclick = (e) => {
-            e.stopPropagation();
-            addWindow(win.hwnd, win.title);
-          };
-          actions.appendChild(addBtn);
-
-          item.appendChild(title);
-          item.appendChild(actions);
-          existingItems.set(win.hwnd, item);
-        }
-
-        // Reorder: ensure item is at correct position
-        const currentAtIndex = container.children[index];
-        if (currentAtIndex !== item) {
-          container.insertBefore(item, currentAtIndex || null);
-        }
-      });
-    }
-
-    // API calls — activation is primarily Win32-driven, with UI fallback via activateWindow().
-    async function refreshAvailable() {
-      try {
-        availableWindows = await window.electronAPI.getAvailableWindows();
-        renderAvailable();
-      } catch (e) {
-        console.error('Failed to refresh:', e);
-      }
-    }
-
-    async function refreshManaged() {
-      try {
-        const result = await window.electronAPI.getManagedWindows();
-        managedWindows = result.windows || [];
-        activeHwnd = result.activeHwnd || 0;
-
-        if (result.stackName) {
-          const upperName = result.stackName.toUpperCase();
-          if (stackTitle && !_isEditingName && document.activeElement !== stackTitle) {
-            stackTitle.textContent = upperName;
+          // Reorder: ensure item is at correct position
+          const currentAtIndex = container.children[index];
+          if (currentAtIndex !== item) {
+            container.insertBefore(item, currentAtIndex || null);
           }
-          if (managedSubtitle) managedSubtitle.textContent = upperName;
-        }
-
-        if (result.hideAvailable !== undefined && result.hideAvailable !== isAvailableHidden) {
-          toggleAvailableVisibility(result.hideAvailable);
-        }
-
-        if (result.sortAvailableAlpha !== undefined) {
-          sortAvailableAlpha = !!result.sortAvailableAlpha;
-          const sortBtn = document.getElementById('sortAlphaBtn');
-          if (sortBtn) {
-            if (sortAvailableAlpha) sortBtn.classList.add('active');
-            else sortBtn.classList.remove('active');
-          }
-        }
-
-        if (result.dynamicReorder !== undefined) {
-          dynamicReorderEnabled = !!result.dynamicReorder;
-          const dynBtn = document.getElementById('dynamicReorderBtn');
-          if (dynBtn) {
-            if (dynamicReorderEnabled) dynBtn.classList.add('active');
-            else dynBtn.classList.remove('active');
-          }
-        }
-
-        if (result.customWidth !== undefined || result.customHeight !== undefined) {
-          const toggle = document.getElementById('customSizeToggle');
-          const inputs = document.getElementById('dimsInputs');
-          const buttons = document.getElementById('dimsButtons');
-          const widthInput = document.getElementById('customWidthInput');
-          const heightInput = document.getElementById('customHeightInput');
-
-          if (result.customWidth !== null && result.customHeight !== null) {
-            customSizeEnabled = true;
-            toggle.checked = true;
-            inputs.classList.remove('hidden');
-            buttons.classList.remove('hidden');
-            widthInput.value = result.customWidth;
-            heightInput.value = result.customHeight;
-          }
-        }
-
-        if (result.stackGap !== undefined) {
-          document.getElementById('stackGapInput').value = result.stackGap || '';
-        }
-
-        if (result.topOffset !== undefined && result.topOffset > 0) {
-          document.getElementById('topOffsetInput').value = result.topOffset;
-        }
-
-        if (result.backgroundColor) {
-          _lastBgColor = result.backgroundColor;
-          document.getElementById('colorPickerBtn').style.background = result.backgroundColor;
-          document.getElementById('bgColorInput').value = result.backgroundColor;
-          if (!document.body.classList.contains('light-mode')) {
-            document.body.style.backgroundColor = result.backgroundColor;
-          }
-        }
-
-        // Sync light mode from initial state
-        if (result.lightMode !== undefined) {
-          applyLightMode(result.lightMode);
-        }
-
-        scheduleRenderManaged();
-      } catch (e) {
-        console.error('Failed to refresh managed:', e);
+        });
       }
-    }
 
-    async function addWindow(hwnd, title) {
-      try {
-        setInteractionGuard();
-        await window.electronAPI.addWindow(hwnd, title);
-        await refreshAvailable();
-      } catch (e) {
-        console.error('Failed to add:', e);
-      }
-    }
-
-    async function removeWindow(hwnd) {
-      try {
-        setInteractionGuard();
-        const entry = managedWindows.find(w => w.hwnd === hwnd);
-        const title = entry ? (entry.customTitle || entry.title || 'Untitled') : 'Untitled';
-
-        await window.electronAPI.removeWindow(hwnd);
-        await refreshAvailable();
-        showUndoToast(hwnd, title);
-      } catch (e) {
-        console.error('Failed to remove:', e);
-      }
-    }
-
-    async function activateWindow(hwnd) {
-      try {
-        await window.electronAPI.activateWindow(hwnd);
-      } catch (e) {
-        console.error('Failed to activate:', e);
-      }
-    }
-
-    async function renameWindowTitle(hwnd, newTitle) {
-      try {
-        // Optimistic local update to prevent flicker before next state-update arrives
-        const entry = managedWindows.find(w => w.hwnd === hwnd);
-        if (entry) {
-          entry.customTitle = newTitle || null;
+      // API calls — activation is primarily Win32-driven, with UI fallback via activateWindow().
+      async function refreshAvailable() {
+        try {
+          availableWindows = await window.electronAPI.getAvailableWindows();
+          renderAvailable();
+        } catch (e) {
+          console.error('Failed to refresh:', e);
         }
-        await window.electronAPI.renameWindow(hwnd, newTitle);
-      } catch (e) {
-        console.error('Failed to rename:', e);
       }
-    }
 
-    // Initial load
-    async function init() {
-      if (!window.electronAPI) {
-        console.error('electronAPI bridge not available');
-        document.getElementById('managedList').innerHTML = '<div class="empty-state">Error: API bridge failed to load.<br>Please restart the app.</div>';
-        return;
-      }
-      // Clear any stale listeners from a previous page load, THEN register fresh
-      window.electronAPI.removeAllStateListeners();
+      async function refreshManaged() {
+        try {
+          const result = await window.electronAPI.getManagedWindows();
+          managedWindows = result.windows || [];
+          activeHwnd = result.activeHwnd || 0;
 
-      // Listen for real-time state updates from the foreground monitor
-      window.electronAPI.onStateUpdate((data) => {
-        if (data.managed) {
-          managedWindows = data.managed;
-          activeHwnd = data.activeHwnd || 0;
-
-          // Update Title if changed externally
-          if (data.stackName) {
-            const upperName = data.stackName.toUpperCase();
-            if (stackTitle && stackTitle.textContent !== upperName && !_isEditingName && document.activeElement !== stackTitle) {
+          if (result.stackName) {
+            const upperName = result.stackName.toUpperCase();
+            if (stackTitle && !_isEditingName && document.activeElement !== stackTitle) {
               stackTitle.textContent = upperName;
             }
-            if (managedSubtitle && managedSubtitle.textContent !== upperName) {
-              managedSubtitle.textContent = upperName;
-            }
+            if (managedSubtitle) managedSubtitle.textContent = upperName;
           }
 
-          // Ensure visibility state is correct on load
-          if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
-            toggleAvailableVisibility(data.hideAvailable);
+          if (result.hideAvailable !== undefined && result.hideAvailable !== isAvailableHidden) {
+            toggleAvailableVisibility(result.hideAvailable);
           }
 
-          if (data.sortAvailableAlpha !== undefined) {
-            sortAvailableAlpha = !!data.sortAvailableAlpha;
+          if (result.sortAvailableAlpha !== undefined) {
+            sortAvailableAlpha = !!result.sortAvailableAlpha;
             const sortBtn = document.getElementById('sortAlphaBtn');
             if (sortBtn) {
               if (sortAvailableAlpha) sortBtn.classList.add('active');
               else sortBtn.classList.remove('active');
             }
-            renderAvailable();
           }
 
-          if (data.dynamicReorder !== undefined) {
-            dynamicReorderEnabled = !!data.dynamicReorder;
+          if (result.dynamicReorder !== undefined) {
+            dynamicReorderEnabled = !!result.dynamicReorder;
             const dynBtn = document.getElementById('dynamicReorderBtn');
             if (dynBtn) {
               if (dynamicReorderEnabled) dynBtn.classList.add('active');
@@ -1612,104 +1559,251 @@
             }
           }
 
-          // Sync custom dimensions from state
-          if (data.customWidth !== undefined || data.customHeight !== undefined) {
-            const toggle = document.getElementById("customSizeToggle");
-            const inputs = document.getElementById("dimsInputs");
-            const buttons = document.getElementById("dimsButtons");
-            const widthInput = document.getElementById("customWidthInput");
-            const heightInput = document.getElementById("customHeightInput");
+          if (result.customWidth !== undefined || result.customHeight !== undefined) {
+            const toggle = document.getElementById('customSizeToggle');
+            const inputs = document.getElementById('dimsInputs');
+            const buttons = document.getElementById('dimsButtons');
+            const widthInput = document.getElementById('customWidthInput');
+            const heightInput = document.getElementById('customHeightInput');
 
-            if (data.customWidth != null || data.customHeight != null) {
-              toggle.checked = true;
-              inputs.classList.remove("hidden");
-              buttons.classList.remove("hidden");
-              if (data.customWidth != null && document.activeElement !== widthInput) widthInput.value = data.customWidth;
-              if (data.customHeight != null && document.activeElement !== heightInput) heightInput.value = data.customHeight;
+            if (result.customWidth !== null && result.customHeight !== null) {
               customSizeEnabled = true;
-            } else {
-              // both null — disable
-              toggle.checked = false;
-              inputs.classList.add("hidden");
-              buttons.classList.add("hidden");
-              widthInput.value = "";
-              heightInput.value = "";
-              customSizeEnabled = false;
+              toggle.checked = true;
+              inputs.classList.remove('hidden');
+              buttons.classList.remove('hidden');
+              widthInput.value = result.customWidth;
+              heightInput.value = result.customHeight;
             }
           }
 
-          // Sync stack gap from state
-          if (data.stackGap !== undefined) {
-            const gapInput = document.getElementById("stackGapInput");
-            if (gapInput && document.activeElement !== gapInput) {
-              gapInput.value = data.stackGap || "";
-            }
+          if (result.stackGap !== undefined) {
+            document.getElementById('stackGapInput').value = result.stackGap || '';
           }
 
-          // Sync topOffset
-          const topInput = document.getElementById('topOffsetInput');
-          if (topInput && document.activeElement !== topInput) {
-            topInput.value = data.topOffset || '';
+          if (result.topOffset !== undefined && result.topOffset > 0) {
+            document.getElementById('topOffsetInput').value = result.topOffset;
           }
 
-          if (data.backgroundColor) {
-            _lastBgColor = data.backgroundColor;
-            document.getElementById("colorPickerBtn").style.background = data.backgroundColor;
-            document.getElementById("bgColorInput").value = data.backgroundColor;
+          if (result.backgroundColor) {
+            _lastBgColor = result.backgroundColor;
+            document.getElementById('colorPickerBtn').style.background = result.backgroundColor;
+            document.getElementById('bgColorInput').value = result.backgroundColor;
             if (!document.body.classList.contains('light-mode')) {
-              document.body.style.backgroundColor = data.backgroundColor;
+              document.body.style.backgroundColor = result.backgroundColor;
             }
           }
 
-          // Sync light mode from state update
-          if (data.lightMode !== undefined) {
-            applyLightMode(data.lightMode);
+          // Sync light mode from initial state
+          if (result.lightMode !== undefined) {
+            applyLightMode(result.lightMode);
           }
 
           scheduleRenderManaged();
+        } catch (e) {
+          console.error('Failed to refresh managed:', e);
         }
-      });
+      }
 
-      // Color picker button: lock before opening native dialog
-      document.getElementById('colorPickerBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openColorPicker();
-      });
+      async function addWindow(hwnd, title) {
+        try {
+          setInteractionGuard();
+          await window.electronAPI.addWindow(hwnd, title);
+          await refreshAvailable();
+        } catch (e) {
+          console.error('Failed to add:', e);
+        }
+      }
 
-      // Unlock when the color input changes (user picked a color and confirmed)
-      document.getElementById('bgColorInput').addEventListener('change', function(e) {
-        onBackgroundColorChange(this.value);
-        // Small delay to let the dialog fully close before unlocking
-        setTimeout(() => {
+      async function removeWindow(hwnd) {
+        try {
+          setInteractionGuard();
+          const entry = managedWindows.find((w) => w.hwnd === hwnd);
+          const title = entry ? entry.customTitle || entry.title || 'Untitled' : 'Untitled';
+
+          await window.electronAPI.removeWindow(hwnd);
+          await refreshAvailable();
+          showUndoToast(hwnd, title);
+        } catch (e) {
+          console.error('Failed to remove:', e);
+        }
+      }
+
+      async function activateWindow(hwnd) {
+        try {
+          await window.electronAPI.activateWindow(hwnd);
+        } catch (e) {
+          console.error('Failed to activate:', e);
+        }
+      }
+
+      async function renameWindowTitle(hwnd, newTitle) {
+        try {
+          // Optimistic local update to prevent flicker before next state-update arrives
+          const entry = managedWindows.find((w) => w.hwnd === hwnd);
+          if (entry) {
+            entry.customTitle = newTitle || null;
+          }
+          await window.electronAPI.renameWindow(hwnd, newTitle);
+        } catch (e) {
+          console.error('Failed to rename:', e);
+        }
+      }
+
+      // Initial load
+      async function init() {
+        if (!window.electronAPI) {
+          console.error('electronAPI bridge not available');
+          document.getElementById('managedList').innerHTML =
+            '<div class="empty-state">Error: API bridge failed to load.<br>Please restart the app.</div>';
+          return;
+        }
+        // Clear any stale listeners from a previous page load, THEN register fresh
+        window.electronAPI.removeAllStateListeners();
+
+        // Listen for real-time state updates from the foreground monitor
+        window.electronAPI.onStateUpdate((data) => {
+          if (data.managed) {
+            managedWindows = data.managed;
+            activeHwnd = data.activeHwnd || 0;
+
+            // Update Title if changed externally
+            if (data.stackName) {
+              const upperName = data.stackName.toUpperCase();
+              if (
+                stackTitle &&
+                stackTitle.textContent !== upperName &&
+                !_isEditingName &&
+                document.activeElement !== stackTitle
+              ) {
+                stackTitle.textContent = upperName;
+              }
+              if (managedSubtitle && managedSubtitle.textContent !== upperName) {
+                managedSubtitle.textContent = upperName;
+              }
+            }
+
+            // Ensure visibility state is correct on load
+            if (data.hideAvailable !== undefined && data.hideAvailable !== isAvailableHidden) {
+              toggleAvailableVisibility(data.hideAvailable);
+            }
+
+            if (data.sortAvailableAlpha !== undefined) {
+              sortAvailableAlpha = !!data.sortAvailableAlpha;
+              const sortBtn = document.getElementById('sortAlphaBtn');
+              if (sortBtn) {
+                if (sortAvailableAlpha) sortBtn.classList.add('active');
+                else sortBtn.classList.remove('active');
+              }
+              renderAvailable();
+            }
+
+            if (data.dynamicReorder !== undefined) {
+              dynamicReorderEnabled = !!data.dynamicReorder;
+              const dynBtn = document.getElementById('dynamicReorderBtn');
+              if (dynBtn) {
+                if (dynamicReorderEnabled) dynBtn.classList.add('active');
+                else dynBtn.classList.remove('active');
+              }
+            }
+
+            // Sync custom dimensions from state
+            if (data.customWidth !== undefined || data.customHeight !== undefined) {
+              const toggle = document.getElementById('customSizeToggle');
+              const inputs = document.getElementById('dimsInputs');
+              const buttons = document.getElementById('dimsButtons');
+              const widthInput = document.getElementById('customWidthInput');
+              const heightInput = document.getElementById('customHeightInput');
+
+              if (data.customWidth != null || data.customHeight != null) {
+                toggle.checked = true;
+                inputs.classList.remove('hidden');
+                buttons.classList.remove('hidden');
+                if (data.customWidth != null && document.activeElement !== widthInput)
+                  widthInput.value = data.customWidth;
+                if (data.customHeight != null && document.activeElement !== heightInput)
+                  heightInput.value = data.customHeight;
+                customSizeEnabled = true;
+              } else {
+                // both null — disable
+                toggle.checked = false;
+                inputs.classList.add('hidden');
+                buttons.classList.add('hidden');
+                widthInput.value = '';
+                heightInput.value = '';
+                customSizeEnabled = false;
+              }
+            }
+
+            // Sync stack gap from state
+            if (data.stackGap !== undefined) {
+              const gapInput = document.getElementById('stackGapInput');
+              if (gapInput && document.activeElement !== gapInput) {
+                gapInput.value = data.stackGap || '';
+              }
+            }
+
+            // Sync topOffset
+            const topInput = document.getElementById('topOffsetInput');
+            if (topInput && document.activeElement !== topInput) {
+              topInput.value = data.topOffset || '';
+            }
+
+            if (data.backgroundColor) {
+              _lastBgColor = data.backgroundColor;
+              document.getElementById('colorPickerBtn').style.background = data.backgroundColor;
+              document.getElementById('bgColorInput').value = data.backgroundColor;
+              if (!document.body.classList.contains('light-mode')) {
+                document.body.style.backgroundColor = data.backgroundColor;
+              }
+            }
+
+            // Sync light mode from state update
+            if (data.lightMode !== undefined) {
+              applyLightMode(data.lightMode);
+            }
+
+            scheduleRenderManaged();
+          }
+        });
+
+        // Color picker button: lock before opening native dialog
+        document.getElementById('colorPickerBtn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openColorPicker();
+        });
+
+        // Unlock when the color input changes (user picked a color and confirmed)
+        document.getElementById('bgColorInput').addEventListener('change', function (e) {
+          onBackgroundColorChange(this.value);
+          // Small delay to let the dialog fully close before unlocking
+          setTimeout(() => {
+            if (window.electronAPI.setColorPickerLock) {
+              window.electronAPI.setColorPickerLock(false);
+            }
+          }, 300);
+        });
+
+        await Promise.all([refreshManaged(), refreshAvailable()]);
+
+        // Auto-refresh available windows every 5 seconds
+        setInterval(() => {
+          if (!isAvailableHidden && !_interactionGuard) {
+            refreshAvailable();
+          }
+        }, 5000);
+
+        // Refresh available windows immediately when the Electron window gains focus
+        window.addEventListener('focus', () => {
+          // Always unlock color picker when window regains focus (covers Cancel case)
           if (window.electronAPI.setColorPickerLock) {
             window.electronAPI.setColorPickerLock(false);
           }
-        }, 300);
-      });
-
-      await Promise.all([refreshManaged(), refreshAvailable()]);
-
-      // Auto-refresh available windows every 5 seconds
-      setInterval(() => {
-        if (!isAvailableHidden && !_interactionGuard) {
+          if (_interactionGuard) return;
           refreshAvailable();
-        }
-      }, 5000);
+        });
+      }
 
-      // Refresh available windows immediately when the Electron window gains focus
-      window.addEventListener('focus', () => {
-        // Always unlock color picker when window regains focus (covers Cancel case)
-        if (window.electronAPI.setColorPickerLock) {
-          window.electronAPI.setColorPickerLock(false);
-        }
-        if (_interactionGuard) return;
-        refreshAvailable();
-      });
-
-    }
-
-    init();
-  </script>
-</body>
-
+      init();
+    </script>
+  </body>
 </html>

@@ -1,6 +1,14 @@
 'use strict';
 
-const { api, koffi, WinEventProc, EVENT_SYSTEM_MOVESIZEEND, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS, OBJID_WINDOW } = require('./win32');
+const {
+  api,
+  koffi,
+  WinEventProc,
+  EVENT_SYSTEM_MOVESIZEEND,
+  WINEVENT_OUTOFCONTEXT,
+  WINEVENT_SKIPOWNPROCESS,
+  OBJID_WINDOW,
+} = require('./win32');
 
 /**
  * Monitors when the user finishes resizing or moving a managed window using
@@ -11,8 +19,8 @@ const { api, koffi, WinEventProc, EVENT_SYSTEM_MOVESIZEEND, WINEVENT_OUTOFCONTEX
 class ResizeMonitor {
   constructor() {
     this._hook = null;
-    this._callback = null;       // koffi registered callback
-    this._onResizeEnd = null;    // user callback: (hwnd) => void
+    this._callback = null; // koffi registered callback
+    this._onResizeEnd = null; // user callback: (hwnd) => void
     this._managedHwnds = new Set();
   }
 
@@ -23,29 +31,26 @@ class ResizeMonitor {
   start(onResizeEnd) {
     this._onResizeEnd = onResizeEnd;
 
-    this._callback = koffi.register(
-      (hWinEventHook, event, hwnd, idObject, idChild, idEventThread, dwmsEventTime) => {
-        try {
-          const hwndNum = Number(hwnd);
-          if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
-          if (!this._managedHwnds.has(hwndNum)) return;
-          console.log('[ResizeMonitor] Managed window resize/move ended — hwnd:', hwndNum);
-          this._onResizeEnd(hwndNum);
-        } catch (e) {
-          console.error('[ResizeMonitor] Callback error:', e);
-        }
-      },
-      koffi.pointer(WinEventProc)
-    );
+    this._callback = koffi.register((hWinEventHook, event, hwnd, idObject, idChild, idEventThread, dwmsEventTime) => {
+      try {
+        const hwndNum = Number(hwnd);
+        if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
+        if (!this._managedHwnds.has(hwndNum)) return;
+        console.log('[ResizeMonitor] Managed window resize/move ended — hwnd:', hwndNum);
+        this._onResizeEnd(hwndNum);
+      } catch (e) {
+        console.error('[ResizeMonitor] Callback error:', e);
+      }
+    }, koffi.pointer(WinEventProc));
 
     this._hook = api.SetWinEventHook(
-      EVENT_SYSTEM_MOVESIZEEND,                           // eventMin
-      EVENT_SYSTEM_MOVESIZEEND,                           // eventMax
-      0,                                                   // hmodWinEventProc (null for out-of-context)
-      koffi.address(this._callback),                       // lpfnWinEventProc
-      0,                                                   // idProcess (0 = all processes)
-      0,                                                   // idThread (0 = all threads)
-      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS      // skip events from our own process
+      EVENT_SYSTEM_MOVESIZEEND, // eventMin
+      EVENT_SYSTEM_MOVESIZEEND, // eventMax
+      0, // hmodWinEventProc (null for out-of-context)
+      koffi.address(this._callback), // lpfnWinEventProc
+      0, // idProcess (0 = all processes)
+      0, // idThread (0 = all threads)
+      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS // skip events from our own process
     );
 
     if (this._hook) {

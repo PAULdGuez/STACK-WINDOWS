@@ -1,10 +1,17 @@
 'use strict';
 
-const { api, koffi, EnumWindowsProc,
-  SWP_NOACTIVATE, SWP_SHOWWINDOW,
-  HWND_TOP, HWND_NOTOPMOST,
+const {
+  api,
+  koffi,
+  EnumWindowsProc,
+  SWP_NOACTIVATE,
+  SWP_SHOWWINDOW,
+  HWND_TOP,
+  HWND_NOTOPMOST,
   SW_RESTORE,
-  GWL_EXSTYLE, WS_EX_TOOLWINDOW } = require('./win32');
+  GWL_EXSTYLE,
+  WS_EX_TOOLWINDOW,
+} = require('./win32');
 
 const CONTROLLER_WIDTH = 300;
 const HEADER_HEIGHT = 40;
@@ -22,7 +29,7 @@ class WindowManager {
     this.backgroundColor = '#000000';
     this.stackGap = 0; // pixels of horizontal gap between controller and managed windows
     this.topOffset = 0; // pixels of vertical offset from top of work area
-    this.customWidth = null;  // null = use all available space (default behavior)
+    this.customWidth = null; // null = use all available space (default behavior)
     this.customHeight = null; // null = use all available space (default behavior)
     this.lightMode = false;
     this.dynamicReorder = false;
@@ -60,7 +67,7 @@ class WindowManager {
    */
   getAvailableWindows(excludeHwnds = new Set()) {
     const windows = [];
-    const managedHwnds = new Set(this.managedWindows.map(w => w.hwnd));
+    const managedHwnds = new Set(this.managedWindows.map((w) => w.hwnd));
 
     const callback = koffi.register((hwnd, lParam) => {
       try {
@@ -92,8 +99,8 @@ class WindowManager {
             left: rect.left || 0,
             top: rect.top || 0,
             right: rect.right || 0,
-            bottom: rect.bottom || 0
-          }
+            bottom: rect.bottom || 0,
+          },
         });
       } catch (e) {
         // Skip windows that cause errors
@@ -121,11 +128,13 @@ class WindowManager {
   addWindow(hwnd, title) {
     const hwndNum = Number(hwnd);
 
-    if (this.managedWindows.some(w => w.hwnd === hwndNum)) return;
+    if (this.managedWindows.some((w) => w.hwnd === hwndNum)) return;
 
     try {
       if (!api.IsWindow(hwndNum)) return;
-    } catch (e) { return; }
+    } catch (e) {
+      return;
+    }
 
     const rect = { left: 0, top: 0, right: 0, bottom: 0 };
     try {
@@ -153,8 +162,8 @@ class WindowManager {
         left: rect.left || 0,
         top: rect.top || 0,
         right: rect.right || 0,
-        bottom: rect.bottom || 0
-      }
+        bottom: rect.bottom || 0,
+      },
     };
 
     // Insert at front
@@ -179,7 +188,7 @@ class WindowManager {
    */
   removeWindow(hwnd) {
     const hwndNum = Number(hwnd);
-    const idx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
+    const idx = this.managedWindows.findIndex((w) => w.hwnd === hwndNum);
     if (idx === -1) return;
 
     const entry = this.managedWindows[idx];
@@ -205,7 +214,7 @@ class WindowManager {
    */
   promoteToActive(hwnd, forceNativeForeground = false) {
     const hwndNum = Number(hwnd);
-    const idx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
+    const idx = this.managedWindows.findIndex((w) => w.hwnd === hwndNum);
     if (idx === -1) return false;
 
     if (this.activeHwnd === hwndNum) {
@@ -227,7 +236,7 @@ class WindowManager {
     this.activeHwnd = hwndNum;
 
     if (this.dynamicReorder) {
-      const currentIdx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
+      const currentIdx = this.managedWindows.findIndex((w) => w.hwnd === hwndNum);
       if (currentIdx !== -1 && currentIdx !== this.managedWindows.length - 1) {
         const [entry] = this.managedWindows.splice(currentIdx, 1);
         this.managedWindows.push(entry);
@@ -255,7 +264,7 @@ class WindowManager {
     const before = this.managedWindows.length;
     let activeWindowStillAlive = false;
 
-    this.managedWindows = this.managedWindows.filter(w => {
+    this.managedWindows = this.managedWindows.filter((w) => {
       try {
         const alive = api.IsWindow(w.hwnd) !== 0;
         if (alive && w.hwnd === this.activeHwnd) {
@@ -313,7 +322,16 @@ class WindowManager {
             if (target.restore) {
               api.ShowWindow(target.hwnd, SW_RESTORE);
             }
-            hInfo = api.DeferWindowPos(hInfo, target.hwnd, HWND_TOP, target.x, target.y, target.cx, target.cy, target.flags);
+            hInfo = api.DeferWindowPos(
+              hInfo,
+              target.hwnd,
+              HWND_TOP,
+              target.x,
+              target.y,
+              target.cx,
+              target.cy,
+              target.flags
+            );
             if (!hInfo) break;
           } catch (e) {
             console.error('_applyLayout: DeferWindowPos failed for hwnd ' + target.hwnd + ':', e);
@@ -321,7 +339,9 @@ class WindowManager {
           }
         }
         if (hInfo) {
-          try { api.EndDeferWindowPos(hInfo); } catch (e) {
+          try {
+            api.EndDeferWindowPos(hInfo);
+          } catch (e) {
             console.error('_applyLayout: EndDeferWindowPos failed:', e);
           }
         }
@@ -358,9 +378,7 @@ class WindowManager {
 
     // Use displayRightEdge passed from main.js (based on the display where the app lives).
     // Fallback to a safe default if not provided (backward compat).
-    const displayRightEdge = workArea.displayRightEdge != null
-      ? workArea.displayRightEdge
-      : startX + 1920; // fallback: assume 1920px wide display starting at startX
+    const displayRightEdge = workArea.displayRightEdge != null ? workArea.displayRightEdge : startX + 1920; // fallback: assume 1920px wide display starting at startX
     const availableWidth = displayRightEdge - startX;
     if (availableWidth < 200) {
       console.warn('layoutStack: not enough space to the right of controller, skipping layout');
@@ -370,15 +388,11 @@ class WindowManager {
     const availableHeight = workArea.height - this.topOffset;
 
     // Apply custom dimensions (clamped to available space so we never exceed the monitor)
-    const effectiveWidth = this.customWidth !== null
-      ? Math.min(this.customWidth, availableWidth)
-      : availableWidth;
-    const effectiveHeight = this.customHeight !== null
-      ? Math.min(this.customHeight, availableHeight)
-      : availableHeight;
+    const effectiveWidth = this.customWidth !== null ? Math.min(this.customWidth, availableWidth) : availableWidth;
+    const effectiveHeight = this.customHeight !== null ? Math.min(this.customHeight, availableHeight) : availableHeight;
 
     // Determine the active window
-    const activeIdx = this.managedWindows.findIndex(w => w.hwnd === this.activeHwnd);
+    const activeIdx = this.managedWindows.findIndex((w) => w.hwnd === this.activeHwnd);
     const activeWindow = activeIdx !== -1 ? this.managedWindows[activeIdx] : this.managedWindows[0];
     const trueActiveHwnd = activeWindow ? activeWindow.hwnd : 0;
 
@@ -391,7 +405,13 @@ class WindowManager {
       effectiveHeaderHeight = Math.max(Math.floor(maxStripArea / inactiveCount), 10); // min 10px per strip
     }
 
-    const needsRestore = (hwnd) => { try { return api.IsIconic(hwnd) || api.IsZoomed(hwnd); } catch(e) { return false; } };
+    const needsRestore = (hwnd) => {
+      try {
+        return api.IsIconic(hwnd) || api.IsZoomed(hwnd);
+      } catch (e) {
+        return false;
+      }
+    };
 
     const targetLayouts = [];
 
@@ -410,7 +430,7 @@ class WindowManager {
         cx: effectiveWidth,
         cy: effectiveHeight,
         flags: SWP_NOACTIVATE | SWP_SHOWWINDOW,
-        restore: needsRestore(w.hwnd)
+        restore: needsRestore(w.hwnd),
       });
 
       stripIndex++;
@@ -420,7 +440,7 @@ class WindowManager {
     if (activeWindow) {
       if (activeWindow.hwnd !== skipHwnd) {
         const activeY = startY + inactiveCount * effectiveHeaderHeight;
-        const activeHeight = effectiveHeight - (inactiveCount * effectiveHeaderHeight);
+        const activeHeight = effectiveHeight - inactiveCount * effectiveHeaderHeight;
 
         targetLayouts.push({
           hwnd: activeWindow.hwnd,
@@ -429,7 +449,7 @@ class WindowManager {
           cx: effectiveWidth,
           cy: activeHeight > 100 ? activeHeight : effectiveHeight,
           flags: SWP_SHOWWINDOW | SWP_NOACTIVATE,
-          restore: needsRestore(activeWindow.hwnd)
+          restore: needsRestore(activeWindow.hwnd),
         });
       }
     }
@@ -440,14 +460,9 @@ class WindowManager {
   _restoreWindow(entry) {
     try {
       const r = entry.originalRect;
-      const w = (r.right - r.left) || 800;
-      const h = (r.bottom - r.top) || 600;
-      api.SetWindowPos(
-        entry.hwnd,
-        HWND_NOTOPMOST,
-        r.left, r.top, w, h,
-        SWP_SHOWWINDOW
-      );
+      const w = r.right - r.left || 800;
+      const h = r.bottom - r.top || 600;
+      api.SetWindowPos(entry.hwnd, HWND_NOTOPMOST, r.left, r.top, w, h, SWP_SHOWWINDOW);
     } catch (e) {
       console.error(`Failed to restore window ${entry.hwnd}:`, e);
     }
@@ -464,18 +479,18 @@ class WindowManager {
    * Get array of all managed HWNDs (for the foreground monitor).
    */
   getManagedHwnds() {
-    return this.managedWindows.map(w => w.hwnd);
+    return this.managedWindows.map((w) => w.hwnd);
   }
 
   /**
    * Get the current managed windows list (for UI display).
    */
   getManagedWindows() {
-    return this.managedWindows.map(w => ({
+    return this.managedWindows.map((w) => ({
       hwnd: w.hwnd,
       title: w.title,
       customTitle: w.customTitle || null,
-      processId: w.processId
+      processId: w.processId,
     }));
   }
 
@@ -488,7 +503,7 @@ class WindowManager {
    */
   renameWindow(hwnd, customTitle) {
     const hwndNum = Number(hwnd);
-    const entry = this.managedWindows.find(w => w.hwnd === hwndNum);
+    const entry = this.managedWindows.find((w) => w.hwnd === hwndNum);
     if (!entry) return false;
     entry.customTitle = (customTitle && customTitle.trim()) || null;
     return true;
@@ -502,12 +517,8 @@ class WindowManager {
    * @param {number|null} height
    */
   setCustomDimensions(width, height) {
-    this.customWidth = width !== null && width !== undefined
-      ? Math.max(200, Number(width))
-      : null;
-    this.customHeight = height !== null && height !== undefined
-      ? Math.max(200, Number(height))
-      : null;
+    this.customWidth = width !== null && width !== undefined ? Math.max(200, Number(width)) : null;
+    this.customHeight = height !== null && height !== undefined ? Math.max(200, Number(height)) : null;
   }
 
   /**
@@ -515,9 +526,7 @@ class WindowManager {
    * @param {number} gap - Gap in pixels (0 = no gap, clamped to 0-500)
    */
   setStackGap(gap) {
-    this.stackGap = gap !== null && gap !== undefined
-      ? Math.max(0, Math.min(500, Math.round(Number(gap))))
-      : 0;
+    this.stackGap = gap !== null && gap !== undefined ? Math.max(0, Math.min(500, Math.round(Number(gap)))) : 0;
   }
 
   /**
@@ -533,8 +542,8 @@ class WindowManager {
    * @param {number} offset - Offset in pixels (0 = no offset, clamped to 0-500)
    */
   setTopOffset(offset) {
-    this.topOffset = offset !== null && offset !== undefined
-      ? Math.max(0, Math.min(500, Math.round(Number(offset)))) : 0;
+    this.topOffset =
+      offset !== null && offset !== undefined ? Math.max(0, Math.min(500, Math.round(Number(offset)))) : 0;
   }
 
   /**
@@ -545,11 +554,19 @@ class WindowManager {
     return this.topOffset;
   }
 
-  setLightMode(enabled) { this.lightMode = !!enabled; }
-  getLightMode() { return this.lightMode; }
+  setLightMode(enabled) {
+    this.lightMode = !!enabled;
+  }
+  getLightMode() {
+    return this.lightMode;
+  }
 
-  setDynamicReorder(enabled) { this.dynamicReorder = !!enabled; }
-  getDynamicReorder() { return this.dynamicReorder; }
+  setDynamicReorder(enabled) {
+    this.dynamicReorder = !!enabled;
+  }
+  getDynamicReorder() {
+    return this.dynamicReorder;
+  }
 
   /**
    * Get the current custom dimensions.
@@ -574,13 +591,13 @@ class WindowManager {
       topOffset: this.topOffset,
       lightMode: this.lightMode,
       dynamicReorder: this.dynamicReorder,
-      windows: this.managedWindows.map(w => ({
+      windows: this.managedWindows.map((w) => ({
         hwnd: w.hwnd,
         title: w.title,
         customTitle: w.customTitle || null,
         processId: w.processId,
-        originalRect: w.originalRect
-      }))
+        originalRect: w.originalRect,
+      })),
     };
   }
 
@@ -594,8 +611,12 @@ class WindowManager {
     this.hideAvailable = !!hide;
   }
 
-  setSortAvailableAlpha(enabled) { this.sortAvailableAlpha = !!enabled; }
-  getSortAvailableAlpha() { return this.sortAvailableAlpha; }
+  setSortAvailableAlpha(enabled) {
+    this.sortAvailableAlpha = !!enabled;
+  }
+  getSortAvailableAlpha() {
+    return this.sortAvailableAlpha;
+  }
 
   /**
    * Move a managed window from its current position to newIndex.
@@ -606,7 +627,7 @@ class WindowManager {
    */
   reorderWindow(hwnd, newIndex) {
     const hwndNum = Number(hwnd);
-    const currentIdx = this.managedWindows.findIndex(w => w.hwnd === hwndNum);
+    const currentIdx = this.managedWindows.findIndex((w) => w.hwnd === hwndNum);
     if (currentIdx === -1) return false;
 
     const clampedIndex = Math.max(0, Math.min(this.managedWindows.length - 1, Math.round(newIndex)));
@@ -616,8 +637,6 @@ class WindowManager {
     this.managedWindows.splice(clampedIndex, 0, entry);
     return true;
   }
-
 }
-
 
 module.exports = { WindowManager, CONTROLLER_WIDTH, HEADER_HEIGHT };
