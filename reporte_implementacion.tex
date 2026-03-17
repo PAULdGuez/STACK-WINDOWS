@@ -109,8 +109,8 @@
 \vspace{2cm}
 \begin{tcolorbox}[colback=sectionblue!5, colframe=sectionblue, width=12cm]
 \centering\large
-\textbf{%%TOTAL_TASKS%% tareas completadas} $\cdot$ \textbf{3 fases ejecutadas}\\[0.3cm]
-\textbf{%%TOTAL_TESTS%% tests automatizados} $\cdot$ \textbf{%%TOTAL_COMMITS%% commits}\\[0.3cm]
+\textbf{17 tareas completadas} $\cdot$ \textbf{3 fases ejecutadas}\\[0.3cm]
+\textbf{201 tests automatizados} $\cdot$ \textbf{52 commits}\\[0.3cm]
 \textbf{Calificaci\'on: B+ $\rightarrow$ A--}
 \end{tcolorbox}
 \vspace{2cm}
@@ -132,9 +132,9 @@
 % === SECTION 1: RESUMEN EJECUTIVO ===
 \section{Resumen Ejecutivo}
 
-Se ejecut\'o el plan refinado de mejoras para \textbf{Stack Windows Electron}, un plan de %%TOTAL_TASKS%% tareas distribuidas en 3 fases que abord\'o los hallazgos pendientes de la auditor\'ia integral previa (calificaci\'on B+). El plan fue dise\~nado a partir de 9 revisiones de expertos que identificaron riesgos cr\'iticos en el ordenamiento de tareas, modelos de concurrencia defectuosos y una estrategia de testing incompleta.
+Se ejecut\'o el plan refinado de mejoras para \textbf{Stack Windows Electron}, un plan de 17 tareas distribuidas en 3 fases que abord\'o los hallazgos pendientes de la auditor\'ia integral previa (calificaci\'on B+). El plan fue dise\~nado a partir de 9 revisiones de expertos que identificaron riesgos cr\'iticos en el ordenamiento de tareas, modelos de concurrencia defectuosos y una estrategia de testing incompleta.
 
-Como resultado, se implementaron mejoras fundamentales en estabilidad (file locking con \texttt{proper-lockfile}, arquitectura CQS, heartbeat funcional), seguridad (eliminaci\'on de \texttt{unsafe-inline} del CSP, endurecimiento de \texttt{webPreferences}), calidad (ESLint + Prettier, separaci\'on del renderer monol\'itico), testing (%%TOTAL_TESTS%% tests automatizados cubriendo unit, integraci\'on y UI), y rendimiento (cache de callbacks FFI, DPI awareness, deduplicaci\'on de l\'ogica). La calificaci\'on estimada del proyecto mejor\'o de \textbf{B+} a \textbf{A--}.
+Como resultado, se implementaron mejoras fundamentales en estabilidad (file locking con \texttt{proper-lockfile}, arquitectura CQS, heartbeat funcional), seguridad (eliminaci\'on de \texttt{unsafe-inline} del CSP, endurecimiento de \texttt{webPreferences}), calidad (ESLint + Prettier, separaci\'on del renderer monol\'itico), testing (201 tests automatizados cubriendo unit, integraci\'on y UI), y rendimiento (cache de callbacks FFI, DPI awareness, deduplicaci\'on de l\'ogica). La calificaci\'on estimada del proyecto mejor\'o de \textbf{B+} a \textbf{A--}.
 
 % === SECTION 2: ORIGEN Y CONTEXTO ===
 \section{Origen y Contexto}
@@ -255,9 +255,9 @@ Se realiz\'o una extracci\'on sin cambios de l\'ogica:
 \toprule
 \textbf{Antes} & \textbf{L\'ineas} & \textbf{Despu\'es} & \textbf{L\'ineas} \\
 \midrule
-\texttt{index.html} (todo) & 1,715 & \texttt{index.html} (solo HTML) & %%RENDERER_HTML_LINES%% \\
- & & \texttt{styles.css} & %%RENDERER_CSS_LINES%% \\
- & & \texttt{app.js} & %%RENDERER_JS_LINES%% \\
+\texttt{index.html} (todo) & 1,715 & \texttt{index.html} (solo HTML) & 99 \\
+ & & \texttt{styles.css} & 719 \\
+ & & \texttt{app.js} & 930 \\
 \bottomrule
 \end{tabular}
 \caption{Separaci\'on del renderer monol\'itico}
@@ -272,7 +272,7 @@ El Content Security Policy inclu\'ia \texttt{script-src 'unsafe-inline'} porque 
 \begin{fixbox}[Soluci\'on: addEventListener + CSP endurecido]
 Se reemplazaron los 11 atributos \texttt{onclick}/\texttt{onchange} con llamadas a \texttt{addEventListener} en \texttt{app.js}. El CSP actualizado:
 
-\texttt{%%CSP_CURRENT%%}
+\texttt{default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'}
 \end{fixbox}
 
 \subsection{ESLint y Prettier (z2b.6, z2b.7)}
@@ -280,7 +280,7 @@ Se reemplazaron los 11 atributos \texttt{onclick}/\texttt{onchange} con llamadas
 Se configur\'o ESLint con reglas para Node.js/CommonJS y un override para archivos del renderer (entorno browser). Prettier se configur\'o con: single quotes, semicolons, trailing commas, 120 caracteres de ancho.
 
 \begin{infobox}[Resultado del linting]
-\textbf{%%LINT_ERRORS%% errores} $\cdot$ \textbf{%%LINT_WARNINGS%% warnings} (todos con justificaci\'on documentada via \texttt{eslint-disable} comments)
+\textbf{0 errores} $\cdot$ \textbf{12 warnings} (todos con justificaci\'on documentada via \texttt{eslint-disable} comments)
 \end{infobox}
 
 \subsection{Endurecimiento de WebPreferences (z2b.8)}
@@ -318,10 +318,10 @@ Se configur\'o Vitest como test runner con mocks globales para \texttt{electron}
 \toprule
 \textbf{M\'odulo} & \textbf{Archivo de Test} & \textbf{Tests} & \textbf{\'Areas Cubiertas} \\
 \midrule
-WindowManager & \texttt{window-manager.test.js} & %%WM_TESTS%% & add/remove, layout, reorder, dimensions, state \\
-Persistence & \texttt{persistence.test.js} & %%PERSIST_TESTS%% & save/load, write guard, cleanup \\
-InstanceRegistry & \texttt{instance-registry.test.js} & %%IR_TESTS%% & register, prune, CQS, heartbeat \\
-Renderer UI & \texttt{renderer-ui.test.js} & %%UI_TESTS%% & DOM, light/DND mode, state sync, rendering \\
+WindowManager & \texttt{window-manager.test.js} & 84 & add/remove, layout, reorder, dimensions, state \\
+Persistence & \texttt{persistence.test.js} & 16 & save/load, write guard, cleanup \\
+InstanceRegistry & \texttt{instance-registry.test.js} & 37 & register, prune, CQS, heartbeat \\
+Renderer UI & \texttt{renderer-ui.test.js} & 38 & DOM, light/DND mode, state sync, rendering \\
 \bottomrule
 \end{tabularx}
 \caption{Tests unitarios por m\'odulo}
@@ -337,7 +337,7 @@ Renderer UI & \texttt{renderer-ui.test.js} & %%UI_TESTS%% & DOM, light/DND mode,
 \subsection{Resumen de Testing}
 
 \begin{infobox}[Resultado final de tests]
-\textbf{%%TOTAL_TESTS%% tests} en \textbf{7 archivos} --- todos pasando en \textbf{$\sim$7 segundos}
+\textbf{201 tests} en \textbf{7 archivos} --- todos pasando en \textbf{$\sim$7 segundos}
 \end{infobox}
 
 % === SECTION 6: FASE 3 ===
@@ -382,12 +382,12 @@ Al cachear el callback de \texttt{EnumWindows}, el worker omiti\'o la llamada a 
 \toprule
 \textbf{M\'etrica} & \textbf{Antes} & \textbf{Despu\'es} \\
 \midrule
-Archivos fuente & 9 & %%METRIC_SRC_FILES%% \\
-L\'ineas de c\'odigo (src/) & 3,168 & %%METRIC_SRC_LINES%% \\
+Archivos fuente & 9 & 11 \\
+L\'ineas de c\'odigo (src/) & 3,168 & 4042 \\
 Archivos de test & 0 & 7 \\
-Tests automatizados & 0 & %%TOTAL_TESTS%% \\
-Errores de lint & Sin linter & %%LINT_ERRORS%% \\
-Warnings de lint & Sin linter & %%LINT_WARNINGS%% \\
+Tests automatizados & 0 & 201 \\
+Errores de lint & Sin linter & 0 \\
+Warnings de lint & Sin linter & 12 \\
 CSP script-src & \texttt{'self' 'unsafe-inline'} & \texttt{'self'} \\
 WebPreferences seguridad & 4 propiedades & 6 propiedades \\
 File locking (registry) & Ninguno & \texttt{proper-lockfile} \\
@@ -442,7 +442,7 @@ z2b.22 & P3 & Investigar detecci\'on event-driven de ventanas & 2 d\'ias \\
 
 La ejecuci\'on del plan refinado transform\'o \textbf{Stack Windows Electron} de un proyecto funcional pero fr\'agil (B+) a una base de c\'odigo robusta, testeable y mantenible (A--). Los cambios no alteraron la experiencia del usuario --- la aplicaci\'on se ve y funciona id\'enticamente --- pero mejoraron fundamentalmente su arquitectura interna.
 
-Los logros m\'as significativos fueron: (1) la eliminaci\'on del riesgo de corrupci\'on de datos en escenarios multi-instancia mediante file locking y CQS, (2) la creaci\'on de una red de seguridad de %%TOTAL_TESTS%% tests automatizados que cubren la l\'ogica cr\'itica del negocio, y (3) el endurecimiento de seguridad que cerr\'o el vector de XSS m\'as com\'un en aplicaciones Electron.
+Los logros m\'as significativos fueron: (1) la eliminaci\'on del riesgo de corrupci\'on de datos en escenarios multi-instancia mediante file locking y CQS, (2) la creaci\'on de una red de seguridad de 201 tests automatizados que cubren la l\'ogica cr\'itica del negocio, y (3) el endurecimiento de seguridad que cerr\'o el vector de XSS m\'as com\'un en aplicaciones Electron.
 
 El proyecto queda en una posici\'on s\'olida para abordar la Fase 4 (distribuci\'on y testing E2E), con la confianza de que los cambios futuros ser\'an validados autom\'aticamente por la infraestructura de testing establecida.
 
