@@ -81,6 +81,7 @@ class InstanceRegistry {
     registry.instances[this.instanceId] = {
       pid: process.pid,
       startedAt: new Date().toISOString(),
+      lastHeartbeat: new Date().toISOString(),
       managedHwnds: []
     };
 
@@ -172,7 +173,8 @@ class InstanceRegistry {
   }
 
   /**
-   * Remove entries from the registry whose PID is no longer alive.
+   * Remove entries from the registry whose PID is no longer alive,
+   * or whose lastHeartbeat is older than 5 minutes (300000ms).
    * Uses signal 0 (no-op) to check process existence.
    * @param {{ instances: Object }} registry
    * @returns {{ instances: Object }} Cleaned registry
@@ -180,13 +182,22 @@ class InstanceRegistry {
    */
   _pruneDeadInstances(registry) {
     const cleaned = { instances: {} };
+    const now = Date.now();
+    const HEARTBEAT_TIMEOUT_MS = 300000; // 5 minutes
     for (const [id, entry] of Object.entries(registry.instances || {})) {
       const alive = this._isPidAlive(entry.pid);
-      if (alive) {
-        cleaned.instances[id] = entry;
-      } else {
+      if (!alive) {
         console.log(`InstanceRegistry: pruning dead instance ${id} (pid ${entry.pid})`);
+        continue;
       }
+      if (entry.lastHeartbeat) {
+        const age = now - new Date(entry.lastHeartbeat).getTime();
+        if (age > HEARTBEAT_TIMEOUT_MS) {
+          console.log(`InstanceRegistry: pruning stale instance ${id} (lastHeartbeat ${entry.lastHeartbeat})`);
+          continue;
+        }
+      }
+      cleaned.instances[id] = entry;
     }
     return cleaned;
   }
@@ -248,15 +259,12 @@ class InstanceRegistry {
 
   /**
    * Return a Set of all managedHwnds from OTHER live instances (not this one).
-   * Prunes dead instances as a side effect.
+   * Pure read-only — does NOT prune or write to disk.
    * @returns {Set<number>}
    */
   getOtherInstancesHwnds() {
     try {
-      let registry = this._readRegistry();
-      registry = this._pruneDeadInstances(registry);
-      // Persist the pruned registry so future reads are clean
-      this._writeRegistry(registry);
+      const registry = this._readRegistry();
 
       const result = new Set();
       for (const [id, entry] of Object.entries(registry.instances)) {
@@ -273,6 +281,27 @@ class InstanceRegistry {
   }
 
   /**
+   * Start a periodic heartbeat that updates this instance's lastHeartbeat
+   * timestamp and prunes dead/stale instances every 60 seconds.
+   * @private
+   */
+  _startHeartbeat() {
+    this._heartbeatInterval = setInterval(() => {
+      try {
+        // Single atomic operation: lock, read, update timestamp, prune, write, unlock
+        const registry = this._readRegistry();
+        if (registry.instances[this.instanceId]) {
+          registry.instances[this.instanceId].lastHeartbeat = new Date().toISOString();
+        }
+        const cleaned = this._pruneDeadInstances(registry);
+        this._writeRegistry(cleaned);
+      } catch (e) {
+        console.error('InstanceRegistry: heartbeat failed:', e);
+      }
+    }, 60000); // Every 60 seconds
+  }
+
+  /**
    * Synchronously remove this instance from the registry.
    * If this was the last instance, delete the registry file entirely.
    * Safe to call from quit handlers.
@@ -283,6 +312,12 @@ class InstanceRegistry {
       if (this._debounceTimer !== null) {
         clearTimeout(this._debounceTimer);
         this._debounceTimer = null;
+      }
+
+      // Clear heartbeat interval
+      if (this._heartbeatInterval) {
+        clearInterval(this._heartbeatInterval);
+        this._heartbeatInterval = null;
       }
 
       const registry = this._readRegistry();
