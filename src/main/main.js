@@ -270,12 +270,14 @@ function onManagedWindowResized(hwnd) {
       windowManager.setTopOffset(newTopOffset);
     }
 
-    // 3. Compute new dimensions (width and height)
+    // 3. Compute new dimensions (width and height), clamped to display work area
     const newWidth = rect.right - rect.left;
     const newHeight = rect.bottom - rect.top;
 
     if (newWidth >= 200) {
-      windowManager.setCustomDimensions(newWidth, newHeight >= 200 ? newHeight : null);
+      const clampedW = Math.min(newWidth, workArea.width);
+      const clampedH = newHeight >= 200 ? Math.min(newHeight, workArea.height) : null;
+      windowManager.setCustomDimensions(clampedW, clampedH);
     }
 
     doLayout(hwnd);
@@ -453,7 +455,17 @@ function registerIPC() {
         throw new Error('Invalid width: must be null or a number >= 200');
       if (height !== null && (typeof height !== 'number' || !Number.isFinite(height) || height < 200))
         throw new Error('Invalid height: must be null or a number >= 200');
-      windowManager.setCustomDimensions(width, height);
+
+      // Clamp to display work area
+      const display = screen.getDisplayNearestPoint(
+        mainWindow.getBounds()
+      );
+      const workArea = display.workArea;
+
+      const clampedWidth = width != null ? Math.min(width, workArea.width) : width;
+      const clampedHeight = height != null ? Math.min(height, workArea.height) : height;
+
+      windowManager.setCustomDimensions(clampedWidth, clampedHeight);
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
