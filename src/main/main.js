@@ -602,6 +602,23 @@ process.on('unhandledRejection', (reason) => {
   app.exit(1);
 });
 
+// Set DPI awareness before any window creation
+try {
+  const { SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 } = require('./win32');
+  if (SetProcessDpiAwarenessContext) {
+    const result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    if (result) {
+      console.log('DPI awareness set to Per-Monitor V2');
+    } else {
+      console.warn('SetProcessDpiAwarenessContext returned false — DPI awareness may already be set');
+    }
+  } else {
+    console.warn('SetProcessDpiAwarenessContext not available on this Windows version');
+  }
+} catch (e) {
+  console.warn('Failed to set DPI awareness:', e.message);
+}
+
 app.whenReady().then(() => {
   // 1. Initialize instance registry
   instanceRegistry = new InstanceRegistry();

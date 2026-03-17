@@ -58,6 +58,26 @@ const api = {
   UnhookWinEvent: user32.func('BOOL UnhookWinEvent(intptr hWinEventHook)'),
 };
 
+// DPI Awareness
+const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4;
+
+// SetProcessDpiAwarenessContext — available on Windows 10 1703+
+let SetProcessDpiAwarenessContext;
+try {
+  SetProcessDpiAwarenessContext = user32.func('BOOL SetProcessDpiAwarenessContext(intptr value)');
+} catch (e) {
+  // API not available on older Windows versions
+  SetProcessDpiAwarenessContext = null;
+}
+
+// GetDpiForWindow — available on Windows 10 1607+
+let GetDpiForWindow;
+try {
+  GetDpiForWindow = user32.func('UINT GetDpiForWindow(HWND hwnd)');
+} catch (e) {
+  GetDpiForWindow = null;
+}
+
 // Constants
 // eslint-disable-next-line no-unused-vars -- exported for external consumers
 const SWP_NOSIZE = 0x0001;
@@ -106,4 +126,7 @@ module.exports = {
   WINEVENT_OUTOFCONTEXT,
   WINEVENT_SKIPOWNPROCESS,
   OBJID_WINDOW,
+  SetProcessDpiAwarenessContext,
+  GetDpiForWindow,
+  DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
 };
