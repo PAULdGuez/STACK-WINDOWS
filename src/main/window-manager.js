@@ -80,7 +80,7 @@ class WindowManager {
 
     this._enumResults = []; // Clear results before enumeration
     try {
-      api.EnumWindows(this._enumCallback, 0);
+      api.EnumWindows(koffi.address(this._enumCallback), 0);
     } catch (e) {
       console.error('EnumWindows failed:', e);
       return [];
