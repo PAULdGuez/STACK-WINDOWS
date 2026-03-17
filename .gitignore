@@ -4,3 +4,6 @@ dist/
 # Windows reserved device names
 nul
 *.log
+StackWindowsElectron-z2b.3/
+StackWindowsElectron-z2b.6/
+StackWindowsElectron-z2b.8/
