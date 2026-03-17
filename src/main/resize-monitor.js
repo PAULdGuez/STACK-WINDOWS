@@ -4,36 +4,32 @@ const {
   api,
   koffi,
   WinEventProc,
-  EVENT_SYSTEM_FOREGROUND,
+  EVENT_SYSTEM_MOVESIZEEND,
   WINEVENT_OUTOFCONTEXT,
   WINEVENT_SKIPOWNPROCESS,
   OBJID_WINDOW,
 } = require('./win32');
 
 /**
- * Monitors which window has foreground focus using SetWinEventHook with
- * EVENT_SYSTEM_FOREGROUND. Purely event-driven — no polling.
+ * Monitors when the user finishes resizing or moving a managed window using
+ * SetWinEventHook with EVENT_SYSTEM_MOVESIZEEND. Purely event-driven — no polling.
  *
- * When a managed window gains focus, calls the onFocusChange callback.
- *
- * This replaces Electron-driven tab activation with real Win32 focus detection.
- * The user clicks a REAL window (or its taskbar button, or Alt-Tabs to it),
- * and this monitor detects it and triggers a layout update.
+ * Pattern follows ForegroundMonitor.
  */
-class ForegroundMonitor {
+class ResizeMonitor {
   constructor() {
     this._hook = null;
     this._callback = null; // koffi registered callback
-    this._onFocusChange = null; // user callback: (hwnd) => void
+    this._onResizeEnd = null; // user callback: (hwnd) => void
     this._managedHwnds = new Set();
   }
 
   /**
-   * Start monitoring.
-   * @param {Function} onFocusChange - Called with (hwnd) when a managed window gains focus
+   * Start monitoring for resize/move end events on managed windows.
+   * @param {Function} onResizeEnd - Called with (hwnd) when a managed window finishes resize/move
    */
-  start(onFocusChange) {
-    this._onFocusChange = onFocusChange;
+  start(onResizeEnd) {
+    this._onResizeEnd = onResizeEnd;
 
     this._callback = koffi.register(
       (hWinEventHook, event, hwnd, idObject, _idChild, _idEventThread, _dwmsEventTime) => {
@@ -41,18 +37,18 @@ class ForegroundMonitor {
           const hwndNum = Number(hwnd);
           if (idObject !== OBJID_WINDOW || hwndNum === 0) return;
           if (!this._managedHwnds.has(hwndNum)) return;
-          console.log('[ForegroundMonitor] Managed window focused — hwnd:', hwndNum);
-          this._onFocusChange(hwndNum);
+          console.log('[ResizeMonitor] Managed window resize/move ended — hwnd:', hwndNum);
+          this._onResizeEnd(hwndNum);
         } catch (e) {
-          console.error('[ForegroundMonitor] Callback error:', e);
+          console.error('[ResizeMonitor] Callback error:', e);
         }
       },
       koffi.pointer(WinEventProc)
     );
 
     this._hook = api.SetWinEventHook(
-      EVENT_SYSTEM_FOREGROUND, // eventMin
-      EVENT_SYSTEM_FOREGROUND, // eventMax
+      EVENT_SYSTEM_MOVESIZEEND, // eventMin
+      EVENT_SYSTEM_MOVESIZEEND, // eventMax
       0, // hmodWinEventProc (null for out-of-context)
       koffi.address(this._callback), // lpfnWinEventProc
       0, // idProcess (0 = all processes)
@@ -61,9 +57,9 @@ class ForegroundMonitor {
     );
 
     if (this._hook) {
-      console.log('[ForegroundMonitor] Started — hook handle:', Number(this._hook));
+      console.log('[ResizeMonitor] Started — hook handle:', Number(this._hook));
     } else {
-      console.error('[ForegroundMonitor] FAILED — SetWinEventHook returned null');
+      console.error('[ResizeMonitor] FAILED — SetWinEventHook returned null');
     }
   }
 
@@ -79,7 +75,7 @@ class ForegroundMonitor {
       koffi.unregister(this._callback);
       this._callback = null;
     }
-    console.log('[ForegroundMonitor] Stopped');
+    console.log('[ResizeMonitor] Stopped');
   }
 
   /**
@@ -91,4 +87,4 @@ class ForegroundMonitor {
   }
 }
 
-module.exports = { ForegroundMonitor };
+module.exports = { ResizeMonitor };

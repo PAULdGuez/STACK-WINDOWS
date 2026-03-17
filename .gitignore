@@ -1,5 +1,19 @@
 node_modules/
 out/
 dist/
+build/
+# Windows reserved device names
 nul
 *.log
+StackWindowsElectron-z2b.3/
+StackWindowsElectron-z2b.6/
+StackWindowsElectron-z2b.8/
+StackWindowsElectron-z2b.5/
+StackWindowsElectron-z2b.7/
+StackWindowsElectron-z2b.12/
+StackWindowsElectron-z2b.13/
+StackWindowsElectron-z2b.15/
+StackWindowsElectron-z2b.14/
+StackWindowsElectron-z2b.16/
+StackWindowsElectron-z2b.17/
+StackWindowsElectron-z2b.19/

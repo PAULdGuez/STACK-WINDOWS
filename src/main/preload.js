@@ -18,11 +18,58 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Activate an already managed window
   activateWindow: (hwnd) => ipcRenderer.invoke('activate-window', hwnd),
 
+  // Rename a managed window's display title
+  renameWindow: (hwnd, customTitle) => ipcRenderer.invoke('rename-window', hwnd, customTitle),
+
   // Refresh available windows list
   refresh: () => ipcRenderer.invoke('refresh'),
 
+  // Config toggles
+  updateStackName: (name) => ipcRenderer.invoke('update-stack-name', name),
+  toggleAvailableVisibility: (isHidden) => ipcRenderer.invoke('toggle-available-visibility', isHidden),
+  resizeApp: (width, height) => ipcRenderer.invoke('resize-app', width, height),
+
+  // Custom window dimensions
+  setCustomDimensions: (width, height) => ipcRenderer.invoke('set-custom-dimensions', width, height),
+  getCustomDimensions: () => ipcRenderer.invoke('get-custom-dimensions'),
+
+  // Background color
+  setBackgroundColor: (color) => ipcRenderer.invoke('set-background-color', color),
+  getBackgroundColor: () => ipcRenderer.invoke('get-background-color'),
+
+  // Stack gap (space between controller and managed windows)
+  setStackGap: (gap) => ipcRenderer.invoke('set-stack-gap', gap),
+
+  // Top offset (vertical offset from top of work area)
+  setTopOffset: (offset) => ipcRenderer.invoke('set-top-offset', offset),
+
+  // Light mode toggle
+  setLightMode: (enabled) => ipcRenderer.invoke('set-light-mode', enabled),
+
   // Listen for state updates pushed from main process (foreground monitor events)
   onStateUpdate: (callback) => {
-    ipcRenderer.on('state-update', (event, data) => callback(data));
-  }
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('state-update', handler);
+    return () => ipcRenderer.removeListener('state-update', handler);
+  },
+
+  // Remove all state-update listeners (call before re-registering on page reload)
+  removeAllStateListeners: () => {
+    ipcRenderer.removeAllListeners('state-update');
+  },
+
+  // Reorder managed windows via drag-and-drop
+  reorderWindow: (hwnd, newIndex) => ipcRenderer.invoke('reorder-window', hwnd, newIndex),
+
+  // Suppress SetForegroundWindow while user is editing a rename field
+  setRenameFocusLock: (locked) => ipcRenderer.invoke('set-rename-focus-lock', locked),
+
+  // Suppress SetForegroundWindow while native color picker dialog is open
+  setColorPickerLock: (locked) => ipcRenderer.invoke('set-color-picker-lock', locked),
+
+  // Toggle alphabetical sorting of available windows
+  toggleSortAvailableAlpha: (enabled) => ipcRenderer.invoke('toggle-sort-available-alpha', enabled),
+
+  // Toggle dynamic reorder (auto-sync list order on focus change)
+  toggleDynamicReorder: (enabled) => ipcRenderer.invoke('toggle-dynamic-reorder', enabled),
 });

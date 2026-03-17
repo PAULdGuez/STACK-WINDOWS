@@ -2,31 +2,115 @@
 
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
-const { WindowManager, CONTROLLER_WIDTH } = require('./window-manager');
+const { WindowManager, CONTROLLER_WIDTH, HEADER_HEIGHT } = require('./window-manager');
 const { Persistence } = require('./persistence');
 const { ForegroundMonitor } = require('./foreground-monitor');
+const { ResizeMonitor } = require('./resize-monitor');
+const { InstanceRegistry } = require('./instance-registry');
+const { api } = require('./win32');
+
+function validateHwnd(hwnd) {
+  const n = Number(hwnd);
+  if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid hwnd: ' + hwnd);
+  return n;
+}
 
 let mainWindow = null;
 let windowManager = null;
 let persistence = null;
 let foregroundMonitor = null;
+let resizeMonitor = null;
+let instanceRegistry = null;
 let cleanupTimer = null;
 let saveTimer = null;
+let _layoutDebounceTimer = null;
+let _saveDebounceTimer = null;
+let _focusDebounceTimer = null;
+let _cleanedUp = false;
+let _renameFocusLocked = false;
+let _colorPickerLocked = false;
+let _ipcActionLock = false;
+let _ipcActionLockTimer = null;
+let _resizeHandling = false;
+const SAVE_DEBOUNCE_MS = 2000; // 2 seconds
 
-function getWorkArea() {
-  const primaryDisplay = screen.getPrimaryDisplay();
-  return primaryDisplay.workArea;
+function performCleanup() {
+  if (_cleanedUp) return;
+  _cleanedUp = true;
+
+  if (foregroundMonitor) foregroundMonitor.stop();
+  if (resizeMonitor) resizeMonitor.stop();
+  if (cleanupTimer) clearInterval(cleanupTimer);
+  if (saveTimer) clearInterval(saveTimer);
+  if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
+  if (_saveDebounceTimer) {
+    clearTimeout(_saveDebounceTimer);
+    _saveDebounceTimer = null;
+  }
+  if (_focusDebounceTimer) {
+    clearTimeout(_focusDebounceTimer);
+    _focusDebounceTimer = null;
+  }
+  if (_ipcActionLockTimer) {
+    clearTimeout(_ipcActionLockTimer);
+    _ipcActionLockTimer = null;
+  }
+  _colorPickerLocked = false;
+
+  if (windowManager) {
+    persistence.saveSync(windowManager.getState());
+    windowManager.cleanup();
+    windowManager.restoreAll();
+  }
+  if (persistence) persistence.cleanupFile();
+  if (instanceRegistry) instanceRegistry.unregister();
+}
+
+function debouncedSave() {
+  if (_saveDebounceTimer) clearTimeout(_saveDebounceTimer);
+  _saveDebounceTimer = setTimeout(() => {
+    _saveDebounceTimer = null;
+    if (windowManager) {
+      persistence.save(windowManager.getState());
+    }
+  }, SAVE_DEBOUNCE_MS);
+}
+
+function setIpcActionLock(durationMs = 600) {
+  _ipcActionLock = true;
+  if (_ipcActionLockTimer) clearTimeout(_ipcActionLockTimer);
+  _ipcActionLockTimer = setTimeout(() => {
+    _ipcActionLock = false;
+    _ipcActionLockTimer = null;
+  }, durationMs);
+}
+
+function getWorkArea(point) {
+  const display = point ? screen.getDisplayNearestPoint(point) : screen.getPrimaryDisplay();
+  return display.workArea;
 }
 
 function createWindow() {
   const workArea = getWorkArea();
 
+  /**
+   * Security Configuration:
+   * - contextIsolation: true — Isolates renderer from Node.js context
+   * - nodeIntegration: false — No direct Node.js access from renderer
+   * - sandbox: true — OS-level sandboxing for renderer process
+   * - webSecurity: true — Enforces same-origin policy
+   * - webviewTag: false — Prevents <webview> tag usage
+   * - allowRunningInsecureContent: false — Blocks mixed HTTP/HTTPS content
+   * - will-navigate/will-redirect handlers prevent unauthorized navigation
+   */
   mainWindow = new BrowserWindow({
     width: CONTROLLER_WIDTH,
-    height: workArea.height,
+    height: Math.floor(workArea.height * 0.9),
     x: workArea.x,
     y: workArea.y,
-    resizable: false,
+    resizable: true,
+    minWidth: 250,
+    minHeight: 120,
     alwaysOnTop: true,
     autoHideMenuBar: true,
     frame: true,
@@ -35,61 +119,188 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
-    }
+      sandbox: true,
+      webSecurity: true,
+      webviewTag: false,
+      allowRunningInsecureContent: false,
+    },
   });
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
+  mainWindow.webContents.on('will-navigate', (event) => {
+    event.preventDefault();
+  });
+  mainWindow.webContents.on('will-redirect', (event) => {
+    event.preventDefault();
+  });
+
+  mainWindow.on('resize', () => {
+    doLayout();
+    if (windowManager) {
+      debouncedSave();
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  mainWindow.on('focus', () => {
+    if (!windowManager) return;
+    if (_focusDebounceTimer) clearTimeout(_focusDebounceTimer);
+    _focusDebounceTimer = setTimeout(() => {
+      _focusDebounceTimer = null;
+      if (_renameFocusLocked || _ipcActionLock || _colorPickerLocked) return; // Skip — user is editing a name, just triggered an IPC action, or color picker is open
+      const activeHwnd = windowManager.getActiveHwnd();
+      if (activeHwnd > 0) {
+        try {
+          if (api.IsWindow(activeHwnd) !== 0) {
+            api.SetForegroundWindow(activeHwnd);
+          }
+        } catch {
+          // Silently ignore — window may have been closed
+        }
+      }
+    }, 200);
   });
 }
 
 function sendStateUpdate() {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('state-update', {
-      managed: windowManager.getManagedWindows(),
-      activeHwnd: windowManager.getActiveHwnd()
-    });
-  }
-}
-
-function doLayout() {
-  const workArea = getWorkArea();
-  windowManager.layoutStack({
-    x: workArea.x,
-    y: workArea.y,
-    width: workArea.width,
-    height: workArea.height
+  if (!windowManager || !mainWindow || mainWindow.isDestroyed()) return;
+  const dims = windowManager.getCustomDimensions();
+  mainWindow.webContents.send('state-update', {
+    managed: windowManager.getManagedWindows(),
+    activeHwnd: windowManager.getActiveHwnd(),
+    stackName: windowManager.stackName,
+    hideAvailable: windowManager.hideAvailable,
+    customWidth: dims.customWidth,
+    customHeight: dims.customHeight,
+    backgroundColor: windowManager.getBackgroundColor(),
+    stackGap: windowManager.getStackGap(),
+    topOffset: windowManager.getTopOffset(),
+    lightMode: windowManager.getLightMode(),
+    sortAvailableAlpha: windowManager.getSortAvailableAlpha(),
+    dynamicReorder: windowManager.getDynamicReorder(),
   });
 }
 
-function syncMonitor() {
-  if (foregroundMonitor) {
-    foregroundMonitor.updateManagedSet(windowManager.getManagedHwnds());
-  }
+function doLayout(skipHwnd = 0) {
+  if (!mainWindow || !windowManager) return;
+  const bounds = mainWindow.getBounds();
+  const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+  const workArea = display.workArea;
+
+  windowManager.layoutStack(
+    {
+      x: bounds.x,
+      y: workArea.y,
+      width: bounds.width,
+      height: workArea.height,
+      displayRightEdge: workArea.x + workArea.width,
+    },
+    skipHwnd
+  );
+}
+
+function doLayoutDebounced() {
+  if (_layoutDebounceTimer) clearTimeout(_layoutDebounceTimer);
+  _layoutDebounceTimer = setTimeout(() => {
+    doLayout();
+  }, 16);
+}
+
+function syncMonitors() {
+  const hwnds = windowManager.getManagedHwnds();
+  foregroundMonitor.updateManagedSet(hwnds);
+  resizeMonitor.updateManagedSet(hwnds);
 }
 
 /**
  * Called by ForegroundMonitor when a managed window gains OS focus.
- * This is the ONLY activation path — driven by real Win32 focus, not Electron UI.
+ * This is the primary activation path. A secondary path exists via the
+ * 'activate-window' IPC handler for explicit UI-driven activation.
  */
 function onManagedWindowFocused(hwnd) {
   const changed = windowManager.promoteToActive(hwnd);
   if (changed) {
-    doLayout();
+    doLayoutDebounced();
     sendStateUpdate();
-    persistence.save(windowManager.getState());
+    debouncedSave();
   }
 }
 
-// Register IPC handlers — NO activate-window handler.
-// Activation is driven by Win32 focus detection, not Electron.
+function onManagedWindowResized(hwnd) {
+  if (!windowManager || !mainWindow) return;
+  if (_resizeHandling) return;
+  _resizeHandling = true;
+  try {
+    const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+    const success = api.GetWindowRect(hwnd, rect);
+    if (!success) return;
+
+    const bounds = mainWindow.getBounds();
+    const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+    const workArea = display.workArea;
+    const panelRightEdge = bounds.x + bounds.width;
+
+    // 1. Compute new gap (horizontal position)
+    const newGap = rect.left - panelRightEdge;
+    if (newGap >= 0) {
+      windowManager.setStackGap(newGap);
+    }
+
+    // 2. Compute new topOffset (vertical position)
+    const isActive = hwnd === windowManager.getActiveHwnd();
+    const inactiveCount = windowManager.managedWindows.length - 1;
+
+    // Compute effective header height (same formula as layoutStack)
+    const maxStripArea = Math.floor(workArea.height * 0.6);
+    let effectiveHeader = HEADER_HEIGHT;
+    if (inactiveCount * effectiveHeader > maxStripArea) {
+      effectiveHeader = Math.max(Math.floor(maxStripArea / inactiveCount), 10);
+    }
+
+    let newTopOffset;
+    if (isActive && inactiveCount > 0) {
+      newTopOffset = rect.top - workArea.y - inactiveCount * effectiveHeader;
+    } else {
+      newTopOffset = rect.top - workArea.y;
+    }
+    if (newTopOffset >= 0 && newTopOffset <= 500) {
+      windowManager.setTopOffset(newTopOffset);
+    }
+
+    // 3. Compute new dimensions (width and height), clamped to display work area
+    const newWidth = rect.right - rect.left;
+    const newHeight = rect.bottom - rect.top;
+
+    if (newWidth >= 200) {
+      const clampedW = Math.min(newWidth, workArea.width);
+      const clampedH = newHeight >= 200 ? Math.min(newHeight, workArea.height) : null;
+      windowManager.setCustomDimensions(clampedW, clampedH);
+    }
+
+    doLayout(hwnd);
+    sendStateUpdate();
+    debouncedSave();
+  } catch (e) {
+    console.error('onManagedWindowResized error:', e);
+  } finally {
+    setTimeout(() => {
+      _resizeHandling = false;
+    }, 100);
+  }
+}
+
+// Register IPC handlers.
+// Activation is primarily driven by Win32 focus detection (ForegroundMonitor),
+// but an activate-window handler also exists for explicit UI-driven activation.
 function registerIPC() {
   ipcMain.handle('get-available-windows', async () => {
     try {
-      return windowManager.getAvailableWindows();
+      const excludeHwnds = instanceRegistry.getOtherInstancesHwnds();
+      return windowManager.getAvailableWindows(excludeHwnds);
     } catch (e) {
       console.error('get-available-windows error:', e);
       return [];
@@ -100,7 +311,16 @@ function registerIPC() {
     try {
       return {
         windows: windowManager.getManagedWindows(),
-        activeHwnd: windowManager.getActiveHwnd()
+        activeHwnd: windowManager.getActiveHwnd(),
+        stackName: windowManager.stackName,
+        hideAvailable: windowManager.hideAvailable,
+        ...windowManager.getCustomDimensions(),
+        backgroundColor: windowManager.getBackgroundColor(),
+        stackGap: windowManager.getStackGap(),
+        topOffset: windowManager.getTopOffset(),
+        lightMode: windowManager.getLightMode(),
+        sortAvailableAlpha: windowManager.getSortAvailableAlpha(),
+        dynamicReorder: windowManager.getDynamicReorder(),
       };
     } catch (e) {
       console.error('get-managed-windows error:', e);
@@ -110,11 +330,16 @@ function registerIPC() {
 
   ipcMain.handle('add-window', async (event, hwnd, title) => {
     try {
+      setIpcActionLock();
+      hwnd = validateHwnd(hwnd);
+      if (typeof title !== 'string') throw new Error('Invalid title: must be a string');
+      title = title.slice(0, 500);
       windowManager.addWindow(hwnd, title);
-      syncMonitor();
+      syncMonitors();
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
+      instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
       return { success: true };
     } catch (e) {
       console.error('add-window error:', e);
@@ -124,11 +349,14 @@ function registerIPC() {
 
   ipcMain.handle('remove-window', async (event, hwnd) => {
     try {
+      setIpcActionLock();
+      hwnd = validateHwnd(hwnd);
       windowManager.removeWindow(hwnd);
-      syncMonitor();
+      syncMonitors();
       doLayout();
       sendStateUpdate();
       persistence.save(windowManager.getState());
+      instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
       return { success: true };
     } catch (e) {
       console.error('remove-window error:', e);
@@ -138,9 +366,10 @@ function registerIPC() {
 
   ipcMain.handle('activate-window', async (event, hwnd) => {
     try {
+      hwnd = validateHwnd(hwnd);
       const changed = windowManager.promoteToActive(hwnd, true);
       if (changed) {
-        syncMonitor();
+        syncMonitors();
         doLayout();
         sendStateUpdate();
         persistence.save(windowManager.getState());
@@ -152,92 +381,346 @@ function registerIPC() {
     }
   });
 
+  ipcMain.handle('rename-window', async (event, hwnd, customTitle) => {
+    try {
+      hwnd = validateHwnd(hwnd);
+      if (customTitle !== null && typeof customTitle !== 'string')
+        throw new Error('Invalid customTitle: must be string or null');
+      if (typeof customTitle === 'string') customTitle = customTitle.slice(0, 200);
+      const found = windowManager.renameWindow(hwnd, customTitle);
+      if (found) {
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+      }
+      return { success: found };
+    } catch (e) {
+      console.error('rename-window error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   ipcMain.handle('refresh', async () => {
     try {
-      return windowManager.getAvailableWindows();
+      const excludeHwnds = instanceRegistry.getOtherInstancesHwnds();
+      return windowManager.getAvailableWindows(excludeHwnds);
     } catch (e) {
       console.error('refresh error:', e);
       return [];
     }
   });
+
+  ipcMain.handle('update-stack-name', async (event, name) => {
+    try {
+      if (typeof name !== 'string' && name !== null && name !== undefined) {
+        throw new Error('Invalid name: must be a string, null, or undefined');
+      }
+      if (typeof name === 'string') name = name.slice(0, 200);
+      windowManager.setStackName(name);
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('update-stack-name error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('toggle-available-visibility', async (event, isHidden) => {
+    try {
+      windowManager.setHideAvailable(isHidden);
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('toggle-available-visibility error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('resize-app', async (event, width, height) => {
+    try {
+      if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) throw new Error('Invalid width');
+      if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) throw new Error('Invalid height');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const currentBounds = mainWindow.getBounds();
+        mainWindow.setBounds({ x: currentBounds.x, y: currentBounds.y, width, height });
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('resize-app error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('set-custom-dimensions', async (event, width, height) => {
+    try {
+      if (width !== null && (typeof width !== 'number' || !Number.isFinite(width) || width < 200))
+        throw new Error('Invalid width: must be null or a number >= 200');
+      if (height !== null && (typeof height !== 'number' || !Number.isFinite(height) || height < 200))
+        throw new Error('Invalid height: must be null or a number >= 200');
+
+      // Clamp to display work area
+      const display = screen.getDisplayNearestPoint(
+        mainWindow.getBounds()
+      );
+      const workArea = display.workArea;
+
+      const clampedWidth = width != null ? Math.min(width, workArea.width) : width;
+      const clampedHeight = height != null ? Math.min(height, workArea.height) : height;
+
+      windowManager.setCustomDimensions(clampedWidth, clampedHeight);
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-custom-dimensions error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('get-custom-dimensions', async () => {
+    try {
+      return windowManager.getCustomDimensions();
+    } catch (e) {
+      console.error('get-custom-dimensions error:', e);
+      return { customWidth: null, customHeight: null };
+    }
+  });
+
+  ipcMain.handle('set-background-color', async (event, color) => {
+    try {
+      if (!/^#[0-9a-fA-F]{6}$/.test(color)) throw new Error('Invalid color: must match #rrggbb format');
+      windowManager.setBackgroundColor(color);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-background-color error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('get-background-color', async () => {
+    try {
+      return windowManager.getBackgroundColor();
+    } catch (e) {
+      console.error('get-background-color error:', e);
+      return '#000000';
+    }
+  });
+
+  ipcMain.handle('set-stack-gap', async (event, gap) => {
+    try {
+      if (gap !== null && (typeof gap !== 'number' || !Number.isFinite(gap) || gap < 0)) {
+        throw new Error('Invalid gap: must be null or a non-negative number');
+      }
+      windowManager.setStackGap(gap);
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-stack-gap error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('set-top-offset', async (event, offset) => {
+    try {
+      if (offset !== null && (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0)) {
+        throw new Error('Invalid offset: must be null or a non-negative number');
+      }
+      windowManager.setTopOffset(offset);
+      doLayout();
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-top-offset error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('set-light-mode', async (event, enabled) => {
+    try {
+      windowManager.setLightMode(enabled);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('set-light-mode error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('toggle-sort-available-alpha', async (event, enabled) => {
+    try {
+      windowManager.setSortAvailableAlpha(!!enabled);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('toggle-sort-available-alpha error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('set-rename-focus-lock', async (event, locked) => {
+    _renameFocusLocked = !!locked;
+  });
+
+  ipcMain.handle('set-color-picker-lock', async (event, locked) => {
+    _colorPickerLocked = !!locked;
+  });
+
+  ipcMain.handle('reorder-window', async (event, hwnd, newIndex) => {
+    try {
+      hwnd = validateHwnd(hwnd);
+      if (typeof newIndex !== 'number' || !Number.isFinite(newIndex))
+        throw new Error('Invalid newIndex: must be a number');
+      const moved = windowManager.reorderWindow(hwnd, newIndex);
+      if (moved) {
+        doLayout();
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+      }
+      return { success: moved };
+    } catch (e) {
+      console.error('reorder-window error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('toggle-dynamic-reorder', async (event, enabled) => {
+    try {
+      windowManager.setDynamicReorder(!!enabled);
+      sendStateUpdate();
+      persistence.save(windowManager.getState());
+      return { success: true };
+    } catch (e) {
+      console.error('toggle-dynamic-reorder error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err);
+  performCleanup();
+  app.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] unhandledRejection:', reason);
+  performCleanup();
+  app.exit(1);
+});
+
+// Set DPI awareness before any window creation
+try {
+  const { SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 } = require('./win32');
+  if (SetProcessDpiAwarenessContext) {
+    const result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    if (result) {
+      console.log('DPI awareness set to Per-Monitor V2');
+    } else {
+      console.warn('SetProcessDpiAwarenessContext returned false — DPI awareness may already be set');
+    }
+  } else {
+    console.warn('SetProcessDpiAwarenessContext not available on this Windows version');
+  }
+} catch (e) {
+  console.warn('Failed to set DPI awareness:', e.message);
 }
 
 app.whenReady().then(() => {
-  // Initialize persistence
-  persistence = new Persistence();
-  persistence.init();
+  // 1. Initialize instance registry
+  instanceRegistry = new InstanceRegistry();
+  const instanceId = instanceRegistry.init();
 
-  // Initialize window manager
-  windowManager = new WindowManager();
+  // Clean up orphaned persistence files from crashed instances
+  const userDataPath = app.getPath('userData');
+  const fs = require('fs');
+  try {
+    const files = fs.readdirSync(userDataPath);
+    const registry = instanceRegistry.getRegistry();
+    const liveIds = new Set(Object.keys(registry.instances || {}));
 
-  // Load saved state and try to reconnect to windows
-  const savedState = persistence.load();
-  if (savedState && savedState.length > 0) {
-    console.log('Restoring saved window group...');
-    windowManager.loadState(savedState);
-
-    if (windowManager.managedWindows.length > 0) {
-      console.log(`Reconnected to ${windowManager.managedWindows.length} windows`);
-    } else {
-      console.log('No saved windows could be reconnected');
+    for (const file of files) {
+      const match = file.match(/^window-group-(.+)\.json$/);
+      if (match && !liveIds.has(match[1])) {
+        fs.unlinkSync(path.join(userDataPath, file));
+        console.log('Cleaned up orphaned persistence file:', file);
+      }
     }
+  } catch (e) {
+    console.error('Failed to clean orphaned files:', e);
   }
 
-  // Initialize foreground monitor — detects when user clicks/focuses a managed window
-  foregroundMonitor = new ForegroundMonitor();
-  foregroundMonitor.start(onManagedWindowFocused);
-  syncMonitor();
+  // 2. Initialize persistence with instance-specific file
+  persistence = new Persistence();
+  persistence.init(instanceId);
 
-  // Register IPC handlers
-  registerIPC();
+  // 3. Initialize window manager — starts EMPTY, no loadState()
+  windowManager = new WindowManager();
+
+  // NOTE: We intentionally do NOT call persistence.load() or windowManager.loadState().
+  // Each new instance starts with an empty managed stack.
+  // The user adds windows manually to this instance's group.
 
   // Create the controller window
   createWindow();
 
-  // Apply layout after a short delay
-  setTimeout(() => {
-    if (windowManager.managedWindows.length > 0) {
-      doLayout();
-    }
-  }, 500);
+  // Set window title with short instance ID for visual distinction between instances
+  const shortId = instanceId.substring(0, 8);
+  mainWindow.setTitle('Stack Windows [' + shortId + ']');
+
+  // Initialize foreground monitor — detects when user clicks/focuses a managed window
+  foregroundMonitor = new ForegroundMonitor();
+  foregroundMonitor.start(onManagedWindowFocused);
+  resizeMonitor = new ResizeMonitor();
+  try {
+    resizeMonitor.start(onManagedWindowResized);
+  } catch (e) {
+    console.error('[ResizeMonitor] Failed to start:', e);
+  }
+  syncMonitors();
+
+  // Register IPC handlers
+  registerIPC();
 
   // Cleanup timer: remove dead windows every 2 seconds
   cleanupTimer = setInterval(() => {
-    const changed = windowManager.removeDeadWindows();
-    if (changed) {
-      syncMonitor();
-      doLayout();
-      sendStateUpdate();
-      persistence.save(windowManager.getState());
+    try {
+      const changed = windowManager.removeDeadWindows();
+      if (changed) {
+        syncMonitors();
+        doLayoutDebounced();
+        sendStateUpdate();
+        persistence.save(windowManager.getState());
+        instanceRegistry.updateManagedHwnds(windowManager.getManagedHwnds());
+      }
+    } catch (e) {
+      console.error('Cleanup timer error:', e);
     }
   }, 2000);
 
   // Auto-save timer: save state every 10 seconds
   saveTimer = setInterval(() => {
-    if (windowManager.managedWindows.length > 0) {
-      persistence.save(windowManager.getState());
+    try {
+      if (windowManager && windowManager.managedWindows.length > 0) {
+        persistence.save(windowManager.getState());
+      }
+    } catch (e) {
+      console.error('Save timer error:', e);
     }
   }, 10000);
 });
 
 app.on('window-all-closed', () => {
-  if (foregroundMonitor) foregroundMonitor.stop();
-  if (cleanupTimer) clearInterval(cleanupTimer);
-  if (saveTimer) clearInterval(saveTimer);
-
-  if (windowManager) {
-    persistence.save(windowManager.getState());
-    windowManager.restoreAll();
-  }
-
+  performCleanup();
   app.quit();
 });
 
 app.on('before-quit', () => {
-  if (foregroundMonitor) foregroundMonitor.stop();
-
-  if (windowManager) {
-    persistence.save(windowManager.getState());
-    windowManager.restoreAll();
-  }
+  performCleanup();
 });
