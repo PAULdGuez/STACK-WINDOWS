@@ -1,6 +1,7 @@
 node_modules/
 out/
 dist/
+build/
 # Windows reserved device names
 nul
 *.log
