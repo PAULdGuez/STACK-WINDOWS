@@ -1,95 +1,115 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    />
+    <title>Stack Windows</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
-  <title>Stack Windows</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-
-<body>
-  <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
-    <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
-    <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
-      <button id="dndBtn" title="Do Not Disturb — hide all controls" onclick="toggleDndMode()">&#8856;</button>
-      <div id="colorPickerBtn" class="color-picker-btn"
-        title="Change background color"></div>
-      <input type="color" id="bgColorInput" value="#000000" style="display: none;">
-      <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode" onclick="toggleLightMode()">&#9788;</button>
-    </div>
-  </div>
-
-
-  <div class="section dimensions-section">
-    <div class="section-header">
-      <span>DIMENSIONS</span>
-      <button id="toggleDimsBtn" class="btn-green" onclick="toggleDimensionsSection()">Show</button>
-    </div>
-    <div class="dims-content hidden" id="dimsContent">
-      <div class="dims-row">
-        <label class="dims-label">
-          <input type="checkbox" id="customSizeToggle" onchange="onCustomSizeToggle()">
-          <span>Custom size</span>
-        </label>
+  <body>
+    <div class="header" style="display: flex; align-items: center; justify-content: space-between">
+      <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
+      <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag">
+        <button id="dndBtn" title="Do Not Disturb — hide all controls" onclick="toggleDndMode()">&#8856;</button>
+        <div id="colorPickerBtn" class="color-picker-btn" title="Change background color"></div>
+        <input type="color" id="bgColorInput" value="#000000" style="display: none" />
+        <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode" onclick="toggleLightMode()">
+          &#9788;
+        </button>
       </div>
-      <div class="dims-row dims-inputs hidden" id="dimsInputs">
-        <div class="dims-field">
-          <label class="dims-input-label">WIDTH</label>
-          <input type="number" id="customWidthInput" min="200" step="10" placeholder="auto">
+    </div>
+
+    <div class="section dimensions-section">
+      <div class="section-header">
+        <span>DIMENSIONS</span>
+        <button id="toggleDimsBtn" class="btn-green" onclick="toggleDimensionsSection()">Show</button>
+      </div>
+      <div class="dims-content hidden" id="dimsContent">
+        <div class="dims-row">
+          <label class="dims-label">
+            <input type="checkbox" id="customSizeToggle" onchange="onCustomSizeToggle()" />
+            <span>Custom size</span>
+          </label>
         </div>
-        <div class="dims-field">
-          <label class="dims-input-label">HEIGHT</label>
-          <input type="number" id="customHeightInput" min="200" step="10" placeholder="auto">
+        <div class="dims-row dims-inputs hidden" id="dimsInputs">
+          <div class="dims-field">
+            <label class="dims-input-label">WIDTH</label>
+            <input type="number" id="customWidthInput" min="200" step="10" placeholder="auto" />
+          </div>
+          <div class="dims-field">
+            <label class="dims-input-label">HEIGHT</label>
+            <input type="number" id="customHeightInput" min="200" step="10" placeholder="auto" />
+          </div>
+          <div class="dims-field">
+            <label class="dims-input-label">GAP</label>
+            <input type="number" id="stackGapInput" min="0" max="500" step="10" placeholder="0" />
+          </div>
+          <div class="dims-field">
+            <label class="dims-input-label">TOP</label>
+            <input type="number" id="topOffsetInput" min="0" max="500" step="10" placeholder="0" />
+          </div>
         </div>
-        <div class="dims-field">
-          <label class="dims-input-label">GAP</label>
-          <input type="number" id="stackGapInput" min="0" max="500" step="10" placeholder="0">
+        <div class="dims-row dims-inputs hidden" id="dimsButtons">
+          <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
+          <button class="btn btn-remove" onclick="resetCustomDimensions()">Reset</button>
         </div>
-        <div class="dims-field">
-          <label class="dims-input-label">TOP</label>
-          <input type="number" id="topOffsetInput" min="0" max="500" step="10" placeholder="0">
-        </div>
-      </div>
-      <div class="dims-row dims-inputs hidden" id="dimsButtons">
-        <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
-        <button class="btn btn-remove" onclick="resetCustomDimensions()">Reset</button>
       </div>
     </div>
-  </div>
-  <div class="divider"></div>
+    <div class="divider"></div>
 
-  <!-- Managed Windows Section (read-only status) -->
-  <div class="section" style="flex: 1;">
-    <div class="section-header">
-      <span id="managedSubtitle">MANAGED STACK</span>
-      <div style="display: flex; align-items: center; gap: 4px;">
-        <button id="dynamicReorderBtn" class="rename-toggle btn-blue" onclick="toggleDynamicReorder()" title="When active, the list order follows window focus: active window moves to bottom">Dynamic</button>
-        <button id="renameToggleBtn" class="rename-toggle btn-blue" onclick="toggleRenameMode()"
-          title="Toggle rename mode">Rename</button>
-        <span id="managedCount">0</span>
+    <!-- Managed Windows Section (read-only status) -->
+    <div class="section" style="flex: 1">
+      <div class="section-header">
+        <span id="managedSubtitle">MANAGED STACK</span>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button
+            id="dynamicReorderBtn"
+            class="rename-toggle btn-blue"
+            onclick="toggleDynamicReorder()"
+            title="When active, the list order follows window focus: active window moves to bottom"
+          >
+            Dynamic
+          </button>
+          <button
+            id="renameToggleBtn"
+            class="rename-toggle btn-blue"
+            onclick="toggleRenameMode()"
+            title="Toggle rename mode"
+          >
+            Rename
+          </button>
+          <span id="managedCount">0</span>
+        </div>
       </div>
+      <div class="window-list" id="managedList"></div>
     </div>
-    <div class="window-list" id="managedList"></div>
-  </div>
 
-  <div class="divider"></div>
+    <div class="divider"></div>
 
-  <!-- Available Windows Section (add/remove actions) -->
-  <div class="section" style="flex: 1;">
-    <div class="section-header">
-      <span>Available Windows</span>
-      <div style="display: flex; gap: 8px;">
-        <button id="sortAlphaBtn" class="rename-toggle btn-blue" onclick="toggleSortAlpha()" title="Sort alphabetically">A-Z</button>
-        <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
-        <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
+    <!-- Available Windows Section (add/remove actions) -->
+    <div class="section" style="flex: 1">
+      <div class="section-header">
+        <span>Available Windows</span>
+        <div style="display: flex; gap: 8px">
+          <button
+            id="sortAlphaBtn"
+            class="rename-toggle btn-blue"
+            onclick="toggleSortAlpha()"
+            title="Sort alphabetically"
+          >
+            A-Z
+          </button>
+          <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
+          <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
+        </div>
       </div>
+      <div class="window-list" id="availableList"></div>
     </div>
-    <div class="window-list" id="availableList"></div>
-  </div>
 
-  <script src="app.js"></script>
-</body>
-
+    <script src="app.js"></script>
+  </body>
 </html>
