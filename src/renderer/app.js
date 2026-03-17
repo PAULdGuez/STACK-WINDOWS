@@ -39,7 +39,13 @@ let availableWindows = [];
 
       const toast = document.createElement('div');
       toast.className = 'undo-toast';
-      toast.innerHTML = 'Removed <strong>' + title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong> <button class="undo-btn" onclick="undoRemove(' + hwnd + ')">Undo</button>';
+      const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'undo-btn';
+      undoBtn.textContent = 'Undo';
+      undoBtn.addEventListener('click', () => undoRemove(hwnd));
+      toast.innerHTML = 'Removed <strong>' + safeTitle + '</strong> ';
+      toast.appendChild(undoBtn);
       document.body.appendChild(toast);
       _undoToastEl = toast;
 
@@ -954,6 +960,19 @@ let availableWindows = [];
         if (_interactionGuard) return;
         refreshAvailable();
       });
+
+      // Event listeners (replacing inline onclick/onchange attributes for CSP compliance)
+      document.getElementById('dndBtn').addEventListener('click', toggleDndMode);
+      document.getElementById('lightModeBtn').addEventListener('click', toggleLightMode);
+      document.getElementById('toggleDimsBtn').addEventListener('click', toggleDimensionsSection);
+      document.getElementById('customSizeToggle').addEventListener('change', onCustomSizeToggle);
+      document.getElementById('applyDimsBtn').addEventListener('click', applyCustomDimensions);
+      document.getElementById('resetDimsBtn').addEventListener('click', resetCustomDimensions);
+      document.getElementById('dynamicReorderBtn').addEventListener('click', toggleDynamicReorder);
+      document.getElementById('renameToggleBtn').addEventListener('click', toggleRenameMode);
+      document.getElementById('sortAlphaBtn').addEventListener('click', toggleSortAlpha);
+      document.getElementById('refreshBtn').addEventListener('click', refreshAvailable);
+      document.getElementById('toggleAvailableBtn').addEventListener('click', () => toggleAvailableVisibility());
 
     }
 

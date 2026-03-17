@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
   <title>Stack Windows</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,11 +13,11 @@
   <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
     <h1 id="stackTitle" contenteditable="true" spellcheck="false" title="Click to rename stack">STACK WINDOWS</h1>
     <div style="display: flex; align-items: center; gap: 8px; -webkit-app-region: no-drag;">
-      <button id="dndBtn" title="Do Not Disturb — hide all controls" onclick="toggleDndMode()">&#8856;</button>
+      <button id="dndBtn" title="Do Not Disturb — hide all controls">&#8856;</button>
       <div id="colorPickerBtn" class="color-picker-btn"
         title="Change background color"></div>
       <input type="color" id="bgColorInput" value="#000000" style="display: none;">
-      <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode" onclick="toggleLightMode()">&#9788;</button>
+      <button id="lightModeBtn" class="light-mode-btn" title="Toggle light/dark mode">&#9788;</button>
     </div>
   </div>
 
@@ -25,12 +25,12 @@
   <div class="section dimensions-section">
     <div class="section-header">
       <span>DIMENSIONS</span>
-      <button id="toggleDimsBtn" class="btn-green" onclick="toggleDimensionsSection()">Show</button>
+      <button id="toggleDimsBtn" class="btn-green">Show</button>
     </div>
     <div class="dims-content hidden" id="dimsContent">
       <div class="dims-row">
         <label class="dims-label">
-          <input type="checkbox" id="customSizeToggle" onchange="onCustomSizeToggle()">
+          <input type="checkbox" id="customSizeToggle">
           <span>Custom size</span>
         </label>
       </div>
@@ -53,8 +53,8 @@
         </div>
       </div>
       <div class="dims-row dims-inputs hidden" id="dimsButtons">
-        <button class="btn btn-add" id="applyDimsBtn" onclick="applyCustomDimensions()">Apply</button>
-        <button class="btn btn-remove" onclick="resetCustomDimensions()">Reset</button>
+        <button class="btn btn-add" id="applyDimsBtn">Apply</button>
+        <button class="btn btn-remove" id="resetDimsBtn">Reset</button>
       </div>
     </div>
   </div>
@@ -65,8 +65,8 @@
     <div class="section-header">
       <span id="managedSubtitle">MANAGED STACK</span>
       <div style="display: flex; align-items: center; gap: 4px;">
-        <button id="dynamicReorderBtn" class="rename-toggle btn-blue" onclick="toggleDynamicReorder()" title="When active, the list order follows window focus: active window moves to bottom">Dynamic</button>
-        <button id="renameToggleBtn" class="rename-toggle btn-blue" onclick="toggleRenameMode()"
+        <button id="dynamicReorderBtn" class="rename-toggle btn-blue" title="When active, the list order follows window focus: active window moves to bottom">Dynamic</button>
+        <button id="renameToggleBtn" class="rename-toggle btn-blue"
           title="Toggle rename mode">Rename</button>
         <span id="managedCount">0</span>
       </div>
@@ -81,9 +81,9 @@
     <div class="section-header">
       <span>Available Windows</span>
       <div style="display: flex; gap: 8px;">
-        <button id="sortAlphaBtn" class="rename-toggle btn-blue" onclick="toggleSortAlpha()" title="Sort alphabetically">A-Z</button>
-        <button class="btn-blue" onclick="refreshAvailable()">Refresh</button>
-        <button id="toggleAvailableBtn" class="btn-green" onclick="toggleAvailableVisibility()">Hide</button>
+        <button id="sortAlphaBtn" class="rename-toggle btn-blue" title="Sort alphabetically">A-Z</button>
+        <button id="refreshBtn" class="btn-blue">Refresh</button>
+        <button id="toggleAvailableBtn" class="btn-green">Hide</button>
       </div>
     </div>
     <div class="window-list" id="availableList"></div>
