@@ -541,8 +541,17 @@ class WindowManager {
    * @param {number|null} height
    */
   setCustomDimensions(width, height) {
-    this.customWidth = width !== null && width !== undefined ? Math.max(200, Number(width)) : null;
-    this.customHeight = height !== null && height !== undefined ? Math.max(200, Number(height)) : null;
+    const MAX_DIM = 10000;
+    if (width !== null && width !== undefined) {
+      this.customWidth = Math.max(200, Math.min(MAX_DIM, Math.round(width)));
+    } else {
+      this.customWidth = null;
+    }
+    if (height !== null && height !== undefined) {
+      this.customHeight = Math.max(200, Math.min(MAX_DIM, Math.round(height)));
+    } else {
+      this.customHeight = null;
+    }
   }
 
   /**
