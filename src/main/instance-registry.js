@@ -29,7 +29,7 @@ class InstanceRegistry {
     this._DEBOUNCE_MS = 2000;
     this._lockOptions = {
       stale: 10000,
-      retries: { retries: 3, minTimeout: 100, maxTimeout: 1000 }
+      retries: { retries: 3, minTimeout: 100, maxTimeout: 1000 },
     };
   }
 
@@ -82,7 +82,7 @@ class InstanceRegistry {
       pid: process.pid,
       startedAt: new Date().toISOString(),
       lastHeartbeat: new Date().toISOString(),
-      managedHwnds: []
+      managedHwnds: [],
     };
 
     this._writeRegistry(registry);
@@ -160,7 +160,9 @@ class InstanceRegistry {
     } catch (e) {
       console.error('InstanceRegistry: failed to write registry:', e);
       // Clean up temp file if rename failed
-      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      try {
+        fs.unlinkSync(tmpPath);
+      } catch (_) {}
     } finally {
       if (release) {
         try {
