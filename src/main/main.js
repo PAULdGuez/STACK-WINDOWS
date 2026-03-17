@@ -94,6 +94,16 @@ function getWorkArea(point) {
 function createWindow() {
   const workArea = getWorkArea();
 
+  /**
+   * Security Configuration:
+   * - contextIsolation: true — Isolates renderer from Node.js context
+   * - nodeIntegration: false — No direct Node.js access from renderer
+   * - sandbox: true — OS-level sandboxing for renderer process
+   * - webSecurity: true — Enforces same-origin policy
+   * - webviewTag: false — Prevents <webview> tag usage
+   * - allowRunningInsecureContent: false — Blocks mixed HTTP/HTTPS content
+   * - will-navigate/will-redirect handlers prevent unauthorized navigation
+   */
   mainWindow = new BrowserWindow({
     width: CONTROLLER_WIDTH,
     height: Math.floor(workArea.height * 0.9),
@@ -111,7 +121,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      webviewTag: false,
+      allowRunningInsecureContent: false
     }
   });
 
