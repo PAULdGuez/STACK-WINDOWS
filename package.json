@@ -7,7 +7,9 @@
     "start": "electron .",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "format": "prettier --write \"src/**/*.{js,css,html}\""
+    "format": "prettier --write \"src/**/*.{js,css,html}\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "type": "commonjs",
   "dependencies": {
@@ -19,6 +21,7 @@
     "electron": "35.7.5",
     "eslint": "10.0.3",
     "eslint-config-prettier": "10.1.8",
-    "prettier": "3.8.1"
+    "prettier": "3.8.1",
+    "vitest": "4.1.0"
   }
 }
