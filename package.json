@@ -4,13 +4,20 @@
   "description": "Spatial window organizer - persistent window group manager using Win32 API",
   "main": "src/main/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,css,html}\""
   },
   "type": "commonjs",
   "dependencies": {
     "koffi": "2.15.1"
   },
   "devDependencies": {
-    "electron": "35.7.5"
+    "@eslint/js": "10.0.1",
+    "electron": "35.7.5",
+    "eslint": "10.0.3",
+    "eslint-config-prettier": "10.1.8",
+    "prettier": "3.8.1"
   }
 }
