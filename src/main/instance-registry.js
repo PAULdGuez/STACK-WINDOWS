@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { app } = require('electron');
+const lockfile = require('proper-lockfile');
 
 /**
  * Manages a shared registry of running StackWindowsElectron instances.
@@ -26,6 +27,10 @@ class InstanceRegistry {
     this.instanceId = null;
     this._debounceTimer = null;
     this._DEBOUNCE_MS = 2000;
+    this._lockOptions = {
+      stale: 10000,
+      retries: { retries: 3, minTimeout: 100, maxTimeout: 1000 }
+    };
   }
 
   /**
@@ -50,6 +55,21 @@ class InstanceRegistry {
   }
 
   /**
+   * Ensure the registry file exists so proper-lockfile can lock it.
+   * proper-lockfile requires the target file to exist before locking.
+   * @private
+   */
+  _ensureFileExists() {
+    if (!fs.existsSync(this.filePath)) {
+      try {
+        fs.writeFileSync(this.filePath, JSON.stringify({ instances: {} }, null, 2), 'utf-8');
+      } catch (e) {
+        // Ignore — if we can't create it, locking will fail gracefully
+      }
+    }
+  }
+
+  /**
    * Register this instance in the shared registry file.
    * Prunes dead instances before writing.
    * @private
@@ -68,13 +88,28 @@ class InstanceRegistry {
   }
 
   /**
-   * Read the registry file. Returns an empty registry on any failure.
+   * Read the registry file under an exclusive lock.
+   * Returns an empty registry on any failure (including lock failure).
    * @returns {{ instances: Object }}
    * @private
    */
   _readRegistry() {
+    if (!this.filePath) {
+      return { instances: {} };
+    }
+
+    this._ensureFileExists();
+
+    let release = null;
     try {
-      if (!this.filePath || !fs.existsSync(this.filePath)) {
+      release = lockfile.lockSync(this.filePath, this._lockOptions);
+    } catch (e) {
+      console.error('InstanceRegistry: failed to acquire lock for read (best-effort):', e.message);
+      // Best-effort: proceed without lock
+    }
+
+    try {
+      if (!fs.existsSync(this.filePath)) {
         return { instances: {} };
       }
       const raw = fs.readFileSync(this.filePath, 'utf-8');
@@ -86,15 +121,37 @@ class InstanceRegistry {
     } catch (e) {
       console.error('InstanceRegistry: failed to read registry:', e);
       return { instances: {} };
+    } finally {
+      if (release) {
+        try {
+          release();
+        } catch (e) {
+          console.error('InstanceRegistry: failed to release read lock:', e.message);
+        }
+      }
     }
   }
 
   /**
-   * Write the registry to disk using an atomic write (temp file + rename).
+   * Write the registry to disk using an exclusive lock and atomic write (temp file + rename).
    * @param {{ instances: Object }} registry
    * @private
    */
   _writeRegistry(registry) {
+    if (!this.filePath) {
+      return;
+    }
+
+    this._ensureFileExists();
+
+    let release = null;
+    try {
+      release = lockfile.lockSync(this.filePath, this._lockOptions);
+    } catch (e) {
+      console.error('InstanceRegistry: failed to acquire lock for write (best-effort):', e.message);
+      // Best-effort: proceed without lock using atomic write as defense-in-depth
+    }
+
     const tmpPath = this.filePath + '.tmp';
     try {
       fs.writeFileSync(tmpPath, JSON.stringify(registry, null, 2), 'utf-8');
@@ -103,6 +160,14 @@ class InstanceRegistry {
       console.error('InstanceRegistry: failed to write registry:', e);
       // Clean up temp file if rename failed
       try { fs.unlinkSync(tmpPath); } catch (_) {}
+    } finally {
+      if (release) {
+        try {
+          release();
+        } catch (e) {
+          console.error('InstanceRegistry: failed to release write lock:', e.message);
+        }
+      }
     }
   }
 
